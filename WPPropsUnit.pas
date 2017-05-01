@@ -13,7 +13,7 @@ var
   WPPropsWin: PObject_;
   OnWPChanged: TProcedure = nil;
 
-procedure ShowProps(NewMarker: TMarker);
+procedure ShowWPProps(NewMarker: TMarker);
 
 implementation
 
@@ -24,7 +24,7 @@ var
   SaveHook, CurPosHook: THook;
 
 // Open Properties Window
-procedure ShowProps(NewMarker: TMarker);
+procedure ShowWPProps(NewMarker: TMarker);
 begin
   if Assigned(NewMarker) then
   begin

@@ -9,7 +9,7 @@ uses
   imagesunit, positionunit, osmhelper, networkingunit, prefsunit,
   Exec, Utility, intuition, agraphics, Layers, AmigaDos,
   cybergraphics, mui, muihelper, MUIWrap, prefswinunit,
-  StatisticsUnit, waypointunit, WPPropsUnit,
+  StatisticsUnit, waypointunit, WPPropsUnit, TrackPropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math;
 
@@ -1123,7 +1123,7 @@ begin
   if (Active >= 0) and (Active < MarkerList.Count) then
   begin
     Ma := MarkerList[Active];
-    ShowProps(Ma);
+    ShowWPProps(Ma);
   end;
 end;
 
@@ -1140,6 +1140,21 @@ begin
     TrackList.Delete(Active);
     DoMethod(TracksListEntry, [MUIM_List_Remove, Active]);
     MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+  end;
+end;
+
+// Edit Track
+function EditTrackEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Tr: TTrack;
+  Active: Integer;
+begin
+  Result := 0;
+  Active := MH_Get(TracksListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < TrackList.Count) then
+  begin
+    Tr := TrackList[Active];
+    ShowTrackProps(Tr);
   end;
 end;
 
@@ -1210,6 +1225,12 @@ begin
   MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
 end;
 
+// Tracks Property edit changed something ;-)
+procedure TrackChangedEvent;
+begin
+  UpdateTracks;
+  MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+end;
 
 
 // *********************************************************************
@@ -1224,8 +1245,8 @@ var
   MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook, CloseSideHook: THook;
   RemTrack: PObject_;
   RemTrackHook, DblTrackHook: Thook;
-  AddWay, RemWay, EditWay: PObject_;
-  AddWayHook, RemWayHook, EditWayHook: Thook;
+  AddWay, RemWay, EditWay, EditTrack: PObject_;
+  AddWayHook, RemWayHook, EditWayHook, EditTrackHook: Thook;
   SideCloseButton: PObject_;
   StartTime: Int64;
   WayMenuHooks: array[0..0] of THook;
@@ -1236,6 +1257,7 @@ begin
   OnUpdatePrefs := @UpdatePrefs;
   //
   OnWPChanged := @WPChangedEvent;
+  OnTrackChanged := @TrackChangedEvent;
   try
     // Create the new custom class with a call to MH_CreateCustomClass().
     // Caution: This function returns not a struct IClass, but a
@@ -1325,7 +1347,7 @@ begin
             TAG_DONE])),
           Child, AsTag(MH_HGroup([
               Child, AsTag(MH_Button(RemTrack, 'Remove')),
-              Child, AsTag(MH_Button('Show/Edit')),
+              Child, AsTag(MH_Button(EditTrack, 'Show/Edit')),
             TAG_DONE])),
           TAG_DONE])),
         TAG_DONE])),
@@ -1439,6 +1461,7 @@ begin
       SubWindow, AsTag(PrefsWin),
       SubWindow, AsTag(StatWin),
       SubWindow, AsTag(WPPropsWin),
+      SubWindow, AsTag(TrackPropsWin),
       TAG_DONE]);
     if not Assigned(app) then
     begin
@@ -1468,6 +1491,7 @@ begin
     ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, TracksList, nil, @DblTrackHook, @DblTrackEvent);
     // Remove Track
     ConnectHookFunction(MUIA_Pressed, AsTag(False), RemTrack, nil, @RemTrackHook, @RemTrackEvent);
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), EditTrack, nil, @EditTrackHook, @EditTrackEvent);
     // close side panel
     ConnectHookFunction(MUIA_Pressed, AsTag(False), SideCloseButton, nil, @CloseSideHook, @CloseSideEvent);
 
