@@ -76,6 +76,7 @@ procedure ShowSidePanel(ShowIt: Boolean); forward;
 procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect); forward;
 procedure DrawMarker(RP: PRastPort; DrawRange: TRect); forward;
 procedure OpenPrefs; forward;
+procedure UpdateWayPoints; forward;
 
 
 //############################################
@@ -229,6 +230,7 @@ begin
   Result := DoSuperMethodA(cl,obj,msg);
   if OBJ_IsInObject(Msg^.Imsg^.MouseX, Msg^.Imsg^.MouseY, Obj) and not Boolean(MH_Get(Window, MUIA_Window_Sleep)) then
   begin
+    writeln('Event: ',Msg^.imsg^.IClass,' ', Msg^.imsg^.Code);
     case Msg^.imsg^.IClass of
       // Mouse Buttons
       IDCMP_MOUSEBUTTONS:
@@ -253,6 +255,7 @@ begin
               LastMouse := DownPos;
               StartCoord := MiddlePos;
             end;
+            Result := MUI_EventHandlerRC_Eat;
           end;
           SELECTUP:
           begin
@@ -261,9 +264,9 @@ begin
               LeftDown := False;
               RefreshImage();
             end;
+            Result := MUI_EventHandlerRC_Eat;
           end;
         end;
-        Result := MUI_EventHandlerRC_Eat;
       end;
       // Mouse Move
       IDCMP_MOUSEMOVE:
@@ -331,6 +334,19 @@ end;
 // *********************************************************************
 // other Procedures
 
+// make a new Waypoint
+procedure NewWpt;
+var
+  Marker: TMarker;
+begin
+  Marker := TMarker.Create;
+  Marker.Position.Lat := MiddlePos.Lat;
+  Marker.Position.Lon := MiddlePos.Lon;
+  Marker.Name := 'Marker ' + IntToStr(MarkerList.Add(Marker));
+  UpdateWayPoints;
+end;
+
+
 // Draw the middle Marker
 procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
 var
@@ -339,8 +355,8 @@ var
   Pen: LongWord;
   {$endif}
 begin
-  PTMid.X := DrawRange.Width div 2;
-  PTMid.Y := DrawRange.Height div 2;
+  PTMid.X := DrawRange.Width div 2 + 4;
+  PTMid.Y := DrawRange.Height div 2 + 4;
   {$ifdef Amiga68k}
   Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, MiddleMarkerColor shl 8,MiddleMarkerColor shl 16,MiddleMarkerColor shl 24, nil);
   SetAPen(RP, Pen);
@@ -596,6 +612,7 @@ begin
       MarkerList[i].FullName := '(' + MarkerList[i].FullName + ')';
     DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(MarkerList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
+  RedrawImage := True;
 end;
 
 
@@ -897,6 +914,31 @@ begin
   end;
 end;
 
+
+
+// AddWayPoint Button
+function AddWayEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+begin
+  NewWpt;
+end;
+
+// Remove WayPoint Button
+function RemWayEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Active: LongInt;
+  Ma: TMarker;
+begin
+  Result := 0;
+  Active := MH_Get(WayPointListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < MarkerList.Count) then
+  begin
+    Ma := MarkerList[Active];
+    MarkerList.Delete(Active);
+    DoMethod(WaypointListEntry, [MUIM_List_Remove, Active]);
+    MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+  end;
+end;
+
 //###################################
 // WayPoint Menu entries
 function WPToggleEvent(Hook: PHook; Obj: PObject_; AMsg: Pointer): NativeInt;
@@ -958,6 +1000,8 @@ end;
 
 
 
+
+
 // *********************************************************************
 // ####################################
 // Main Routine
@@ -966,8 +1010,10 @@ procedure StartMe;
 var
   Sigs: LongInt;
   MCC: PMUI_CustomClass;
-  StrCoord: string;
+  StrCoord: string;  
   MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook, CloseSideHook: THook;
+  AddWay, RemWay: PObject_;
+  AddWayHook, RemWayHook: Thook;
   SideCloseButton: PObject_;
   StartTime: Int64;
   WayMenuHooks: array[0..0] of THook;
@@ -1049,8 +1095,8 @@ begin
           Child, AsTag(MH_HGroup([
               Child, AsTag(MH_Button('Load')),
               Child, AsTag(MH_Button('Save')),
-              Child, AsTag(MH_Button('Add')),
-              Child, AsTag(MH_Button('Remove')),
+              Child, AsTag(MH_Button(AddWay, 'Add')),
+              Child, AsTag(MH_Button(RemWay, 'Remove')),
               Child, AsTag(MH_Button('Show/Edit')),
             TAG_DONE])),
           TAG_DONE])),
@@ -1138,6 +1184,10 @@ begin
               MUIA_Background, MUII_BACKGROUND,
               MUIA_Font, AsTag(MUIV_Font_Button),
               MUIA_FillArea, AsTag(False),
+              MUIA_InnerLeft, 0,
+              MUIA_InnerTop, 0,
+              MUIA_InnerBottom, 0,
+              MUIA_InnerRight, 0,
               TAG_DONE])),
             TAG_DONE])),
           Child, AsTag(MH_HGroup([
@@ -1171,14 +1221,19 @@ begin
     ConnectHookFunction(MUIA_Window_MenuAction, MUIV_EveryTime, Window, nil, @MenuHook, @MenuEvent); // MainMenu
     // WayPointMenu events
     ConnectHookFunction(MUIA_Menuitem_Trigger, MUIV_EveryTime, WM1, nil, @WayMenuHooks[0], @WPToggleEvent);
-
+    // Add WayPoint Hook
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), AddWay, nil, @AddWayHook, @AddWayEvent);
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), RemWay, nil, @RemWayHook, @RemWayEvent);
+    // close side panel
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), SideCloseButton, nil, @CloseSideHook, @CloseSideEvent);
+    
 
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,
       AsTag(PrefsWin), 3, MUIM_SET, MUIA_Window_Open, AsTag(False)]);
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_Open, MUI_FALSE,
       AsTag(Window), 3, MUIM_SET, MUIA_Window_Sleep, AsTag(False)]);
     //
-    ConnectHookFunction(MUIA_Pressed, AsTag(False), SideCloseButton, nil, @CloseSideHook, @CloseSideEvent);
+    
     // Update waypoints before open the window first time
     UpdateWayPoints;
     //
