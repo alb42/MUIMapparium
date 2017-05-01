@@ -9,11 +9,12 @@ uses
   imagesunit, positionunit, osmhelper, networkingunit, prefsunit,
   Exec, Utility, intuition, agraphics, Layers, AmigaDos,
   cybergraphics, mui, muihelper, MUIWrap, prefswinunit,
-  StatisticsUnit,
+  StatisticsUnit, waypointunit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math;
 
 const
+  // MainMenu
   MID_QUIT       = 1;
   MID_SIDEPANEL  = 2;
   MID_ZOOMIN     = 3;
@@ -21,6 +22,10 @@ const
   MID_FINDME     = 5;
   MID_Prefs      = 6;
   MID_Statistics = 7;
+  // WayMenu
+  WID_Toggle = 1;
+
+  TabTitles: array[0..2] of PChar = ('Search'#0, 'WayPoints'#0, nil);
 
 type
   TMyData = record
@@ -34,7 +39,11 @@ var
   LastMouse: TPoint;
   LeftDown: Boolean;
   StartCoord: TCoord;
-  MapPanel, CoordsLabel, SearchEdit, SearchList, SearchListEntry,
+  MapPanel, CoordsLabel,
+  // Search
+  SearchEdit, SearchList, SearchListEntry,
+  // Waypoints
+  WayPointList, WaypointListEntry, WayPointMenu,
   // Basic
   App, Window: PObject_;
   // MainWindow
@@ -49,11 +58,14 @@ var
   MiddleMarkerColor: LongWord = 0; //
   MiddleMarkerSize: LongWord = 1;
 
+  WM1: PObject_;
+
   MyTv: record
     Secs, Micros: LongWord;
   end;
 
 function PixelToPos(T: TPoint): TCoord; forward;
+function PosToPixel(C: TCoord): TPoint; forward;
 procedure RefreshImage; forward;
 procedure ZoomIn(ToPos: Boolean); forward;
 procedure ZoomOut; forward;
@@ -62,6 +74,7 @@ function BoundingBoxToZoom(BoundString: string): Integer; forward;
 procedure ShowSidePanel(ShowIt: Boolean); forward;
 
 procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect); forward;
+procedure DrawMarker(RP: PRastPort; DrawRange: TRect); forward;
 procedure OpenPrefs; forward;
 
 
@@ -173,6 +186,7 @@ begin
   // Bitmap and layer for the temp rastport
   LocalRP^.Bitmap := AllocBitMap(DrawRect.Width, DrawRect.Height, rp^.Bitmap^.Depth, BMF_MINPLANES or BMF_DISPLAYABLE, rp^.Bitmap);
   LocalRP^.Layer := CreateUpFrontHookLayer(li, LocalRP^.Bitmap, 0, 0, DrawRect.Width - 1, DrawRect.Height - 1, LAYERSIMPLE, nil, nil);
+  SetFont(LocalRP, rp^.Font);
   // initialize to background color
   SetAPen(LocalRP, 0);
   SetBPen(LocalRP, 0);
@@ -186,6 +200,8 @@ begin
     WritePixelArray(FullBitmap.Data, 0, 0, FullBitmap.Width * SizeOf(LongWord), LocalRP, PTMid.X + ((0 + GPixOff.X)*256) - LOffset.X, PTMid.Y + ((0 + GPixOff.Y)*256) - LOffset.Y, FullBitmap.Width, FullBitmap.Height, RECTFMT_RGBA);
     RedrawImage := False;
   end;
+  // DrawMarker
+  DrawMarker(LocalRP, DrawRect);
   // Draw Middle Marker
   DrawMiddleMarker(LocalRP, DrawRect);
   // blit the temp rastport to the real one, one step so no flickering
@@ -319,11 +335,15 @@ end;
 procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
 var
   PTMid: TPoint;
+  {$ifdef Amiga68k}
+  Pen: LongWord;
+  {$endif}
 begin
   PTMid.X := DrawRange.Width div 2;
   PTMid.Y := DrawRange.Height div 2;
   {$ifdef Amiga68k}
-  SetAPen(RP, ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, MiddleMarkerColor shl 8,MiddleMarkerColor shl 16,MiddleMarkerColor shl 24, nil));
+  Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, MiddleMarkerColor shl 8,MiddleMarkerColor shl 16,MiddleMarkerColor shl 24, nil);
+  SetAPen(RP, Pen);
   {$else}
   SetRPAttrs(RP,[
     RPTAG_PenMode, AsTag(False),
@@ -345,6 +365,86 @@ begin
       Draw(RP, PTMid.X, DrawRange.Height);
     end;
   end;
+  {$ifdef Amiga68k}
+  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
+  {$endif}
+end;
+
+// Draw the Waypoints
+procedure DrawMarker(RP: PRastPort; DrawRange: TRect);
+const
+  AREA_BYTES = 4000;
+var
+  WPColor: LongWord = $0000FF;
+  i,j: Integer;
+  Points: packed array of packed record
+    x,y: SmallInt;
+  end;
+  pt: TPoint;
+  Ras: TPlanePtr;
+  TRas: TTmpRas;
+  WarBuff: array[0..AREA_BYTES] of Word;
+  ari: TAreaInfo;
+  {$ifdef Amiga68k}
+  Pen: LongWord;
+  {$endif}
+  TE: TTextExtent;
+  MarkerText: string;
+begin
+  {$ifdef Amiga68k}
+  Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, WPColor shl 8,WPColor shl 16,WPColor shl 24, nil);
+  SetAPen(RP, Pen);
+  {$else}
+  SetRPAttrs(RP,[
+    RPTAG_PenMode, AsTag(False),
+    RPTAG_FGColor, AsTag(WPColor),
+    TAG_DONE]);
+  {$endif}
+  SetDrMd(RP, JAM1);
+  // make tmprast
+  Ras := AllocRaster(DrawRange.Width, DrawRange.Height);
+  InitTmpRas(@TRas, ras, DrawRange.Width * DrawRange.Height * 3);
+  for i := 0 to MarkerList.Count - 1 do
+  begin
+    if MarkerList[i].Visible then
+    begin
+      SetLength(Points, 4);
+      pt := PosToPixel(MarkerList[i].Position);
+      Points[0].X := pt.x;
+      Points[0].Y := pt.y;
+      if (Points[0].X >= -20) and (Points[0].Y >= -20) and (Points[0].X <= DrawRange.Width + 20) and (Points[0].Y <= DrawRange.Height + 20) then
+      begin
+        Points[1].X := Max(0, Points[0].X - 5);
+        Points[1].Y := Max(0, Points[0].Y - 20);
+        Points[2].X := Max(0, Points[0].X + 5);
+        Points[2].Y := Max(0, Points[0].Y - 20);
+        Points[3].X := Points[0].X;
+        Points[3].Y := Points[0].Y;
+
+        InitArea(@ari, @WarBuff[0], AREA_BYTES div 5);
+        RP^.TmpRas := @TRas;
+        RP^.AreaInfo := @Ari;
+        AreaMove(RP, Points[0].X, Points[0].Y);
+        for j := 0 to High(Points) do
+          AreaDraw(RP, Points[j].X, Points[j].Y);
+        AreaEnd(RP);
+
+        //TE := Ca.TextExtent(MarkerText);
+        MarkerText := MarkerList[i].Name;
+        TextExtent(Rp, PChar(MarkerText), Length(MarkerText), @TE);
+
+        GFXMove(RP, Points[0].X - (TE.te_Width div 2), Points[1].Y - TE.te_Height div 2);
+        GfxText(Rp, PChar(MarkerText), Length(MarkerText));
+        //Ca.TextOut(Points[0].X - (TE.CY div 2), Points[1].Y - TE.cy, AnsiToUtf8(MarkerText));
+      end;
+    end;
+  end;
+  RP^.TmpRas := nil;
+  RP^.AreaInfo := nil;
+  FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
+  {$ifdef Amiga68k}
+  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
+  {$endif}
 end;
 
 
@@ -376,6 +476,19 @@ begin
     Result.Lon := MiddlePos.Lon - ((PTMid.X - T.X) * GResX);
     Result.Lat := MiddlePos.Lat - ((PTMid.Y - T.Y) * GResY);
   end;
+end;
+
+function PosToPixel(C: TCoord): TPoint;
+var
+  PTMid: TPoint;
+begin
+  Result.X := 0;
+  Result.Y := 0;
+  if (GResX = 0) or (GResY = 0) or not assigned(MapPanel) then
+    Exit;
+  PTMid := Point((Obj_Width(MapPanel) div 2), (Obj_Height(MapPanel) div 2));
+  Result.X := Round(Max(-MaxInt / 2, Min(MaxInt / 2, 0 - (((MiddlePos.Lon - C.Lon) / GResX) - PTMid.X))));
+  Result.Y := Round(Max(-MaxInt / 2, Min(MaxInt / 2, 0 - (((MiddlePos.Lat - C.Lat) / GResY) - PTMid.Y))));
 end;
 
 // calculate the Zoom level, that the Bounding box is completely visible
@@ -468,6 +581,23 @@ begin
   StrCoord := Format('%25s', [StrCoord]);
   MH_Set(CoordsLabel, MUIA_Text_Contents, AsTag(PChar(StrCoord)));
 end;
+
+// Update WayPoints;
+procedure UpdateWayPoints;
+var
+  i: Integer;
+  str: string;
+begin
+  DoMethod(WaypointListEntry, [MUIM_List_Clear]);
+  for i := 0 to MarkerList.Count - 1 do
+  begin
+    MarkerList[i].FullName := MarkerList[i].Name;
+    if not MarkerList[i].Visible then
+      MarkerList[i].FullName := '(' + MarkerList[i].FullName + ')';
+    DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(MarkerList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
+  end;
+end;
+
 
 // Search for SearchTerm -> show in sidepanel, open Sidepanel
 procedure SearchEntry(SearchTerm: AnsiString);
@@ -711,6 +841,7 @@ end;
 // Menu Event
 function MenuEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 begin
+  writeln('menu event');
   case MH_Get(App, MUIA_Application_MenuAction) of
     MID_Quit: Running := False;
     MID_SidePanel: ShowSidePanel(Boolean(MH_Get(MenuSidePanel, MUIA_Menuitem_Checked)));
@@ -732,7 +863,6 @@ var
 begin
   Result := 0;
   Active := MH_Get(SearchListEntry, MUIA_List_Active);
-  Sr := nil;
   if (Active >= 0) and (Active < SRes.Count) then
   begin
     Sr := SRes[Active];
@@ -741,8 +871,50 @@ begin
       MiddlePos.Lat := SR.Lat;
       MiddlePos.Lon := SR.Lon;
       CurZoom:= SR.Zoom;
+      RedrawImage := True;
+    end;
+  end;
+end;
+
+//###################################
+// Double Click to WayPoint
+function DblWayPointEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Active: LongInt;
+  Ma: TMarker;
+begin
+  Result := 0;
+  Active := MH_Get(WayPointListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < MarkerList.Count) then
+  begin
+    Ma := MarkerList[Active];
+    if Assigned(Ma) then
+    begin
+      MiddlePos.Lat := Ma.Position.Lat;
+      MiddlePos.Lon := Ma.Position.Lon;
       RefreshImage;
     end;
+  end;
+end;
+
+//###################################
+// WayPoint Menu entries
+function WPToggleEvent(Hook: PHook; Obj: PObject_; AMsg: Pointer): NativeInt;
+var
+  Active: Integer;
+  Ma: TMarker;
+begin
+  Active := MH_Get(WayPointListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < MarkerList.Count) then
+  begin
+    Ma := MarkerList[Active];
+    Ma.Visible := not Ma.Visible;
+    Ma.FullName := Ma.Name;
+    if not Ma.Visible then
+      Ma.FullName := '(' + Ma.FullName + ')';
+    DoMethod(WaypointListEntry, [MUIM_List_Remove, Active]);
+    DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
+    MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
   end;
 end;
 
@@ -754,6 +926,12 @@ begin
     MH_Set(MenuSidePanel, MUIA_Menuitem_Checked, AsTag(ShowIt));
   MH_Set(SidePanel, MUIA_ShowMe, AsTag(ShowIt));
   MH_Set(MainBalance, MUIA_ShowMe, AsTag(ShowIt));
+end;
+// event for the close button
+function CloseSideEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+begin
+  Result := 0;
+  ShowSidePanel(False);
 end;
 
 //##################################
@@ -778,6 +956,8 @@ begin
   RedrawImage := True;
 end;
 
+
+
 // *********************************************************************
 // ####################################
 // Main Routine
@@ -787,8 +967,10 @@ var
   Sigs: LongInt;
   MCC: PMUI_CustomClass;
   StrCoord: string;
-  MenuHook, SearchAckHook, DblSearchHook: THook;
+  MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook, CloseSideHook: THook;
+  SideCloseButton: PObject_;
   StartTime: Int64;
+  WayMenuHooks: array[0..0] of THook;
 begin
   SRes := TSearchResults.Create;
   // Prefs
@@ -815,26 +997,71 @@ begin
     StrCoord := FloatToStrF(MiddlePos.Lat, ffFixed, 8,6) + ' ; ' + FloatToStrF(MiddlePos.Lon, ffFixed, 8,6) + ' ; ' + IntToStr(CurZoom) + '  ';
     StrCoord := Format('%25s', [StrCoord]);
     //
+    // Popupmenu for WayPointList ++++++++++++++++++++++++++++++++++++++
+    WayPointMenu := MH_Menustrip([
+      Child, AsTag(MH_Menu('Waypoint', [
+        Child, AsTag(MH_MenuItem(WM1, [
+          MUIA_Menuitem_Title, AsTag(PChar('Toggle visibility')),
+          MUIA_UserData, WID_Toggle,
+          TAG_DONE])),
+        TAG_DONE])),
+      TAG_DONE]);
+    //
+    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    //
     // Side Panel
-    SidePanel := MH_HGroup([
+    SidePanel := MH_VGroup([
       MUIA_ShowMe, AsTag(False),
-      Child, AsTag(MH_ListView(SearchList, [
-        MUIA_Weight, 100,
-        MUIA_Listview_Input, MUI_TRUE,
-        MUIA_Listview_List, AsTag(MH_List(SearchListEntry, [
-          MUIA_Frame, MUIV_Frame_ReadList,
-          MUIA_Background, MUII_ReadListBack,
-          MUIA_List_PoolThreshSize, 256,
-          MUIA_List_Title, AsTag(PChar(SearchTitleStr)),
+      Child, AsTag(MH_HGroup([
+        // Header with close button
+        Child, AsTag(MH_HSpace(0)),
+        Child, AsTag(MH_Image(SideCloseButton, [
+          MUIA_Image_Spec, MUII_ArrowRight,
+          MUIA_InputMode, MUIV_InputMode_RelVerify,
+          MUIA_ShowSelState, AsTag(True),
+          TAG_DONE])),
+        TAG_DONE])),
+      Child, AsTag(MH_Register([
+        MUIA_Register_Titles, AsTag(@TabTitles),
+        // Search list
+        Child, AsTag(MH_ListView(SearchList, [
+          MUIA_Weight, 100,
+          MUIA_Listview_Input, MUI_TRUE,
+          MUIA_Listview_List, AsTag(MH_List(SearchListEntry, [
+            MUIA_Frame, MUIV_Frame_ReadList,
+            MUIA_Background, MUII_ReadListBack,
+            MUIA_List_PoolThreshSize, 256,
+            MUIA_List_Title, AsTag(PChar(SearchTitleStr)),
+            TAG_DONE])),
+          TAG_DONE])),
+        // WayPoints
+        Child, AsTag(MH_VGroup([
+          Child, AsTag(MH_ListView(WaypointList, [
+            MUIA_Weight, 100,
+            MUIA_Listview_Input, MUI_TRUE,
+            MUIA_Listview_List, AsTag(MH_List(WaypointListEntry, [
+              MUIA_Frame, MUIV_Frame_ReadList,
+              MUIA_Background, MUII_ReadListBack,
+              MUIA_ContextMenu, AsTag(WayPointMenu),
+              MUIA_List_PoolThreshSize, 256,
+              TAG_DONE])),
+            TAG_DONE])),
+          Child, AsTag(MH_HGroup([
+              Child, AsTag(MH_Button('Load')),
+              Child, AsTag(MH_Button('Save')),
+              Child, AsTag(MH_Button('Add')),
+              Child, AsTag(MH_Button('Remove')),
+              Child, AsTag(MH_Button('Show/Edit')),
+            TAG_DONE])),
           TAG_DONE])),
         TAG_DONE])),
       TAG_DONE]);
     if not Assigned(SidePanel) then
       writeln('Failed to create SidePanel');
     //
-    // Main Menu
+    // Main Menu +++++++++++++++++++++++++++++++++++++++++++++++++++++++
     MainMenu := MH_Menustrip([
-      // Project Menu
+      // Project Menu -----------------------------------
       Child, AsTag(MH_Menu('Project',[
         Child, AsTag(MH_MenuItem([
           MUIA_Menuitem_Title, AsTag(PChar('Quit')),
@@ -842,7 +1069,7 @@ begin
           MUIA_UserData, MID_Quit,
           TAG_DONE])),
         TAG_DONE])),
-      // Map Menu
+      // Map Menu ----------------------------------
       Child, AsTag(MH_Menu('Map',[
         Child, AsTag(MH_MenuItem([
           MUIA_Menuitem_Title, AsTag(PChar('Find me')),
@@ -860,7 +1087,7 @@ begin
           MUIA_UserData, MID_ZOOMOUT,
           TAG_DONE])),
         TAG_DONE])),
-      // Window Menu
+      // Window Menu ------------------------------------
       Child, AsTag(MH_Menu('Window',[
         Child, AsTag(MH_MenuItem(MenuSidePanel, [
           MUIA_Menuitem_Title, AsTag(PChar('Side Panel')),
@@ -877,13 +1104,13 @@ begin
           MUIA_UserData, MID_Statistics,
           TAG_DONE])),
         TAG_DONE])),
-      // About Menu
+      // About Menu -----------------
       Child, AsTag(MH_Menu('About',[
         TAG_DONE])),
       TAG_DONE]);
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
-    // Application
+    // Application +++++++++++++++++++++++++++++++++++++++++++++++++++++
     App := MH_Application([
       MUIA_Application_Title,       AsTag('MUIMapparium'),
       MUIA_Application_Version,     AsTag('$VER: MUIMapparium 0.1 (22.04.2017)'),
@@ -891,11 +1118,11 @@ begin
       MUIA_Application_Author,      AsTag('Marcus "ALB" Sackrow'),
       MUIA_Application_Description, AsTag('Mapparium Open Street Map viewer. MUI-Version'),
       MUIA_Application_Base,        AsTag('MAPPARIUM'),
-      MUIA_Application_MenuStrip,   AsTag(MainMenu),
 
       SubWindow, AsTag(MH_Window(Window, [
         MUIA_Window_Title,     AsTag('MUIMapparium 0.1'),
         MUIA_Window_ID,        AsTag(MAKE_ID('M','A','P','P')),
+        MUIA_Window_MenuStrip, AsTag(MainMenu),
         WindowContents, AsTag(MH_VGroup([
 
 
@@ -909,6 +1136,7 @@ begin
               MUIA_Weight, 200,
               MUIA_Frame, MUIV_Frame_Text,
               MUIA_Background, MUII_BACKGROUND,
+              MUIA_Font, AsTag(MUIV_Font_Button),
               MUIA_FillArea, AsTag(False),
               TAG_DONE])),
             TAG_DONE])),
@@ -930,20 +1158,29 @@ begin
     end;
     //
     MH_Set(CoordsLabel, MUIA_Text_PreParse, AsTag(PChar(MUIX_R)));
-    //
+    // Close main window
     DoMethod(Window, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,
       AsTag(app), 2, AsTag(MUIM_Application_ReturnID), AsTag(MUIV_Application_ReturnID_Quit)]);
-    //
+    // Enter Search text
     ConnectHookFunction(MUIA_String_Acknowledge, MUIV_EveryTime, SearchEdit, nil, @SearchAckHook, @SearchAck);
-    ConnectHookFunction(MUIA_Application_MenuAction, MUIV_EveryTime, App, nil, @MenuHook, @MenuEvent);
-    //
+    // double click to a Search entry
     ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, SearchList, nil, @DblSearchHook, @SearchDblEvent);
+    // double click to a WayPoint Entry
+    ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, WayPointList, nil, @DblWayPointHook, @DblWayPointEvent);
+    // do any menu thing
+    ConnectHookFunction(MUIA_Window_MenuAction, MUIV_EveryTime, Window, nil, @MenuHook, @MenuEvent); // MainMenu
+    // WayPointMenu events
+    ConnectHookFunction(MUIA_Menuitem_Trigger, MUIV_EveryTime, WM1, nil, @WayMenuHooks[0], @WPToggleEvent);
+
 
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,
       AsTag(PrefsWin), 3, MUIM_SET, MUIA_Window_Open, AsTag(False)]);
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_Open, MUI_FALSE,
       AsTag(Window), 3, MUIM_SET, MUIA_Window_Sleep, AsTag(False)]);
-
+    //
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), SideCloseButton, nil, @CloseSideHook, @CloseSideEvent);
+    // Update waypoints before open the window first time
+    UpdateWayPoints;
     //
     // open the window
     MH_Set(Window, MUIA_Window_Open, AsTag(True));
@@ -1001,6 +1238,8 @@ begin
     MH_Set(Window, MUIA_Window_Open, AsTag(False));
 
   finally
+    if Assigned(WayPointMenu) then
+      MUI_DisposeObject(WayPointMenu);
     if Assigned(App) then
       MUI_DisposeObject(app);
     if Assigned(MCC) then

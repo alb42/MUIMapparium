@@ -120,7 +120,7 @@ initialization
   {$ifdef HASAMIGA}
   IsOnline := Assigned(SocketBase);
   if not IsOnline then
-    writeln('Warning no internat connectio found, Offline mode.');
+    writeln('Warning no internet connection found, Offline mode.');
   {$endif}
 finalization
 end.

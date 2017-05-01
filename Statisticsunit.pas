@@ -170,11 +170,15 @@ begin
         TAG_DONE])),
       TAG_DONE])),
     TAG_DONE]);
+    // Create content lines
     for i := 0 to 5 do
     begin
       Entries[i].ID := i;
       DoMethod(StatListEntry, [MUIM_List_InsertSingle, AsTag(@Entries[i]), AsTag(MUIV_List_Insert_Bottom)]);
     end;
+    // Close Window
+    DoMethod(StatWin, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,
+      AsTag(StatWin), 3, MUIM_SET, MUIA_Window_Open, AsTag(False)]);
 end;
 
 initialization

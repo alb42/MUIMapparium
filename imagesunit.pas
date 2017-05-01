@@ -27,6 +27,7 @@ type
   TMarker = class
     Position: TCoord;
     Name: string;
+    FullName: string;
     Time: TDateTime;
     symbol: string;
     Elevation: Double;
