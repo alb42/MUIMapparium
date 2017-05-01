@@ -9,7 +9,7 @@ uses
   imagesunit, positionunit, osmhelper, networkingunit, prefsunit,
   Exec, Utility, intuition, agraphics, Layers, AmigaDos,
   cybergraphics, mui, muihelper, MUIWrap, prefswinunit,
-  StatisticsUnit, waypointunit,
+  StatisticsUnit, waypointunit, WPPropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math;
 
@@ -1112,6 +1112,22 @@ begin
   end;
 end;
 
+// Edit Marker
+function EditWayEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Ma: TMarker;
+  Active: Integer;
+begin
+  Result := 0;
+  Active := MH_Get(WayPointListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < MarkerList.Count) then
+  begin
+    Ma := MarkerList[Active];
+    ShowProps(Ma);
+  end;
+end;
+
+
 // Remove Track Button
 function RemTrackEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 var
@@ -1187,7 +1203,12 @@ begin
   RedrawImage := True;
 end;
 
-
+// WayPoint Property edit changed something ;-)
+procedure WPChangedEvent;
+begin
+  UpdateWayPoints;
+  MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+end;
 
 
 
@@ -1203,8 +1224,8 @@ var
   MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook, CloseSideHook: THook;
   RemTrack: PObject_;
   RemTrackHook, DblTrackHook: Thook;
-  AddWay, RemWay: PObject_;
-  AddWayHook, RemWayHook: Thook;
+  AddWay, RemWay, EditWay: PObject_;
+  AddWayHook, RemWayHook, EditWayHook: Thook;
   SideCloseButton: PObject_;
   StartTime: Int64;
   WayMenuHooks: array[0..0] of THook;
@@ -1213,6 +1234,8 @@ begin
   // Prefs
   UpdatePrefs;
   OnUpdatePrefs := @UpdatePrefs;
+  //
+  OnWPChanged := @WPChangedEvent;
   try
     // Create the new custom class with a call to MH_CreateCustomClass().
     // Caution: This function returns not a struct IClass, but a
@@ -1286,7 +1309,7 @@ begin
           Child, AsTag(MH_HGroup([
               Child, AsTag(MH_Button(AddWay, 'Add')),
               Child, AsTag(MH_Button(RemWay, 'Remove')),
-              Child, AsTag(MH_Button('Show/Edit')),
+              Child, AsTag(MH_Button(EditWay, 'Show/Edit')),
             TAG_DONE])),
           TAG_DONE])),
         Child, AsTag(MH_VGroup([
@@ -1415,6 +1438,7 @@ begin
         TAG_DONE])),
       SubWindow, AsTag(PrefsWin),
       SubWindow, AsTag(StatWin),
+      SubWindow, AsTag(WPPropsWin),
       TAG_DONE]);
     if not Assigned(app) then
     begin
@@ -1439,6 +1463,7 @@ begin
     // Add WayPoint Hook
     ConnectHookFunction(MUIA_Pressed, AsTag(False), AddWay, nil, @AddWayHook, @AddWayEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), RemWay, nil, @RemWayHook, @RemWayEvent);
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), EditWay, nil, @EditWayHook, @EditWayEvent);
     // double click to a Track Entry
     ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, TracksList, nil, @DblTrackHook, @DblTrackEvent);
     // Remove Track
