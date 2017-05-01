@@ -1,0 +1,2 @@
+all:
+	fpc MUIMapparium.pas

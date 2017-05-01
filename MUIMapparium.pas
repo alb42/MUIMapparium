@@ -22,10 +22,12 @@ const
   MID_FINDME     = 5;
   MID_Prefs      = 6;
   MID_Statistics = 7;
+  MID_Load       = 8;
+  MID_Save       = 9;
   // WayMenu
   WID_Toggle = 1;
 
-  TabTitles: array[0..2] of PChar = ('Search'#0, 'WayPoints'#0, nil);
+  TabTitles: array[0..3] of PChar = ('Search'#0, 'WayPoints'#0, 'Tracks'#0, nil);
 
 type
   TMyData = record
@@ -44,6 +46,8 @@ var
   SearchEdit, SearchList, SearchListEntry,
   // Waypoints
   WayPointList, WaypointListEntry, WayPointMenu,
+  // Tracks
+  TracksList, TracksListEntry,
   // Basic
   App, Window: PObject_;
   // MainWindow
@@ -75,6 +79,7 @@ procedure ShowSidePanel(ShowIt: Boolean); forward;
 
 procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect); forward;
 procedure DrawMarker(RP: PRastPort; DrawRange: TRect); forward;
+procedure DrawTracks(RP: PRastPort; DrawRange: TRect); forward;
 procedure OpenPrefs; forward;
 procedure UpdateWayPoints; forward;
 
@@ -201,7 +206,9 @@ begin
     WritePixelArray(FullBitmap.Data, 0, 0, FullBitmap.Width * SizeOf(LongWord), LocalRP, PTMid.X + ((0 + GPixOff.X)*256) - LOffset.X, PTMid.Y + ((0 + GPixOff.Y)*256) - LOffset.Y, FullBitmap.Width, FullBitmap.Height, RECTFMT_RGBA);
     RedrawImage := False;
   end;
-  // DrawMarker
+  // Draw Tracks
+  DrawTracks(LocalRP, DrawRect);
+  // Draw Marker
   DrawMarker(LocalRP, DrawRect);
   // Draw Middle Marker
   DrawMiddleMarker(LocalRP, DrawRect);
@@ -230,7 +237,7 @@ begin
   Result := DoSuperMethodA(cl,obj,msg);
   if OBJ_IsInObject(Msg^.Imsg^.MouseX, Msg^.Imsg^.MouseY, Obj) and not Boolean(MH_Get(Window, MUIA_Window_Sleep)) then
   begin
-    writeln('Event: ',Msg^.imsg^.IClass,' ', Msg^.imsg^.Code);
+    //writeln('Event: ',Msg^.imsg^.IClass,' ', Msg^.imsg^.Code);
     case Msg^.imsg^.IClass of
       // Mouse Buttons
       IDCMP_MOUSEBUTTONS:
@@ -355,8 +362,13 @@ var
   Pen: LongWord;
   {$endif}
 begin
+  {$ifdef AROS}
+  PTMid.X := DrawRange.Width div 2;
+  PTMid.Y := DrawRange.Height div 2;
+  {$else}
   PTMid.X := DrawRange.Width div 2 + 4;
   PTMid.Y := DrawRange.Height div 2 + 4;
+  {$endif}
   {$ifdef Amiga68k}
   Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, MiddleMarkerColor shl 8,MiddleMarkerColor shl 16,MiddleMarkerColor shl 24, nil);
   SetAPen(RP, Pen);
@@ -463,6 +475,96 @@ begin
   {$endif}
 end;
 
+// Draw the tracks
+procedure DrawTracks(RP: PRastPort; DrawRange: TRect);
+const
+  AREA_BYTES = 4000;
+  TrackColor: LongWord = $FF0000;
+var
+  PT: TPoint;
+  i, j: Integer;
+  {Points: packed array of packed record
+    x,y: SmallInt;
+  end;
+  Ras: TPlanePtr;
+  TRas: TTmpRas;
+  WarBuff: array[0..AREA_BYTES] of Word;
+  ari: TAreaInfo;}
+  TrackPtSize: Integer;
+  {$ifdef Amiga68k}
+  Pen: LongWord;
+  {$endif}
+begin
+  TrackPtSize := Max(2, CurZoom - 10);
+  {$ifdef Amiga68k}
+  Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, TrackColor shl 8,TrackColor shl 16,TrackColor shl 24, nil);
+  SetAPen(RP, Pen);
+  {$else}
+  SetRPAttrs(RP,[
+    RPTAG_PenMode, AsTag(False),
+    RPTAG_FGColor, AsTag(TrackColor),
+    TAG_DONE]);
+  {$endif}
+  SetDrMd(RP, JAM1);
+  // make tmprast
+  {
+  Ras := AllocRaster(DrawRange.Width, DrawRange.Height);
+  InitTmpRas(@TRas, ras, DrawRange.Width * DrawRange.Height * 3);
+  }
+  // Draw Tracks
+  for i := 0 to TrackList.Count - 1 do
+  begin
+    if not TrackList[i].Visible then
+      Continue;
+    {if TrackList[i] = CurTrack then
+    begin
+      Ca.Brush.Color := ActiveTrackColor;
+      Ca.Pen.Color := ActiveTrackColor;
+    end
+    else
+    begin
+      Ca.Brush.Color := TrackColor;
+      Ca.Pen.Color := TrackColor;
+    end;
+    ShowActivePt := (TrackList[i] = CurTrack);}
+    //SetLength(Points, 3);
+    for j := 0 to High(TrackList[i].Pts) do
+    begin
+      Pt := PosToPixel(TrackList[i].Pts[j].Position);
+      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
+      begin
+        RectFill(RP, Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
+        if j = 0 then
+          GfxMove(RP, PT.X, PT.Y)
+        else
+          Draw(RP, Pt.X, PT.Y);
+      end;
+    end;
+    {if ShowActivePt and (ActiveTrackPt >=0) and (ActiveTrackPt <= High(TrackList[i].Pts)) then
+    begin
+      Ca.Brush.Color := clBlue;
+      Ca.Brush.Style := bsSolid;
+      Ca.Pen.Color := clBlack;
+      Ca.Pen.Style := psSolid;
+      Pt := PosToPixel(TrackList[i].Pts[ActiveTrackPt].Position);
+      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= PB.Width + 100) and (Pt.Y <= PB.Height + 100) then
+      begin
+        Points[0] := Pt;
+        Points[1].X := Max(0, Points[0].X - 5);
+        Points[1].Y := Max(0, Points[0].Y - 20);
+        Points[2].X := Max(0, Points[0].X + 5);
+        Points[2].Y := Max(0, Points[0].Y - 20);
+        Ca.Polygon(Points);
+      end;
+    end;}
+  end;
+  //RP^.TmpRas := nil;
+  //RP^.AreaInfo := nil;
+  //FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
+  {$ifdef Amiga68k}
+  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
+  {$endif}
+end;
 
 // Refresh the FullBitmap
 procedure RefreshImage;
@@ -602,7 +704,6 @@ end;
 procedure UpdateWayPoints;
 var
   i: Integer;
-  str: string;
 begin
   DoMethod(WaypointListEntry, [MUIM_List_Clear]);
   for i := 0 to MarkerList.Count - 1 do
@@ -615,6 +716,21 @@ begin
   RedrawImage := True;
 end;
 
+// Update Tracks;
+procedure UpdateTracks;
+var
+  i: Integer;
+begin
+  DoMethod(TracksListEntry, [MUIM_List_Clear]);
+  for i := 0 to TrackList.Count - 1 do
+  begin
+    TrackList[i].FullName := TrackList[i].Name + ' (' + IntToStr(Length(TrackList[i].Pts)) + ') ' + TrackList[i].Desc;
+    if not TrackList[i].Visible then
+      TrackList[i].FullName := '(' + TrackList[i].FullName + ')';
+    DoMethod(TracksListEntry, [MUIM_List_InsertSingle, AsTag(PChar(TrackList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
+  end;
+  RedrawImage := True;
+end;
 
 // Search for SearchTerm -> show in sidepanel, open Sidepanel
 procedure SearchEntry(SearchTerm: AnsiString);
@@ -858,8 +974,14 @@ end;
 // Menu Event
 function MenuEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 begin
-  writeln('menu event');
+  //writeln('menu event');
   case MH_Get(App, MUIA_Application_MenuAction) of
+    MID_Load: if LoadWayFile then
+      begin
+        UpdateWayPoints;
+        UpdateTracks;
+      end;
+    MID_Save: SaveWayFile;
     MID_Quit: Running := False;
     MID_SidePanel: ShowSidePanel(Boolean(MH_Get(MenuSidePanel, MUIA_Menuitem_Checked)));
     MID_ZOOMIN: ZoomIn(False);
@@ -914,11 +1036,64 @@ begin
   end;
 end;
 
+//###################################
+// Double Click to Track
+function DblTrackEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Active: LongInt;
+  Tr: TTrack;
+  MinC, MaxC: TCoord;
+  DiffLat, DiffLon: ValReal;
+  Pt: Classes.TPoint;
+  Rec: TRectCoord;
+  i: Integer;
+begin
+  Result := 0;
+  Active := MH_Get(TracksListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < TrackList.Count) then
+  begin
+    Tr := TrackList[Active];
+    if Assigned(Tr) then
+    begin
+      for i := 0 to High(Tr.Pts) do
+      begin
+        if i = 0 then
+        begin
+          MinC := Tr.Pts[0].Position;
+          MaxC := Tr.Pts[0].Position;
+        end else
+        begin
+          MinC.Lat := Min(MinC.Lat, Tr.Pts[i].Position.Lat);
+          MinC.Lon := Min(MinC.Lon, Tr.Pts[i].Position.Lon);
+          MaxC.Lat := Max(MaxC.Lat, Tr.Pts[i].Position.Lat);
+          MaxC.Lon := Max(MaxC.Lon, Tr.Pts[i].Position.Lon);
+        end;
+      end;
+      if Length(Tr.Pts) > 0 then
+      begin
+        DiffLat := Abs(MaxC.Lat - MinC.Lat);
+        DiffLon := Abs(MaxC.Lon - MinC.Lon);
+        MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+        MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
 
+        for i := 0 to 18 do
+        begin
+          Pt := GetTileCoord(i, MiddlePos);
+          Rec := GetTileRect(i, Pt);
+          if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+            CurZoom := i;
+        end;
+        CurZoom := CurZoom + 1;
+        RefreshImage;
+      end;
+    end;
+  end;
+end;
 
 // AddWayPoint Button
 function AddWayEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 begin
+  Result := 0;
   NewWpt;
 end;
 
@@ -926,15 +1101,28 @@ end;
 function RemWayEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 var
   Active: LongInt;
-  Ma: TMarker;
 begin
   Result := 0;
   Active := MH_Get(WayPointListEntry, MUIA_List_Active);
   if (Active >= 0) and (Active < MarkerList.Count) then
   begin
-    Ma := MarkerList[Active];
     MarkerList.Delete(Active);
     DoMethod(WaypointListEntry, [MUIM_List_Remove, Active]);
+    MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+  end;
+end;
+
+// Remove Track Button
+function RemTrackEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Active: LongInt;
+begin
+  Result := 0;
+  Active := MH_Get(TracksListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < TrackList.Count) then
+  begin
+    TrackList.Delete(Active);
+    DoMethod(TracksListEntry, [MUIM_List_Remove, Active]);
     MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
   end;
 end;
@@ -946,6 +1134,7 @@ var
   Active: Integer;
   Ma: TMarker;
 begin
+  Result := 0;
   Active := MH_Get(WayPointListEntry, MUIA_List_Active);
   if (Active >= 0) and (Active < MarkerList.Count) then
   begin
@@ -1010,8 +1199,10 @@ procedure StartMe;
 var
   Sigs: LongInt;
   MCC: PMUI_CustomClass;
-  StrCoord: string;  
+  StrCoord: string;
   MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook, CloseSideHook: THook;
+  RemTrack: PObject_;
+  RemTrackHook, DblTrackHook: Thook;
   AddWay, RemWay: PObject_;
   AddWayHook, RemWayHook: Thook;
   SideCloseButton: PObject_;
@@ -1093,10 +1284,24 @@ begin
               TAG_DONE])),
             TAG_DONE])),
           Child, AsTag(MH_HGroup([
-              Child, AsTag(MH_Button('Load')),
-              Child, AsTag(MH_Button('Save')),
               Child, AsTag(MH_Button(AddWay, 'Add')),
               Child, AsTag(MH_Button(RemWay, 'Remove')),
+              Child, AsTag(MH_Button('Show/Edit')),
+            TAG_DONE])),
+          TAG_DONE])),
+        Child, AsTag(MH_VGroup([
+          Child, AsTag(MH_ListView(TracksList, [
+            MUIA_Weight, 100,
+            MUIA_Listview_Input, MUI_TRUE,
+            MUIA_Listview_List, AsTag(MH_List(TracksListEntry, [
+              MUIA_Frame, MUIV_Frame_ReadList,
+              MUIA_Background, MUII_ReadListBack,
+              //MUIA_ContextMenu, AsTag(WayPointMenu),
+              MUIA_List_PoolThreshSize, 256,
+              TAG_DONE])),
+            TAG_DONE])),
+          Child, AsTag(MH_HGroup([
+              Child, AsTag(MH_Button(RemTrack, 'Remove')),
               Child, AsTag(MH_Button('Show/Edit')),
             TAG_DONE])),
           TAG_DONE])),
@@ -1109,6 +1314,16 @@ begin
     MainMenu := MH_Menustrip([
       // Project Menu -----------------------------------
       Child, AsTag(MH_Menu('Project',[
+        Child, AsTag(MH_MenuItem([
+          MUIA_Menuitem_Title, AsTag(PChar('Load...')),
+          MUIA_Menuitem_Shortcut, AsTag('L'),
+          MUIA_UserData, MID_Load,
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem([
+          MUIA_Menuitem_Title, AsTag(PChar('Save...')),
+          MUIA_Menuitem_Shortcut, AsTag('S'),
+          MUIA_UserData, MID_Save,
+          TAG_DONE])),
         Child, AsTag(MH_MenuItem([
           MUIA_Menuitem_Title, AsTag(PChar('Quit')),
           MUIA_Menuitem_Shortcut, AsTag('Q'),
@@ -1224,18 +1439,23 @@ begin
     // Add WayPoint Hook
     ConnectHookFunction(MUIA_Pressed, AsTag(False), AddWay, nil, @AddWayHook, @AddWayEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), RemWay, nil, @RemWayHook, @RemWayEvent);
+    // double click to a Track Entry
+    ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, TracksList, nil, @DblTrackHook, @DblTrackEvent);
+    // Remove Track
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), RemTrack, nil, @RemTrackHook, @RemTrackEvent);
     // close side panel
     ConnectHookFunction(MUIA_Pressed, AsTag(False), SideCloseButton, nil, @CloseSideHook, @CloseSideEvent);
-    
+
 
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,
       AsTag(PrefsWin), 3, MUIM_SET, MUIA_Window_Open, AsTag(False)]);
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_Open, MUI_FALSE,
       AsTag(Window), 3, MUIM_SET, MUIA_Window_Sleep, AsTag(False)]);
     //
-    
+
     // Update waypoints before open the window first time
     UpdateWayPoints;
+    UpdateTracks;
     //
     // open the window
     MH_Set(Window, MUIA_Window_Open, AsTag(True));

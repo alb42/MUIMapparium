@@ -49,6 +49,7 @@ type
 
   TTrack = class
     Name: string;
+    FullName: string;
     Desc: string;
     Pts: array of TTrackPoint;
     Visible: Boolean;

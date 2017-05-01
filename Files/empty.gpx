@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gpx version="1.1" creator="Ersteller der Datei">
+  <metadata> <!-- Metadaten --> </metadata>
+  <wpt lat="xx.xxx" lon="yy.yyy"> <!-- Attribute des Wegpunkts --> </wpt>
+  <!-- weitere Wegpunkte -->
+  <rte>
+    <!-- Attribute der Route -->
+    <rtept lat="xx.xxx" lon="yy.yyy"> <!-- Attribute des Routenpunkts --> </rtept>
+    <!-- weitere Routenpunkte -->
+  </rte>
+  <!-- weitere Routen -->
+  <trk>
+    <!-- Attribute des Tracks -->
+    <trkseg>
+      <trkpt lat="xx.xxx" lon="yy.yyy"> <!-- Attribute des Trackpunkts --> </trkpt>
+      <!-- weitere Trackpunkte -->
+    </trkseg>
+    <!-- weitere Track-Segmente -->
+  </trk>
+  <!-- weitere Tracks -->
+</gpx>
