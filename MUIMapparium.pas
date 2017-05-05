@@ -358,18 +358,18 @@ end;
 procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
 var
   PTMid: TPoint;
-  {$ifdef Amiga68k}
+  {$ifdef Amiga}
   Pen: LongWord;
   {$endif}
 begin
-  {$ifdef AROS}
+  {$ifndef MorphOS}
   PTMid.X := DrawRange.Width div 2;
   PTMid.Y := DrawRange.Height div 2;
   {$else}
   PTMid.X := DrawRange.Width div 2 + 4;
   PTMid.Y := DrawRange.Height div 2 + 4;
   {$endif}
-  {$ifdef Amiga68k}
+  {$ifdef Amiga}
   Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, MiddleMarkerColor shl 8,MiddleMarkerColor shl 16,MiddleMarkerColor shl 24, nil);
   SetAPen(RP, Pen);
   {$else}
@@ -393,7 +393,7 @@ begin
       Draw(RP, PTMid.X, DrawRange.Height);
     end;
   end;
-  {$ifdef Amiga68k}
+  {$ifdef Amiga}
   ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
   {$endif}
 end;
@@ -413,13 +413,13 @@ var
   TRas: TTmpRas;
   WarBuff: array[0..AREA_BYTES] of Word;
   ari: TAreaInfo;
-  {$ifdef Amiga68k}
+  {$ifdef Amiga}
   Pen: LongWord;
   {$endif}
   TE: TTextExtent;
   MarkerText: string;
 begin
-  {$ifdef Amiga68k}
+  {$ifdef Amiga}
   Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, WPColor shl 8,WPColor shl 16,WPColor shl 24, nil);
   SetAPen(RP, Pen);
   {$else}
@@ -470,7 +470,7 @@ begin
   RP^.TmpRas := nil;
   RP^.AreaInfo := nil;
   FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
-  {$ifdef Amiga68k}
+  {$ifdef Amiga}
   ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
   {$endif}
 end;
@@ -491,12 +491,12 @@ var
   WarBuff: array[0..AREA_BYTES] of Word;
   ari: TAreaInfo;}
   TrackPtSize: Integer;
-  {$ifdef Amiga68k}
+  {$ifdef Amiga}
   Pen: LongWord;
   {$endif}
 begin
   TrackPtSize := Max(2, CurZoom - 10);
-  {$ifdef Amiga68k}
+  {$ifdef Amiga}
   Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, TrackColor shl 8,TrackColor shl 16,TrackColor shl 24, nil);
   SetAPen(RP, Pen);
   {$else}
@@ -561,7 +561,7 @@ begin
   //RP^.TmpRas := nil;
   //RP^.AreaInfo := nil;
   //FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
-  {$ifdef Amiga68k}
+  {$ifdef Amiga}
   ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
   {$endif}
 end;
@@ -1419,10 +1419,10 @@ begin
     // Application +++++++++++++++++++++++++++++++++++++++++++++++++++++
     App := MH_Application([
       MUIA_Application_Title,       AsTag('MUIMapparium'),
-      MUIA_Application_Version,     AsTag('$VER: MUIMapparium 0.1 (22.04.2017)'),
+      MUIA_Application_Version,     AsTag('$VER: MUIMapparium 0.2 (01.05.2017)'),
       MUIA_Application_Copyright,   AsTag('(c)2017, Marcus "ALB" Sackrow'),
       MUIA_Application_Author,      AsTag('Marcus "ALB" Sackrow'),
-      MUIA_Application_Description, AsTag('Mapparium Open Street Map viewer. MUI-Version'),
+      MUIA_Application_Description, AsTag('Open Street Map viewer. (MUI)'),
       MUIA_Application_Base,        AsTag('MAPPARIUM'),
 
       SubWindow, AsTag(MH_Window(Window, [

@@ -6,12 +6,15 @@ uses
   {$if defined(Amiga68k) or defined(MorphOS)}
     amigalib,
   {$endif}
-  Exec, Utility, Intuition, AGraphics, timer, mui, muihelper;
+  asl, Exec, Utility, Intuition, AGraphics, timer, mui, muihelper;
 
 procedure ConnectHookFunction(MUIField: PtrUInt; TriggerValue: PtrUInt; Obj: PObject_; Data: TObject; Hook: PHook; HookFunc: THookFunc);
 {$ifndef AROS}
 function CreateRastPort: PRastPort;
 procedure FreeRastPort(RP: PRastPort);
+{$endif}
+{$if defined(AROS) or defined(AmigaOS4))}
+function AllocAslRequestTags(reqType: LongWord; const Param: array of PtrUInt): Pointer;
 {$endif}
 
 function GetMUITime: Int64;
@@ -187,6 +190,12 @@ function CreateRastPort: PRastPort;
 begin
   Result := AllocMem(SizeOf(TRastPort));
   InitRastPort(Result);
+end;
+{$endif}
+{$if defined(AROS) or defined(AmigaOS4))}
+function AllocAslRequestTags(reqType: LongWord; const Param: array of PtrUInt): Pointer;
+begin
+  Result := AllocAslRequest(reqType, Param);
 end;
 {$endif}
 

@@ -5,7 +5,8 @@ interface
 uses
   imagesunit, gpxunit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson, zipper,
-  SysUtils, StrUtils, Types, Classes, Math, utility, exec, dos, asl;
+  SysUtils, StrUtils, Types, Classes, Math, utility, exec, dos, asl,
+  MUIWrap;
 
 
 type
@@ -45,7 +46,7 @@ begin
   Result := False;
 {$R-}
   OldDrawer := Prefs.LoadPath;
-  fr := AllocAslRequest(ASL_FileRequest, [
+  fr := AllocAslRequestTags(ASL_FileRequest, [
     NativeUInt(ASLFR_TitleText),      NativeUInt(PChar('Choose Waypoints File to load')),
     NativeUInt(ASLFR_InitialFile),    NativeUInt(PChar(OldFilename)),
     NativeUInt(ASLFR_InitialDrawer),  NativeUInt(PChar(OldDrawer)),
@@ -55,9 +56,9 @@ begin
   if Assigned(fr) then
   begin
     //
-    if AslRequestA(fr, nil) then
+    if AslRequestTags(fr, [TAG_END]) then
     begin
-      {$ifdef defined(VER3_0) or not defined(AROS)}
+      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
       OldFilename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
       {$else}
       OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
@@ -83,7 +84,7 @@ var
 begin
 {$R-}
   OldDrawer := Prefs.LoadPath;
-  fr := AllocAslRequest(ASL_FileRequest, [
+  fr := AllocAslRequestTags(ASL_FileRequest, [
     NativeUInt(ASLFR_TitleText),      NativeUInt(PChar('Choose File name Save GPX File')),
     NativeUInt(ASLFR_InitialFile),    NativeUInt(PChar(OldFilename)),
     NativeUInt(ASLFR_InitialDrawer),  NativeUInt(PChar(OldDrawer)),
@@ -94,9 +95,9 @@ begin
   if Assigned(fr) then
   begin
     //
-    if AslRequestA(fr, nil) then
+    if AslRequestTags(fr, [TAG_END]) then
     begin
-      {$ifdef defined(VER3_0) or not defined(AROS)}
+      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
       OldFilename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
       {$else}
       OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
