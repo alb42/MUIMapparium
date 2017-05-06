@@ -122,8 +122,8 @@ var
   ImagesToFree: TBitmapList;
   ITFMutex: TCriticalSection;
 
-  EmptyBitmap: TFPAMemImage;
-  ErrorBitmap: TFPAMemImage;
+  //EmptyBitmap: TFPAMemImage;
+  //ErrorBitmap: TFPAMemImage;
   NoBitmap: TFPAMemImage;
 
   Mutex: TCriticalSection;
@@ -141,7 +141,7 @@ var
 implementation
 
 uses
-  networkingunit, positionunit;
+  networkingunit, positionunit, defimageunit;
 
 procedure TFPACanvas.DoCopyRect (x,y:integer; canvas:TFPCustomCanvas; Const SourceRect:TRect);
 begin
@@ -467,6 +467,7 @@ initialization
   ImageList := TImagesList.Create(True);
   ImagesToFree:= TBitmapList.Create(True);
 
+  {
   EmptyBitmap := TFPAMemImage.Create(256,256);
   ic := TFPACanvas.Create(EmptyBitmap);
   ic.Brush.FPColor := colwhite;
@@ -478,7 +479,7 @@ initialization
   ic.Brush.FPColor := colRed;
   ic.FillRect(0,0,255,255);
   ic.Free;
-//
+//}
 //LoadBitmap(ERRORNAME, ErrorBitmap);
   NoBitmap := TFPAMemImage.Create(256,256);
   ic := TFPACanvas.Create(NoBitmap);
@@ -501,7 +502,7 @@ finalization
   ImagesToFree := nil;
   ITFMutex.Leave;
   ImageList.Free;
-  EmptyBitmap.Free;
+  //EmptyBitmap.Free;
   NoBitmap.Free;
   Mutex.Free;
   ITFMutex.Free;
