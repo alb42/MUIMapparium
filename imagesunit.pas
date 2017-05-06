@@ -122,8 +122,6 @@ var
   ImagesToFree: TBitmapList;
   ITFMutex: TCriticalSection;
 
-  //EmptyBitmap: TFPAMemImage;
-  //ErrorBitmap: TFPAMemImage;
   NoBitmap: TFPAMemImage;
 
   Mutex: TCriticalSection;
@@ -467,20 +465,6 @@ initialization
   ImageList := TImagesList.Create(True);
   ImagesToFree:= TBitmapList.Create(True);
 
-  {
-  EmptyBitmap := TFPAMemImage.Create(256,256);
-  ic := TFPACanvas.Create(EmptyBitmap);
-  ic.Brush.FPColor := colwhite;
-  ic.FillRect(0,0,255,255);
-  ic.Free;
-//LoadBitmap(EMPTYNAME, EmptyBitmap);
-  ErrorBitmap := TFPAMemImage.Create(256,256);
-  ic := TFPACanvas.Create(ErrorBitmap);
-  ic.Brush.FPColor := colRed;
-  ic.FillRect(0,0,255,255);
-  ic.Free;
-//}
-//LoadBitmap(ERRORNAME, ErrorBitmap);
   NoBitmap := TFPAMemImage.Create(256,256);
   ic := TFPACanvas.Create(NoBitmap);
   ic.Brush.FPColor := colBlue;

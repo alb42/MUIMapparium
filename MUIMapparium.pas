@@ -295,13 +295,29 @@ begin
       // Raw Key
       IDCMP_RAWKEY:
       begin
-        if (Msg^.imsg^.Code = $7A) or (Msg^.imsg^.Code = $7B) then
-        begin
-          if Msg^.imsg^.Code = $7A then
-            ZoomIn(False)
-          else
-            if Msg^.imsg^.Code = $7B then
-              ZoomOut;
+        case Msg^.imsg^.Code of
+          $7A, 94: ZoomIn(False); // mouse wheel up and + on numpad
+          $7B, 93: ZoomOut;       // mouse wheel down and - on numpad
+          CURSORDOWN:
+            begin
+              MiddlePos := PixelToPos(Point(Obj_Width(Obj) div 2, Obj_Height(Obj) div 2 + 10));
+              RefreshImage;
+            end;
+          CURSORUP:
+            begin
+              MiddlePos := PixelToPos(Point(Obj_Width(Obj) div 2, Obj_Height(Obj) div 2 - 10));
+              RefreshImage;
+            end;
+          CURSORRIGHT:
+            begin
+              MiddlePos := PixelToPos(Point(Obj_Width(Obj) div 2 + 10, Obj_Height(Obj) div 2));
+              RefreshImage;
+            end;
+          CURSORLEFT:
+            begin
+              MiddlePos := PixelToPos(Point(Obj_Width(Obj) div 2 - 10, Obj_Height(Obj) div 2));
+              RefreshImage;
+            end;
         end;
         Result := MUI_EventHandlerRC_Eat;
       end;
