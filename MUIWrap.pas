@@ -8,6 +8,24 @@ uses
   {$endif}
   asl, Exec, Utility, Intuition, AGraphics, timer, mui, muihelper;
 
+type
+  TRexxMsg = record
+    rm_Node: TMessage;
+    rm_TaskBlock: APTR;
+    rm_LibBase: APTR;
+    rm_Action: LongInt;
+    rm_Result1: LongInt;
+    rm_Result2: PtrInt;
+    rm_Args: array[0..15] of STRPTR;
+    rm_MsgPort: PMsgPort;
+    rm_CommAddr: STRPTR;
+    rm_FileExt: STRPTR;
+    rm_Stdin: BPTR;
+    rm_Stdout: BPTR;
+    rm_Avail: LongInt;
+  end;
+  PRexxMsg = ^TRexxMsg;
+
 procedure ConnectHookFunction(MUIField: PtrUInt; TriggerValue: PtrUInt; Obj: PObject_; Data: TObject; Hook: PHook; HookFunc: THookFunc);
 {$ifndef AROS}
 function CreateRastPort: PRastPort;

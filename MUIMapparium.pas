@@ -1192,6 +1192,193 @@ begin
 end;
 
 //###################################
+// AREXX Hook
+
+function RexxMsgEvent(Msg: string; out ReturnMsg: string): LongInt;
+var
+  SL: TStringList;
+  NLat, NLon: Double;
+  NZoom,i : Integer;
+  Fail: Boolean;
+  WP: TMarker;
+  NName: String;
+begin
+  Result := 20;
+  ReturnMsg := 'unknown command';
+  SL := TStringList.Create;
+  try
+    ExtractStrings([' '], [], PChar(Msg), SL);
+    if SL.Count = 0 then
+      Exit;
+    case UpperCase(SL[0]) of
+     'GOTO':
+        begin
+          if (SL.Count < 3) or (SL.Count > 4) then
+          begin
+            ReturnMsg := 'wrong number of parameter: GOTO <lat> <lon> [<zoom>]';
+            Result := 10;
+            Exit;
+          end;
+          NLat := StrToFloatDef(SL[1], NaN);
+          NLon := StrToFloatDef(SL[2], NaN);
+          NZoom := -1;
+          if SL.Count = 4 then
+            NZoom := StrToIntDef(SL[3], -1);
+          Fail := False;
+          ReturnMsg := '';
+          if IsNan(NLat) then
+          begin
+            Fail := True;
+            ReturnMsg := ' Illegal 1 Parameter should be a float value'
+          end;
+          if IsNan(NLat) then
+          begin
+            Fail := True;
+            ReturnMsg := Returnmsg + ' Illegal 2 Parameter should be a float value'
+          end;
+          if Fail then
+          begin
+            Result := 10;
+            Exit;
+          end;
+          MiddlePos.Lat := NLat;
+          MiddlePos.Lon := NLon;
+          if NZoom >= 0 then
+            CurZoom := NZoom;
+          UpdateImage := True;
+          Result := 0;
+          MH_Set(Window, MUIA_Window_Activate, AsTag(True));
+        end;
+      'ADDWAYPOINT':
+        begin
+          if (SL.Count < 4) then
+          begin
+            ReturnMsg := 'wrong number of parameter: WAYPOINT <lat> <lon> "<name>"';
+            Result := 10;
+            Exit;
+          end;
+          NLat := StrToFloatDef(SL[1], NaN);
+          NLon := StrToFloatDef(SL[2], NaN);
+          NName := SL[3];
+          for i := 4 to SL.Count - 1 do
+            NName := NName + ' ' + SL[i];
+          Fail := False;
+          ReturnMsg := '';
+          if IsNan(NLat) then
+          begin
+            Fail := True;
+            ReturnMsg := ' Illegal 1 Parameter should be a float value'
+          end;
+          if IsNan(NLat) then
+          begin
+            Fail := True;
+            ReturnMsg := Returnmsg + ' Illegal 2 Parameter should be a float value'
+          end;
+          if Fail then
+          begin
+            Result := 10;
+            Exit;
+          end;
+          WP := TMarker.Create;
+          WP.Position.lat := NLat;
+          WP.Position.Lon := NLon;
+          WP.Name := NName;
+          MarkerList.Add(WP);
+          UpdateWayPoints;
+          UpdateImage := True;
+          Result := 0;
+          MH_Set(Window, MUIA_Window_Activate, AsTag(True));
+        end;
+      {
+      'ADDJPG': // Add Jpg
+        begin
+          if SL.Count < 2 then
+          begin
+            ReturnMsg := 'wrong number of parameter: AddJPG "<Filename>"';
+            Result := 10;
+            Exit;
+          end;
+          // Parameter: "Path",
+          NName := SL[1];
+          for i := 2 to SL.Count - 1 do
+            NName := NName + ' ' + SL[i];
+          Result := ImageWin.AddImage(NName);
+          if Result = 0 then
+            ImageWin.UpdateImagesAfterAdd;
+        end;
+      'ADDJPGPOS': // Add Jpg with position
+        begin
+          if SL.Count < 4 then
+          begin
+            ReturnMsg := 'wrong number of parameter: AddJPGPos <lat> <lon> "<Filename>"';
+            Result := 10;
+            Exit;
+          end;
+          NLat := StrToFloatDef(SL[1], NaN);
+          NLon := StrToFloatDef(SL[2], NaN);
+          NName := SL[3];
+          for i := 4 to SL.Count - 1 do
+            NName := NName + ' ' + SL[i];
+          Result := ImageWin.AddImage(NName, NLat, NLon);
+          if Result = 0 then
+            ImageWin.UpdateImagesAfterAdd;
+        end;
+       'LOCKIMAGELIST':
+         begin
+           if SL.Count > 1 then
+           begin
+             ReturnMsg := 'wrong number of parameter: LOCKIMAGELIST';
+             Result := 10;
+             Exit;
+           end;
+           ImageWin.LockImgList := True;
+           Result := 0;
+         end;
+       'UNLOCKIMAGELIST':
+         begin
+           if SL.Count > 1 then
+           begin
+             ReturnMsg := 'wrong number of parameter: UNLOCKIMAGELIST';
+             Result := 10;
+             Exit;
+           end;
+           ImageWin.LockImgList := False;
+           ImageWin.UpdateImagesAfterAdd;
+           Result := 0;
+         end}
+      else
+        begin
+          ReturnMsg := 'Unknown command '''+SL[0]+'''';
+          Result := 20;
+        end;
+    end;
+  finally
+    SL.Free;
+  end;
+
+end;
+
+
+function RexxHookEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): LongInt;
+var
+  RexxMsg: PRexxMsg;
+  Txt: string;
+begin
+  Result := 20;
+  if Assigned(Msg) then
+  begin
+    RexxMsg := Msg;
+    Txt := '';
+    Result := RexxMsgEvent(RexxMsg^.rm_Args[0], Txt);
+    if Txt <> '' then
+    begin
+      Txt := Txt + #13#10;
+      DosWrite(RexxMsg^.rm_Stdout, PChar(Txt), Length(Txt));
+    end;
+  end;
+end;
+
+//###################################
 // Open the SidePanel
 procedure ShowSidePanel(ShowIt: Boolean);
 begin
@@ -1261,6 +1448,7 @@ var
   SideCloseButton: PObject_;
   StartTime: Int64;
   WayMenuHooks: array[0..0] of THook;
+  RexxHook: THook;
 begin
   SRes := TSearchResults.Create;
   // Prefs
@@ -1428,6 +1616,8 @@ begin
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     // Application +++++++++++++++++++++++++++++++++++++++++++++++++++++
+    MH_SetHook(RexxHook, @RexxHookEvent, nil);
+
     App := MH_Application([
       MUIA_Application_Title,       AsTag('MUIMapparium'),
       MUIA_Application_Version,     AsTag('$VER: MUIMapparium 0.2 (01.05.2017)'),
@@ -1435,6 +1625,7 @@ begin
       MUIA_Application_Author,      AsTag('Marcus "ALB" Sackrow'),
       MUIA_Application_Description, AsTag('Open Street Map viewer. (MUI)'),
       MUIA_Application_Base,        AsTag('MAPPARIUM'),
+      MUIA_Application_RexxHook,    AsTag(@RexxHook),
 
       SubWindow, AsTag(MH_Window(Window, [
         MUIA_Window_Title,     AsTag('MUIMapparium 0.1'),
