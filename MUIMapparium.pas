@@ -11,7 +11,7 @@ uses
   cybergraphics, mui, muihelper, MUIWrap, prefswinunit,
   StatisticsUnit, waypointunit, WPPropsUnit, TrackPropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
-  SysUtils, StrUtils, Types, Classes, Math;
+  SysUtils, StrUtils, Types, Classes, Math, versionunit;
 
 const
   // MainMenu
@@ -1620,7 +1620,7 @@ begin
 
     App := MH_Application([
       MUIA_Application_Title,       AsTag('MUIMapparium'),
-      MUIA_Application_Version,     AsTag('$VER: MUIMapparium 0.2 (01.05.2017)'),
+      MUIA_Application_Version,     AsTag(PChar(VERSIONSTRING)),
       MUIA_Application_Copyright,   AsTag('(c)2017, Marcus "ALB" Sackrow'),
       MUIA_Application_Author,      AsTag('Marcus "ALB" Sackrow'),
       MUIA_Application_Description, AsTag('Open Street Map viewer. (MUI)'),
@@ -1628,7 +1628,7 @@ begin
       MUIA_Application_RexxHook,    AsTag(@RexxHook),
 
       SubWindow, AsTag(MH_Window(Window, [
-        MUIA_Window_Title,     AsTag('MUIMapparium 0.1'),
+        MUIA_Window_Title,     AsTag(PChar(WindowTitleTemplate)),
         MUIA_Window_ID,        AsTag(MAKE_ID('M','A','P','P')),
         MUIA_Window_MenuStrip, AsTag(MainMenu),
         WindowContents, AsTag(MH_VGroup([
