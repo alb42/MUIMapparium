@@ -10,7 +10,7 @@ var
   // middle of the image  in real coords
   MiddlePos: TCoord;
   // middle position as pixel
-  MiddleCoord: TPoint;
+  MiddleCoord: TTileCoord;
   // Current Zoom
   CurZoom: Integer;
   // FullBitmap to hold all the Bitmaps to directly drawto window
@@ -23,6 +23,8 @@ var
   GPixOff: TPoint;
 
   RecordedSize: TPoint;
+  //
+  MoveOffset: TPoint;
 
   procedure DrawFullImage(Width, Height: Integer);
 
@@ -40,7 +42,7 @@ var
   TileRect: TRectCoord;
   PTMid: TPoint;
   y, x, OffX, OffY: Integer;
-  LMiddleCoord: Classes.TPoint;
+  LMiddleCoord: TTileCoord;
   PixOff: TPoint;
   NumX, NumY: Integer;
   Tile: TFPAMemImage;
@@ -63,21 +65,20 @@ begin
   if MiddlePos.Lon > 180 then
     MiddlePos.Lon := -180 - (MiddlePos.Lon - 180);
 
-  LMiddleCoord := GetTileCoord(CurZoom, MiddlePos);
-  TileRect := GetTileRect(CurZoom, LMiddleCoord);
+  LMiddleCoord := CoordToTile(CurZoom, MiddlePos);
+  TileRect := GetTileRect(CurZoom, LMiddleCoord.Tile);
   GResX := (TileRect.MaxLon - TileRect.MinLon) / 256; // resolution per pixel
-  Offset.X := Round((MiddlePos.Lon - TileRect.MinLon) / GResX);
-  //GResY := GetYResolution(FZoom, MiddlePos);//
+  Offset.X := LMiddleCoord.Pixel.X;
+  Offset.Y := LMiddleCoord.Pixel.Y;
   GResY := (TileRect.MaxLat - TileRect.MinLat) / 256; // resolution per pixel
-  Offset.Y := Round((MiddlePos.Lat - TileRect.MinLat) / GResY);
 
   PTMid := Point((Width div 2), (Height div 2));
 
   NumX := (Width div 256) + 2;
   NumY := (Height div 256) + 2;
   PixOff := Point(-Ceil((PTMid.X - Offset.X) / 256), - Ceil((PTMid.Y - Offset.Y) / 256));
-  OffX := LMiddleCoord.X + PixOff.X;
-  OffY := LMiddleCoord.Y + PixOff.Y;
+  OffX := LMiddleCoord.Tile.X + PixOff.X;
+  OffY := LMiddleCoord.Tile.Y + PixOff.Y;
 
   if (FullNumX <> NumX) or (FullNumY <> NumY) or
      (FullZoom <> CurZoom) or

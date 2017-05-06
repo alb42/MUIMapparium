@@ -41,6 +41,7 @@ end;
 // set the position of Waypoints to the current position
 function CurPosEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 begin
+  Result := 0;
   MH_Set(WPLat, MUIA_String_Contents, AsTag(PChar(FloatToStrF(MiddlePos.Lat, ffFixed, 8,6))));
   MH_Set(WPLon, MUIA_String_Contents, AsTag(PChar(FloatToStrF(MiddlePos.Lon, ffFixed, 8,6))));
 end;

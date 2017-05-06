@@ -146,7 +146,6 @@ var
   ri: PMUI_RenderInfo;
   rp: PRastPort;
   PTMid: TPoint;
-  TileRect: TRectCoord;
   LOffset: TPoint;
   DrawRect: TRect;
   LocalRP: PRastPort;
@@ -185,7 +184,6 @@ begin
     DrawFullImage(DrawRect.Width, DrawRect.Height);
   PTMid.X := DrawRect.Width div 2;
   PTMid.Y := DrawRect.Height div 2;
-  TileRect := GetTileRect(CurZoom, MiddleCoord);
   // Make a temporary Rastport to draw to
   LocalRP := CreateRastPort;
   li := NewLayerInfo(); // Layerinfo we also need
@@ -199,13 +197,10 @@ begin
   // fill with background color
   RectFill(LocalRP, 0, 0, DrawRect.Right, DrawRect.Bottom);
   // draw the actual Images to there
-  if (GResX <> 0) and (GResY <> 0) then
-  begin
-    LOffset.Y := Round((MiddlePos.Lat - TileRect.MinLat) / GResY);
-    LOffset.X := Round((MiddlePos.Lon - TileRect.MinLon) / GResX);
-    WritePixelArray(FullBitmap.Data, 0, 0, FullBitmap.Width * SizeOf(LongWord), LocalRP, PTMid.X + ((0 + GPixOff.X)*256) - LOffset.X, PTMid.Y + ((0 + GPixOff.Y)*256) - LOffset.Y, FullBitmap.Width, FullBitmap.Height, RECTFMT_RGBA);
-    RedrawImage := False;
-  end;
+  LOffset.X := MiddleCoord.Pixel.X - MoveOffset.X;
+  LOffset.Y := MiddleCoord.Pixel.Y - MoveOffset.Y;
+  WritePixelArray(FullBitmap.Data, 0, 0, FullBitmap.Width * SizeOf(LongWord), LocalRP, PTMid.X + ((0 + GPixOff.X)*256) - LOffset.X, PTMid.Y + ((0 + GPixOff.Y)*256) - LOffset.Y, FullBitmap.Width, FullBitmap.Height, RECTFMT_RGBA);
+  RedrawImage := False;
   // Draw Tracks
   DrawTracks(LocalRP, DrawRect);
   // Draw Marker
@@ -268,6 +263,8 @@ begin
           begin
             if LeftDown then
             begin
+              MoveOffset.X := 0;
+              MoveOffset.Y := 0;
               LeftDown := False;
               RefreshImage();
             end;
@@ -285,6 +282,8 @@ begin
         begin
           MiddlePos.Lon := StartCoord.Lon - (RelX - DownPos.X) * GResX;
           MiddlePos.Lat := StartCoord.Lat - (RelY - DownPos.Y) * GResY;
+          MoveOffset.X := RelX - DownPos.X;
+          MoveOffset.Y := RelY - DownPos.Y;
           RedrawImage := True;
         end
         else
@@ -599,14 +598,26 @@ end;
 function PosToPixel(C: TCoord): TPoint;
 var
   PTMid: TPoint;
+  NCoord: TTileCoord;
+  TileDist: TPoint;
+  MidDist: TPoint;
 begin
   Result.X := 0;
   Result.Y := 0;
-  if (GResX = 0) or (GResY = 0) or not assigned(MapPanel) then
+  if not assigned(MapPanel) then
     Exit;
+
   PTMid := Point((Obj_Width(MapPanel) div 2), (Obj_Height(MapPanel) div 2));
-  Result.X := Round(Max(-MaxInt / 2, Min(MaxInt / 2, 0 - (((MiddlePos.Lon - C.Lon) / GResX) - PTMid.X))));
-  Result.Y := Round(Max(-MaxInt / 2, Min(MaxInt / 2, 0 - (((MiddlePos.Lat - C.Lat) / GResY) - PTMid.Y))));
+  NCoord := CoordToTile(CurZoom, C);
+  //
+  MidDist.X := PTMid.X - MiddleCoord.Pixel.X;
+  MidDist.Y := PTMid.Y - MiddleCoord.Pixel.Y;
+  //
+  TileDist.X := (NCoord.Tile.X - MiddleCoord.Tile.X) * 256;
+  TileDist.Y := (NCoord.Tile.Y - MiddleCoord.Tile.Y) * 256;
+  //
+  Result.X := TileDist.X + NCoord.Pixel.X + MidDist.X + MoveOffset.X;
+  Result.Y := TileDist.Y + NCoord.Pixel.Y + MidDist.Y + MoveOffset.Y;
 end;
 
 // calculate the Zoom level, that the Bounding box is completely visible
