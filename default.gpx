@@ -6,58 +6,62 @@
   </metadata>
   <wpt lat="48.857801" lon="2.295968">
     <name>Der Eiffelturm</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
   </wpt>
   <wpt lat="-22.950407" lon="-43.209536">
     <name>Christus der Erlöser</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
   </wpt>
   <wpt lat="36.149370" lon="-111.839335">
     <name>Der Grand Canyon</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
   </wpt>
   <wpt lat="-33.855436" lon="151.212200">
     <name>Sydney</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
   </wpt>
   <wpt lat="41.902384" lon="12.458632">
     <name>Der Petersdom</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
   </wpt>
   <wpt lat="51.502959" lon="-0.120804">
     <name>Das London Eye</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
   </wpt>
   <wpt lat="41.728342" lon="-49.948810">
     <name>Die Titanic</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
   </wpt>
   <wpt lat="39.913799" lon="116.390809">
     <name>Die Verbotene Stadt</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
   </wpt>
   <wpt lat="35.340630" lon="138.781827">
     <name>Der Fuji</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
   </wpt>
   <wpt lat="37.421695" lon="-122.085703">
     <name>Die Google-Unternehmenszentrale</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
   </wpt>
   <wpt lat="52.423559" lon="14.108752">
     <name>KML-waypoint</name>
-    <time>2017-05-01T19:37:37Z</time>
+    <time>2017-05-07T20:12:41Z</time>
     <ele>0.0</ele>
+  </wpt>
+  <wpt lat="52.450224" lon="12.494629">
+    <name>Marker 11</name>
+    <time>2017-05-07T20:12:41Z</time>
   </wpt>
   <trk>
     <name>Heute</name>

@@ -7,7 +7,7 @@ uses
   {$if defined(Amiga68k) or defined(MorphOS)}
     amigalib,
   {$endif}
-  SysUtils, exec, utility, intuition, agraphics, mui, muihelper,
+  Classes, SysUtils, exec, utility, intuition, agraphics, mui, muihelper,
   prefsunit, osmhelper, MUIWrap, imagesunit;
 
 type
@@ -25,6 +25,9 @@ var
 procedure OpenPrefsWindow;
 
 implementation
+
+uses
+  MUIMappariumLocale;
 
 var
   CountHook, ClearHook, SaveHook: THook;
@@ -138,20 +141,37 @@ begin
 end;
 
 
-const
+var
+  MarkerStrings: array[0..3] of string;
   MarkerTypes: array[0..4] of PChar =
     ('None'#0, 'Point'#0, 'Cross'#0, 'Lines'#0, nil);
 
 procedure CreatePrefsWin;
+var
+  Str: string;
+  SL:TStringList;
+  i: Integer;
 begin
+  str := GetLocString(MSG_PREFS_MARKERTYPES);
+  SL := TStringList.Create;
+  try
+    ExtractStrings(['|'], [], PChar(Str), SL);
+    for i := 0 to 3 do
+    begin
+      MarkerStrings[i] := SL[i];
+      MarkerTypes[i] := PChar(MarkerStrings[i]);
+    end;
+  finally
+    SL.Free;
+  end;
   PrefsWin := MH_Window([
-    MUIA_Window_Title,     AsTag('Preferences'),
+    MUIA_Window_Title,     AsTag(GetLocString(MSG_PREFS_TITLE)),  // 'Preferences'
     MUIA_Window_ID,        AsTag(MAKE_ID('M','P','R','E')),
     WindowContents, AsTag(MH_VGroup([
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
-        MUIA_FrameTitle, AsTag('Middle position marker'),
-        Child, AsTag(MH_Text('Type/Size')),
+        MUIA_FrameTitle, AsTag(GetLocString(MSG_PREFS_MIDDLETITLE)), // 'Middle position marker'
+        Child, AsTag(MH_Text(GetLocString(MSG_PREFS_MIDDLETYPE))),   // 'Type/Size'
         Child, AsTag(MH_HSpace(0)),
         Child, AsTag(MH_Cycle(MarkerType, [
           MUIA_Cycle_Entries, AsTag(@MarkerTypes),
@@ -166,8 +186,8 @@ begin
         TAG_DONE])),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
-        MUIA_FrameTitle, AsTag('Language'),
-        Child, AsTag(MH_Text('Default search result language')),
+        MUIA_FrameTitle, AsTag(GetLocString(MSG_PREFS_LANGTITLE)), // 'Language'
+        Child, AsTag(MH_Text(GetLocString(MSG_PREFS_DEFLANG))),    // 'Default search result language'
         Child, AsTag(MH_HSpace(0)),
         Child, AsTag(MH_String(LangSel, [
           MUIA_Frame, MUIV_Frame_String,
@@ -176,8 +196,8 @@ begin
         TAG_DONE])),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
-        MUIA_FrameTitle, AsTag('Memory'),
-        Child, AsTag(MH_Text('Max Tiles in Memory')),
+        MUIA_FrameTitle, AsTag(GetLocString(MSG_PREFS_MEMORYTITLE)), // 'Memory'
+        Child, AsTag(MH_Text(GetLocString(MSG_PREFS_MAXTILES))),     // 'Max Tiles in Memory'
         Child, AsTag(MH_HSpace(0)),
         Child, AsTag(MH_String(TilesHD, [
           MUIA_Frame, MUIV_Frame_String,
@@ -188,11 +208,11 @@ begin
         TAG_DONE])),
       Child, AsTag(MH_VGroup([
         MUIA_Frame, MUIV_Frame_Group,
-        MUIA_FrameTitle, AsTag('Files on hard disk'),
+        MUIA_FrameTitle, AsTag(GetLocString(MSG_PREFS_HDFILES)), // 'Files on hard disk'
         Child, AsTag(MH_HGroup([
-          Child, AsTag(MH_Button(CountButton, 'Count')),
-          Child, AsTag(MH_Button(ClearButton, 'Clear')),
-          Child, AsTag(MH_Text('to Zoom')),
+          Child, AsTag(MH_Button(CountButton, GetLocString(MSG_PREFS_BUTTONCOUNT))), // 'Count'
+          Child, AsTag(MH_Button(ClearButton, GetLocString(MSG_PREFS_BUTTONCLEAR))), // 'Clear'
+          Child, AsTag(MH_Text(GetLocString(MSG_PREFS_UPTOZOOM))), // 'to Zoom'
           Child, AsTag(MH_String(ToLevel, [
             MUIA_Frame, MUIV_Frame_String,
             MUIA_String_Format, MUIV_String_Format_Right,
@@ -200,13 +220,13 @@ begin
             MUIA_String_Integer, 7,
             TAG_DONE])),
           TAG_DONE])),
-        Child, AsTag(MH_Text(FilesLabel, 'Cached Data:')),
+        Child, AsTag(MH_Text(FilesLabel, GetLocString(MSG_PREFS_CACHEDDATA))), // 'Cached Data:'
         TAG_DONE])),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
-        Child, AsTag(MH_Button(SaveButton, 'Save')),
+        Child, AsTag(MH_Button(SaveButton, GetLocString(MSG_GENERAL_SAVE))),     // 'Save'
         Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Button(CancelButton, 'Cancel')),
+        Child, AsTag(MH_Button(CancelButton, GetLocString(MSG_GENERAL_CANCEL))), // 'Cancel'
         TAG_DONE])),
       TAG_DONE])),
     TAG_DONE]);

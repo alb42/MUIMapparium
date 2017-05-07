@@ -1,0 +1,235 @@
+;   Comments are allowed, of course! Each line beginning with a
+;   semicolon is assumed to be a comment
+;
+;   The language of the builtin strings:
+#language english
+;
+;   The catalog version, used for a call to Locale/OpenCatalog().
+;   This is different to Exec/OpenLibrary(): 0 means any catalog
+;   version, other numbers must match exactly!
+#version 0
+;
+;   This defines a string and the ID which allows to use it.
+;   The number 4 says, that this string must not be shorter than
+;   4 characters.
+;#### ErrorMessages
+MSG_ERROR_CUSTOM_CLASS (1000//)
+Could not create custom class.
+;
+MSG_ERROR_SIDEPANEL (1001//)
+Failed to create SidePanel.
+;
+MSG_ERROR_APPLICATION (1002//)
+Failed to create Application.
+;
+MSG_ERROR_ONLINE (1003//)
+Not Online
+;
+MSG_ERROR_NOTHINGFOUND (1004//)
+Nothing found for "%s"
+;
+MSG_ERROR_NETWORK (1005//)
+Network error
+;
+MSG_ERROR_REXX_UNKNOWN (1006//)
+Unknown command
+;
+MSG_ERROR_REXX_PARAM (1007//)
+Wrong number of parameter: %s
+;
+MSG_ERROR_REXX_ILLEGALPARAM (1008//)
+Illegal parameter %d, should be a float value
+;
+; 
+MSG_SEARCH_RESULTS_TITLE (2000//)
+Search Results
+;
+MSG_FRAME_SEARCH (2001//)
+Search
+;
+MSG_FRAME_WAYPOINTS (2002//)
+Waypoints
+;
+MSG_FRAME_TRACKS (2003//)
+Tracks
+;
+MSG_SEARCH_RESULTS (2004//)
+%d Results for "%s"
+;
+MSG_PREFS_TITLE (2101//)
+Preferences
+;
+MSG_PREFS_MIDDLETITLE (2102//)
+Middle position marker
+;
+MSG_PREFS_MIDDLETYPE (2103//)
+Type/Size
+;
+MSG_PREFS_LANGTITLE (2104//)
+Language
+;
+MSG_PREFS_DEFLANG (2105//)
+Default search result language
+;
+MSG_PREFS_MEMORYTITLE (2106//)
+Memory
+;
+MSG_PREFS_MAXTILES (2107//)
+Max Tiles in Memory
+;
+MSG_PREFS_HDFILES (2108//)
+Files on hard disk
+;
+MSG_PREFS_BUTTONCOUNT (2109//)
+Count
+;
+MSG_PREFS_BUTTONCLEAR (2110//)
+Clear
+; 
+MSG_PREFS_UPTOZOOM (2111//)
+to Zoom
+;
+MSG_PREFS_CACHEDDATA (2112//)
+Cached Data:
+;
+MSG_PREFS_MARKERTYPES (2113//)
+None|Point|Cross|Lines
+;
+MSG_STAT_WINTITLE (2200//)
+Statistics
+;
+MSG_STAT_TITLE (2201//)
+Some Statistics:
+;
+MSG_STAT_SESSION (2202//)
+This Session
+;
+MSG_STAT_OVERALL (2203//)
+Overall
+;
+MSG_STAT_MEMTILES (2204//)
+Tiles in Memory
+;
+MSG_STAT_NETTILES (2205//)
+Tiles Loaded from Net
+;
+MSG_STAT_HDTILES (2206//)
+Tiles loaded from HD
+;
+MSG_STAT_PENDINGTILES (2207//)
+Tiles to load
+;
+MSG_STAT_DOWNLOADED (2208//)
+Bytes downloaded
+;
+MSG_STAT_SPEED (2209//)
+Average Speed
+;
+MSG_WAYPROP_TITLE (2300//)
+Waypoint Properties
+;
+MSG_WAYPROP_NAME (2301//)
+Waypoint Title
+;
+MSG_WAYPROP_POS (2302//)
+Position
+;
+MSG_WAYPROP_CURRENTPOS (2303//)
+Current Position
+;
+MSG_TRACKPROP_TITLE (2400//)
+Track Properties
+;
+MSG_TRACKPROP_NAME (2401//)
+Track Title
+;
+;
+;#### Menus
+MSG_POPUP_WAYPOINT (3000//)
+Waypoint
+;
+MSG_POPUP_WAYPOINT_TOGGLE (3001//)
+Toggle visibility
+;
+; --- MainMenu
+MSG_MENU_PROJECT (3100//)
+Project
+;
+MSG_MENU_MAIN_LOAD (3101//)
+Load...
+;
+MSG_MENU_MAIN_LOAD_KEY (3102/1/1)
+L
+;
+MSG_MENU_MAIN_SAVE (3103//)
+Save...
+;
+MSG_MENU_MAIN_SAVE_KEY (3104/1/1)
+S
+;
+MSG_MENU_MAIN_QUIT (3105//)
+Quit
+;
+MSG_MENU_MAIN_QUIT_KEY (3106/1/1)
+Q
+;
+MSG_MENU_MAP (3200//)
+Map
+;
+MSG_MENU_MAP_FINDME (3201//)
+Find me
+;
+MSG_MENU_MAP_ZOOMIN (3202//)
+Zoom in
+;
+MSG_MENU_MAP_ZOOMOUT (3203//)
+Zoom out
+;
+MSG_MENU_WINDOW (3300//)
+Window
+;
+MSG_MENU_WINDOW_SIDEPANEL (3301//)
+Side Panel
+;
+MSG_MENU_WINDOW_PREFS (3302//)
+Prefs
+;
+MSG_MENU_WINDOW_STATISTICS (3303//)
+Statistics
+;
+;
+;#### Buttons
+MSG_BUTTON_WAYPOINT_ADD (4000//)
+Add
+;
+MSG_BUTTON_WAYPOINT_REMOVE (4001//)
+Remove
+;
+MSG_BUTTON_WAYPOINT_EDIT (4002//)
+Edit
+;
+MSG_BUTTON_TRACK_REMOVE (4003//)
+Remove
+;
+MSG_BUTTON_TRACK_EDIT (4004//)
+Edit
+;
+MSG_GENERAL_LAT (5000//)
+Lat:
+;
+MSG_GENERAL_LON (5001//)
+Lon:
+;
+MSG_GENERAL_SAVE (5002//)
+Save
+;
+MSG_GENERAL_CLOSE (5003//)
+Close
+;
+MSG_GENERAL_CANCEL (5004//)
+Cancel
+;
+;#### Defaults
+MSG_DEFAULT_WAYPOINT (6000//)
+Waypoint %d
+;

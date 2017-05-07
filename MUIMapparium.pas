@@ -6,6 +6,7 @@ uses
   {$if defined(MorphOS) or defined(Amiga68k)}
   amigalib,
   {$endif}
+  MUIMappariumLocale,
   imagesunit, positionunit, osmhelper, networkingunit, prefsunit,
   Exec, Utility, intuition, agraphics, Layers, AmigaDos,
   cybergraphics, mui, muihelper, MUIWrap, prefswinunit,
@@ -27,6 +28,8 @@ const
   // WayMenu
   WID_Toggle = 1;
 
+var
+  TabStrings: array[0..2] of string = ('Search', 'WayPoints', 'Tracks');
   TabTitles: array[0..3] of PChar = ('Search'#0, 'WayPoints'#0, 'Tracks'#0, nil);
 
 type
@@ -364,7 +367,7 @@ begin
   Marker := TMarker.Create;
   Marker.Position.Lat := MiddlePos.Lat;
   Marker.Position.Lon := MiddlePos.Lon;
-  Marker.Name := 'Marker ' + IntToStr(MarkerList.Add(Marker));
+  Marker.Name := Format(GetLocString(MSG_DEFAULT_WAYPOINT), [MarkerList.Add(Marker)]); //'Waypoint %d';
   UpdateWayPoints;
 end;
 
@@ -773,7 +776,7 @@ begin
   DoMethod(SearchListEntry, [MUIM_List_Clear]);
   if not IsOnline then
   begin
-    SearchTitleStr :=  'Not Online'#0;
+    SearchTitleStr :=  GetLocString(MSG_ERROR_ONLINE); // 'Not Online'#0;
     MH_Set(SearchListEntry, MUIA_List_Title, AsTag(@SearchTitleStr[1]));
     ShowSidePanel(True);
     Exit;
@@ -832,12 +835,12 @@ begin
       end;
       if SRes.Count = 0 then
       begin
-        SearchTitleStr :=  'Nothing found for "'+SearchTerm+'"'#0;
+        SearchTitleStr := Format(GetLocString(MSG_ERROR_NOTHINGFOUND), [SearchTerm]); //'Nothing found for "'+SearchTerm+'"'#0;
         MH_Set(SearchListEntry, MUIA_List_Title, AsTag(@SearchTitleStr[1]));
       end
       else
       begin
-        SearchTitleStr :=  IntToStr(SRes.Count) + ' Results for "'+SearchTerm+'"'#0;
+        SearchTitleStr :=  Format(GetLocString(MSG_SEARCH_RESULTS), [SRes.Count, SearchTerm]);
         MH_Set(SearchListEntry, MUIA_List_Title, AsTag(@SearchTitleStr[1]));
         if SRes.Count = 1 then
         begin
@@ -849,7 +852,7 @@ begin
       end;
     end else
     begin
-      SearchTitleStr :=  'Network error'#0;
+      SearchTitleStr :=  GetLocString(MSG_ERROR_NETWORK); //'Network error'
       MH_Set(SearchListEntry, MUIA_List_Title, AsTag(@SearchTitleStr[1]));
     end;
   finally
@@ -1037,7 +1040,7 @@ begin
       MiddlePos.Lat := SR.Lat;
       MiddlePos.Lon := SR.Lon;
       CurZoom:= SR.Zoom;
-      RedrawImage := True;
+      RefreshImage;
     end;
   end;
 end;
@@ -1220,7 +1223,7 @@ var
   NName: String;
 begin
   Result := 20;
-  ReturnMsg := 'unknown command';
+  ReturnMsg := GetLocString(MSG_ERROR_REXX_UNKNOWN); // 'unknown command';
   SL := TStringList.Create;
   try
     ExtractStrings([' '], [], PChar(Msg), SL);
@@ -1231,7 +1234,7 @@ begin
         begin
           if (SL.Count < 3) or (SL.Count > 4) then
           begin
-            ReturnMsg := 'wrong number of parameter: GOTO <lat> <lon> [<zoom>]';
+            ReturnMsg := Format(GetLocString(MSG_ERROR_REXX_PARAM), ['GOTO <lat> <lon> [<zoom>]']); //'wrong number of parameter:
             Result := 10;
             Exit;
           end;
@@ -1245,12 +1248,12 @@ begin
           if IsNan(NLat) then
           begin
             Fail := True;
-            ReturnMsg := ' Illegal 1 Parameter should be a float value'
+            ReturnMsg := Format(GetLocString(MSG_ERROR_REXX_ILLEGALPARAM), [1]); // ' Illegal 1 Parameter should be a float value'
           end;
           if IsNan(NLat) then
           begin
             Fail := True;
-            ReturnMsg := Returnmsg + ' Illegal 2 Parameter should be a float value'
+            ReturnMsg := Format(GetLocString(MSG_ERROR_REXX_ILLEGALPARAM), [2]); // ' Illegal 2 Parameter should be a float value'
           end;
           if Fail then
           begin
@@ -1269,7 +1272,7 @@ begin
         begin
           if (SL.Count < 4) then
           begin
-            ReturnMsg := 'wrong number of parameter: WAYPOINT <lat> <lon> "<name>"';
+            ReturnMsg := Format(GetLocString(MSG_ERROR_REXX_PARAM), ['WAYPOINT <lat> <lon> "<name>"']); //'wrong number of parameter:
             Result := 10;
             Exit;
           end;
@@ -1283,12 +1286,12 @@ begin
           if IsNan(NLat) then
           begin
             Fail := True;
-            ReturnMsg := ' Illegal 1 Parameter should be a float value'
+            ReturnMsg := Format(GetLocString(MSG_ERROR_REXX_ILLEGALPARAM), [1]); // ' Illegal 1 Parameter should be a float value'
           end;
           if IsNan(NLat) then
           begin
             Fail := True;
-            ReturnMsg := Returnmsg + ' Illegal 2 Parameter should be a float value'
+            ReturnMsg := Format(GetLocString(MSG_ERROR_REXX_ILLEGALPARAM), [2]); // ' Illegal 2 Parameter should be a float value'
           end;
           if Fail then
           begin
@@ -1364,7 +1367,7 @@ begin
          end}
       else
         begin
-          ReturnMsg := 'Unknown command '''+SL[0]+'''';
+          ReturnMsg := GetLocString(MSG_ERROR_REXX_UNKNOWN) + '''' + SL[0]+ '''';
           Result := 20;
         end;
     end;
@@ -1466,6 +1469,15 @@ var
   WayMenuHooks: array[0..0] of THook;
   RexxHook: THook;
 begin
+  //Initialize Frame titles 'Search', 'WayPoints', 'Tracks'
+  TabStrings[0] := string(GetLocString(MSG_FRAME_SEARCH));
+  TabStrings[1] := string(GetLocString(MSG_FRAME_WAYPOINTS));
+  TabStrings[2] := string(GetLocString(MSG_FRAME_TRACKS));
+  TabTitles[0] := PChar(TabStrings[0]);
+  TabTitles[1] := PChar(TabStrings[1]);
+  TabTitles[2] := PChar(TabStrings[2]);
+
+
   SRes := TSearchResults.Create;
   // Prefs
   UpdatePrefs;
@@ -1485,20 +1497,20 @@ begin
     MCC := MH_CreateCustomClass(nil, MUIC_Area, nil, SizeOf(TMyData), @MyDispatcher);
     if not Assigned(MCC) then
     begin
-      writeln('Could not create custom class.');
+      writeln(GetLocString(MSG_ERROR_CUSTOM_CLASS)); // 'Could not create custom class.'
       Exit;
     end;
     //
-    SearchTitleStr :=  'Search Results'#0;
+    SearchTitleStr :=  GetLocString(MSG_SEARCH_RESULTS_TITLE); // 'Search Results';
     //
     StrCoord := FloatToStrF(MiddlePos.Lat, ffFixed, 8,6) + ' ; ' + FloatToStrF(MiddlePos.Lon, ffFixed, 8,6) + ' ; ' + IntToStr(CurZoom) + '  ';
     StrCoord := Format('%25s', [StrCoord]);
     //
     // Popupmenu for WayPointList ++++++++++++++++++++++++++++++++++++++
     WayPointMenu := MH_Menustrip([
-      Child, AsTag(MH_Menu('Waypoint', [
+      Child, AsTag(MH_Menu(GetLocString(MSG_POPUP_WAYPOINT), [                   // 'Waypoint'
         Child, AsTag(MH_MenuItem(WM1, [
-          MUIA_Menuitem_Title, AsTag(PChar('Toggle visibility')),
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_POPUP_WAYPOINT_TOGGLE)),   // 'Toggle visibility'
           MUIA_UserData, WID_Toggle,
           TAG_DONE])),
         TAG_DONE])),
@@ -1544,9 +1556,9 @@ begin
               TAG_DONE])),
             TAG_DONE])),
           Child, AsTag(MH_HGroup([
-              Child, AsTag(MH_Button(AddWay, 'Add')),
-              Child, AsTag(MH_Button(RemWay, 'Remove')),
-              Child, AsTag(MH_Button(EditWay, 'Show/Edit')),
+              Child, AsTag(MH_Button(AddWay, GetLocString(MSG_BUTTON_WAYPOINT_ADD))),    // 'Add'
+              Child, AsTag(MH_Button(RemWay, GetLocString(MSG_BUTTON_WAYPOINT_REMOVE))), // 'Remove'
+              Child, AsTag(MH_Button(EditWay, GetLocString(MSG_BUTTON_WAYPOINT_EDIT))),  // 'Edit'
             TAG_DONE])),
           TAG_DONE])),
         Child, AsTag(MH_VGroup([
@@ -1561,73 +1573,73 @@ begin
               TAG_DONE])),
             TAG_DONE])),
           Child, AsTag(MH_HGroup([
-              Child, AsTag(MH_Button(RemTrack, 'Remove')),
-              Child, AsTag(MH_Button(EditTrack, 'Show/Edit')),
+              Child, AsTag(MH_Button(RemTrack, GetLocString(MSG_BUTTON_TRACK_REMOVE))),    // 'Remove'
+              Child, AsTag(MH_Button(EditTrack, GetLocString(MSG_BUTTON_WAYPOINT_EDIT))),  //  'Edit'
             TAG_DONE])),
           TAG_DONE])),
         TAG_DONE])),
       TAG_DONE]);
     if not Assigned(SidePanel) then
-      writeln('Failed to create SidePanel');
+      writeln(GetLocString(MSG_ERROR_SIDEPANEL)); //  'Failed to create SidePanel.'
     //
     // Main Menu +++++++++++++++++++++++++++++++++++++++++++++++++++++++
     MainMenu := MH_Menustrip([
       // Project Menu -----------------------------------
-      Child, AsTag(MH_Menu('Project',[
+      Child, AsTag(MH_Menu(GetLocString(MSG_MENU_PROJECT),[             // 'Project'
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(PChar('Load...')),
-          MUIA_Menuitem_Shortcut, AsTag('L'),
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAIN_LOAD)), //  'Load...'
+          MUIA_Menuitem_Shortcut, AsTag(GetLocString(MSG_MENU_MAIN_LOAD_KEY)), // 'L'
           MUIA_UserData, MID_Load,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(PChar('Save...')),
-          MUIA_Menuitem_Shortcut, AsTag('S'),
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAIN_SAVE)), //  'Save...'
+          MUIA_Menuitem_Shortcut, AsTag(GetLocString(MSG_MENU_MAIN_SAVE_KEY)), // 'S'
           MUIA_UserData, MID_Save,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(PChar('Quit')),
-          MUIA_Menuitem_Shortcut, AsTag('Q'),
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAIN_QUIT)), //  'Quit'
+          MUIA_Menuitem_Shortcut, AsTag(GetLocString(MSG_MENU_MAIN_QUIT_KEY)), // 'Q'
           MUIA_UserData, MID_Quit,
           TAG_DONE])),
         TAG_DONE])),
       // Map Menu ----------------------------------
-      Child, AsTag(MH_Menu('Map',[
+      Child, AsTag(MH_Menu(GetLocString(MSG_MENU_MAP),[                 // 'Map'
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(PChar('Find me')),
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAP_FINDME)),//  'Find me'
           MUIA_UserData, MID_FINDME,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
           MUIA_Menuitem_Title, AsTag(-1),
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(PChar('Zoom in')),
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAP_ZOOMIN)),//  'Zoom in'
           MUIA_UserData, MID_ZOOMIN,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(PChar('Zoom out')),
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAP_ZOOMOUT)),  //  'Zoom out'
           MUIA_UserData, MID_ZOOMOUT,
           TAG_DONE])),
         TAG_DONE])),
       // Window Menu ------------------------------------
-      Child, AsTag(MH_Menu('Window',[
+      Child, AsTag(MH_Menu(GetLocString(MSG_MENU_WINDOW),[              // 'Window'
         Child, AsTag(MH_MenuItem(MenuSidePanel, [
-          MUIA_Menuitem_Title, AsTag(PChar('Side Panel')),
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_WINDOW_SIDEPANEL)), // 'Side Panel'
           MUIA_Menuitem_Checkit, AsTag(True),
           MUIA_Menuitem_Toggle, AsTag(True),
           MUIA_UserData, MID_SIDEPANEL,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(PChar('Prefs')),
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_WINDOW_PREFS)),     // 'Prefs'
           MUIA_UserData, MID_Prefs,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(PChar('Statistics')),
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_WINDOW_STATISTICS)), // 'Statistics'
           MUIA_UserData, MID_Statistics,
           TAG_DONE])),
         TAG_DONE])),
       // About Menu -----------------
-      Child, AsTag(MH_Menu('About',[
-        TAG_DONE])),
+      //Child, AsTag(MH_Menu('About',[
+      //  TAG_DONE])),
       TAG_DONE]);
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1683,7 +1695,7 @@ begin
       TAG_DONE]);
     if not Assigned(app) then
     begin
-      writeln('Failed to create Application');
+      writeln(GetLocString(MSG_ERROR_APPLICATION));           // 'Failed to create Application'
       Exit;
     end;
     //

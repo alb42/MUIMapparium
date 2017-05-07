@@ -1,0 +1,310 @@
+## version $VER: MUIMapparium.catalog 0.3 (06.05.2017)
+## language deutsch
+## codeset 0
+;
+;   Comments are allowed, of course! Each line beginning with a
+;   semicolon is assumed to be a comment
+;
+;   The language of the builtin strings:
+;#language english
+;
+;   The catalog version, used for a call to Locale/OpenCatalog().
+;   This is different to Exec/OpenLibrary(): 0 means any catalog
+;   version, other numbers must match exactly!
+;#version 0
+;
+;   This defines a string and the ID which allows to use it.
+;   The number 4 says, that this string must not be shorter than
+;   4 characters.
+;#### ErrorMessages
+MSG_ERROR_CUSTOM_CLASS
+Custom Class konnte nicht erzeugt werden.
+; Could not create custom class.
+;
+MSG_ERROR_SIDEPANEL
+Konnte Seitenleiste nicht erzeugen.
+; Failed to create SidePanel.
+;
+MSG_ERROR_APPLICATION
+Konnte Failed to create Application.
+; Failed to create Application.
+;
+MSG_ERROR_ONLINE
+Nicht Online
+; Not Online
+;
+MSG_ERROR_NOTHINGFOUND
+Nichts gefunden für "%s"
+; Nothing found for "%s"
+;
+MSG_ERROR_NETWORK
+Netzwerkfehler
+; Network error
+;
+MSG_ERROR_REXX_UNKNOWN
+Unbekanntes Kommando
+; Unknown command
+;
+MSG_ERROR_REXX_PARAM
+Falsche Parameteranzahl: %s
+; Wrong number of parameter: %s
+;
+MSG_ERROR_REXX_ILLEGALPARAM
+Parameter %d is ungültig, sollte ein float sein.
+; Illegal parameter %d, should be a float value
+;
+; 
+MSG_SEARCH_RESULTS_TITLE
+Suchergebnis
+; Search Results
+;
+MSG_FRAME_SEARCH
+Suche
+; Search
+;
+MSG_FRAME_WAYPOINTS
+Wegpunkte
+; Waypoints
+;
+MSG_FRAME_TRACKS
+Pfad
+; Tracks
+;
+MSG_SEARCH_RESULTS
+%d Ergebnisse für "%s"
+; %d Results for "%s"
+;
+MSG_PREFS_TITLE
+Einstellungen
+; Preferences
+;
+MSG_PREFS_MIDDLETITLE
+Mittelpositionsmarker
+; Middle position marker
+;
+MSG_PREFS_MIDDLETYPE
+Typ/Größe
+; Type/Size
+;
+MSG_PREFS_LANGTITLE
+Sprache
+; Language
+;
+MSG_PREFS_DEFLANG
+Sprache der Suchergebnisse
+; Default search result language
+;
+MSG_PREFS_MEMORYTITLE
+Speicher
+; Memory
+;
+MSG_PREFS_MAXTILES
+Maximale Bilder im Speicher
+; Max Tiles in Memory
+;
+MSG_PREFS_HDFILES
+Bilder auf der Festplatte
+; Files on hard disk
+;
+MSG_PREFS_BUTTONCOUNT
+Zählen
+; Count
+;
+MSG_PREFS_BUTTONCLEAR
+Löschen
+; Clear
+; 
+MSG_PREFS_UPTOZOOM
+bis Zoomlevel
+; to Zoom
+;
+MSG_PREFS_CACHEDDATA
+Gespeicherte Daten:
+; Cached Data:
+;
+MSG_PREFS_MARKERTYPES
+Keiner|Punkt|Kreuz|Linien
+; None|Point|Cross|Lines
+;
+MSG_STAT_WINTITLE
+Statistiken
+; Statistics
+;
+MSG_STAT_TITLE
+Einige Statistiken:
+; Some Statistics:
+;
+MSG_STAT_SESSION
+Dieser Programstart
+; This Session
+;
+MSG_STAT_OVERALL
+Gesamt
+; Overall
+;
+MSG_STAT_MEMTILES
+Teile im Speicher
+; Tiles in Memory
+;
+MSG_STAT_NETTILES
+Teile vom Netz geladen
+; Tiles Loaded from Net
+;
+MSG_STAT_HDTILES
+Teile von Festplatte geladen
+; Tiles loaded from HD
+;
+MSG_STAT_PENDINGTILES
+zu ladende Teile
+; Tiles to load
+;
+MSG_STAT_DOWNLOADED
+Heruntergeladen
+; Bytes downloaded
+;
+MSG_STAT_SPEED
+Geschwindigkeit
+; Average Speed
+;
+MSG_WAYPROP_TITLE
+Wegpunkt Eigenschaften
+; Waypoint Properties
+;
+MSG_WAYPROP_NAME
+Wegpunkttitel
+; Waypoint Title
+;
+MSG_WAYPROP_POS
+Position
+; Position
+;
+MSG_WAYPROP_CURRENTPOS
+aktuelle Position
+; Current Position
+;
+MSG_TRACKPROP_TITLE
+Pfad Eigenschaften
+; Track Properties
+;
+MSG_TRACKPROP_NAME
+Pfadname
+; Track Title
+;
+;
+;#### Menus
+MSG_POPUP_WAYPOINT
+Wegpunkt
+; Waypoint
+;
+MSG_POPUP_WAYPOINT_TOGGLE
+Ändere Sichtbarkeit
+; Toggle visibility
+;
+; --- MainMenu
+MSG_MENU_PROJECT
+Projekt
+; Project
+;
+MSG_MENU_MAIN_LOAD
+Laden...
+; Load...
+;
+MSG_MENU_MAIN_LOAD_KEY
+L
+; L
+;
+MSG_MENU_MAIN_SAVE
+Speichern...
+; Save...
+;
+MSG_MENU_MAIN_SAVE_KEY
+S
+; S
+;
+MSG_MENU_MAIN_QUIT
+Beenden
+; Quit
+;
+MSG_MENU_MAIN_QUIT_KEY
+Q
+; Q
+;
+MSG_MENU_MAP
+Karte
+; Map
+;
+MSG_MENU_MAP_FINDME
+Meine Position
+; Find me
+;
+MSG_MENU_MAP_ZOOMIN
+Hineinzoomen
+; Zoom in
+;
+MSG_MENU_MAP_ZOOMOUT
+Herauszoomen
+; Zoom out
+;
+MSG_MENU_WINDOW
+Fenster
+; Window
+;
+MSG_MENU_WINDOW_SIDEPANEL
+Seitenleiste
+; Side Panel
+;
+MSG_MENU_WINDOW_PREFS
+Einstellungen
+; Prefs
+;
+MSG_MENU_WINDOW_STATISTICS
+Statistiken
+; Statistics
+;
+;
+;#### Buttons
+MSG_BUTTON_WAYPOINT_ADD
+Hinzufügen
+; Add
+;
+MSG_BUTTON_WAYPOINT_REMOVE
+Entfernen
+; Remove
+;
+MSG_BUTTON_WAYPOINT_EDIT
+Bearbeiten
+; Edit
+;
+MSG_BUTTON_TRACK_REMOVE
+Entfernen
+; Remove
+;
+MSG_BUTTON_TRACK_EDIT
+Bearbeiten
+; Edit
+;
+MSG_GENERAL_LAT
+Lat:
+; Lat:
+;
+MSG_GENERAL_LON
+Lon:
+; Lon:
+;
+MSG_GENERAL_SAVE
+Speichern
+; Save
+;
+MSG_GENERAL_CLOSE
+Schließen
+; Close
+;
+MSG_GENERAL_CANCEL
+Abbrechen
+; Cancel
+;
+;#### Defaults
+MSG_DEFAULT_WAYPOINT
+Marker %d
+; Waypoint %d
+;

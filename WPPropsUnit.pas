@@ -17,6 +17,9 @@ procedure ShowWPProps(NewMarker: TMarker);
 
 implementation
 
+uses
+  MUIMappariumlocale;
+
 var
   WPName, SaveButton, CloseButton,
   WPLat, WPLon, CurPos: PObject_;
@@ -64,12 +67,12 @@ end;
 procedure CreateWPPropsWin;
 begin
   WPPropsWin := MH_Window([
-    MUIA_Window_Title,     AsTag('WayPoint Properties'),
+    MUIA_Window_Title,     AsTag(GetLocString(MSG_WAYPROP_TITLE)), // 'WayPoint Properties'
     MUIA_Window_ID,        AsTag(MAKE_ID('W','A','Y','P')),
     WindowContents, AsTag(MH_VGroup([
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
-        MUIA_FrameTitle, AsTag('WayPoint Title'),
+        MUIA_FrameTitle, AsTag(GetLocString(MSG_WAYPROP_NAME)),    // 'WayPoint Title'
         Child, AsTag(MH_String(WPName, [
           MUIA_Frame, MUIV_Frame_String,
           MUIA_String_Format, MUIV_String_Format_Left,
@@ -79,15 +82,15 @@ begin
       Child, AsTag(MH_HGroup([
         MUIA_Group_Columns, 2,
         MUIA_Frame, MUIV_Frame_Group,
-        MUIA_FrameTitle, AsTag('Position'),
-        Child, AsTag(MH_Text('Lat:')),
+        MUIA_FrameTitle, AsTag(GetLocString(MSG_WAYPROP_POS)),    // 'Position'
+        Child, AsTag(MH_Text(GetLocString(MSG_GENERAL_LAT))),     // 'Lat:'
         Child, AsTag(MH_String(WPLat,[
           MUIA_Frame, MUIV_Frame_String,
           MUIA_String_Format, MUIV_String_Format_Right,
           MUIA_String_Accept, AsTag('0123456789.'),
           MUIA_String_Contents, AsTag('0000.000000'),
           TAG_END])),
-        Child, AsTag(MH_Text('Lon:')),
+        Child, AsTag(MH_Text(GetLocString(MSG_GENERAL_LON))),     // 'Lon:'
         Child, AsTag(MH_String(WPLon,[
           MUIA_Frame, MUIV_Frame_String,
           MUIA_String_Format, MUIV_String_Format_Right,
@@ -95,13 +98,13 @@ begin
           MUIA_String_Contents, AsTag('0000.000000'),
           TAG_END])),
         Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Button(CurPos, 'Current Position')),
+        Child, AsTag(MH_Button(CurPos, GetLocString(MSG_WAYPROP_CURRENTPOS))),  // 'Current Position'
         TAG_END])),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
-        Child, AsTag(MH_Button(SaveButton, 'Save')),
+        Child, AsTag(MH_Button(SaveButton, GetLocString(MSG_GENERAL_SAVE))),   // 'Save'
         Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Button(CloseButton, 'Close')),
+        Child, AsTag(MH_Button(CloseButton, GetLocString(MSG_GENERAL_CLOSE))), // 'Close'
         TAG_DONE])),
       TAG_END])),
     TAG_END]);

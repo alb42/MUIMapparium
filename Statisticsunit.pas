@@ -6,7 +6,8 @@ uses
     amigalib,
   {$endif}
   SysUtils, exec, utility, intuition, agraphics, mui, muihelper,
-  prefsunit, osmhelper, MUIWrap, imagesunit;
+  prefsunit, osmhelper, MUIWrap, imagesunit,
+  MUIMappariumlocale;
 
 var
 
@@ -39,7 +40,7 @@ const
   STAT_TILESLOAD = 3;
   STAT_DOWNLOAD  = 4;
   STAT_AVERAGE   = 5;
-  RowTitles: array[0..5] of PChar = ('Tiles in Memory'#0, 'Tiles loaded from Net'#0, 'Tiles loaded from HD'#0, 'Tiles to load'#0, 'Bytes downloaded'#0, 'Average Speed'#0);
+  RowTitles: array[0..6] of PChar = ('Tiles in Memory'#0, 'Tiles loaded from Net'#0, 'Tiles loaded from HD'#0, 'Tiles to load'#0, 'Bytes downloaded'#0, 'Average Speed'#0, nil);
 
 type
   TStatEntry = record
@@ -154,13 +155,23 @@ procedure CreateStatWin;
 var
   i: Integer;
 begin
+  ColumnTitles[1] := GetLocString(MSG_STAT_SESSION);
+  ColumnTitles[2] := GetLocString(MSG_STAT_OVERALL);
+  //
+  RowTitles[0] := GetLocString(MSG_STAT_MEMTILES);
+  RowTitles[1] := GetLocString(MSG_STAT_NETTILES);
+  RowTitles[2] := GetLocString(MSG_STAT_HDTILES);
+  RowTitles[3] := GetLocString(MSG_STAT_PENDINGTILES);
+  RowTitles[4] := GetLocString(MSG_STAT_DOWNLOADED);
+  RowTitles[5] := GetLocString(MSG_STAT_SPEED);
+
   MH_SetHook(DispHook, THookFunc(@DisplayFunc), nil);
 
   StatWin := MH_Window([
-    MUIA_Window_Title,     AsTag('Statistics'),
+    MUIA_Window_Title,     AsTag(GetLocString(MSG_STAT_WINTITLE)), // 'Statistics'
     MUIA_Window_ID,        AsTag(MAKE_ID('M','S','T','A')),
     WindowContents, AsTag(MH_VGroup([
-      Child, AsTag(MH_Text(' Some Statistics:                                                                  ')),
+      Child, AsTag(MH_Text(PChar(GetLocString(MSG_STAT_TITLE) + '                                                                                '))),
       Child, AsTag(MH_List(StatListEntry, [
         MUIA_Background, MUII_ReadListBack,
         MUIA_Frame, MUIV_Frame_ReadList,

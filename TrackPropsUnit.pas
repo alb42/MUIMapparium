@@ -17,6 +17,9 @@ procedure ShowTrackProps(NewTrack: TTrack);
 
 implementation
 
+uses
+  MUIMappariumLocale;
+
 var
   TrackName, SaveButton, CloseButton: PObject_;
   CurTrack: TTrack = nil;
@@ -50,12 +53,12 @@ end;
 procedure CreateTrackPropsWin;
 begin
   TrackPropsWin := MH_Window([
-    MUIA_Window_Title,     AsTag('Track Properties'),
+    MUIA_Window_Title,     AsTag(GetLocString(MSG_TRACKPROP_TITLE)), // 'Track Properties'
     MUIA_Window_ID,        AsTag(MAKE_ID('T','R','A','P')),
     WindowContents, AsTag(MH_VGroup([
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
-        MUIA_FrameTitle, AsTag('Track Title'),
+        MUIA_FrameTitle, AsTag(GetLocString(MSG_TRACKPROP_NAME)),   // 'Track Title'
         Child, AsTag(MH_String(TrackName, [
           MUIA_Frame, MUIV_Frame_String,
           MUIA_String_Format, MUIV_String_Format_Left,
@@ -64,9 +67,9 @@ begin
         TAG_END])),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
-        Child, AsTag(MH_Button(SaveButton, 'Save')),
+        Child, AsTag(MH_Button(SaveButton, GetLocString(MSG_GENERAL_SAVE))), // 'Save'
         Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Button(CloseButton, 'Close')),
+        Child, AsTag(MH_Button(CloseButton, GetLocString(MSG_GENERAL_CLOSE))), // 'Close'
         TAG_DONE])),
       TAG_END])),
     TAG_END]);
