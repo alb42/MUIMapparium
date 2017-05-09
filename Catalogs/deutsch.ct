@@ -119,8 +119,12 @@ bis Zoomlevel
 ; to Zoom
 ;
 MSG_PREFS_CACHEDDATA
-Gespeicherte Daten:
-; Cached Data:
+Gespeicherte Daten: %s in %d Dateien.
+; Cached Data: %s in %d files.
+;
+MSG_PREFS_DELETEDATA
+%d gelöscht, %d behalten.
+; %d deleted, %d kept.
 ;
 MSG_PREFS_MARKERTYPES
 Keiner|Punkt|Kreuz|Linien

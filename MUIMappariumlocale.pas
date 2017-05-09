@@ -91,9 +91,12 @@ const
   MSG_PREFS_UPTOZOOM_STR = 'to Zoom'#0;
 
   MSG_PREFS_CACHEDDATA = 2112 ;
-  MSG_PREFS_CACHEDDATA_STR = 'Cached Data:'#0;
+  MSG_PREFS_CACHEDDATA_STR = 'Cached Data: %s in %d files.'#0;
 
-  MSG_PREFS_MARKERTYPES = 2113 ;
+  MSG_PREFS_DELETEDATA = 2113 ;
+  MSG_PREFS_DELETEDATA_STR = '%d deleted, %d kept.'#0;
+
+  MSG_PREFS_MARKERTYPES = 2114 ;
   MSG_PREFS_MARKERTYPES_STR = 'None|Point|Cross|Lines'#0;
 
   MSG_STAT_WINTITLE = 2200 ;
@@ -247,7 +250,7 @@ type
      str: string;
   end;
 
-  TAppStringArray = array[0..71] of TAppString;
+  TAppStringArray = array[0..72] of TAppString;
 
 const
   AppStrings: TAppStringArray = (
@@ -277,6 +280,7 @@ const
     (id: MSG_PREFS_BUTTONCLEAR ; str: MSG_PREFS_BUTTONCLEAR_STR ),
     (id: MSG_PREFS_UPTOZOOM ; str: MSG_PREFS_UPTOZOOM_STR ),
     (id: MSG_PREFS_CACHEDDATA ; str: MSG_PREFS_CACHEDDATA_STR ),
+    (id: MSG_PREFS_DELETEDATA ; str: MSG_PREFS_DELETEDATA_STR ),
     (id: MSG_PREFS_MARKERTYPES ; str: MSG_PREFS_MARKERTYPES_STR ),
     (id: MSG_STAT_WINTITLE ; str: MSG_STAT_WINTITLE_STR ),
     (id: MSG_STAT_TITLE ; str: MSG_STAT_TITLE_STR ),
@@ -341,7 +345,7 @@ begin
   CloseCatalog;
   if (Catalog = nil) and (LocaleBase <> NIL) then
   begin
-    tags[0] := OC_BuiltInLanguage; tags[1] := AsTag(PChar(builtinlanguage));
+    tags[0] := OC_BuiltInLanguage; tags[1] := 0; //AsTag(PChar(builtinlanguage));
     tags[2] := OC_Version;         tags[3] := Version;
     tags[4] := TAG_END;
   end;

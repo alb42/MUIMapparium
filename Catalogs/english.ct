@@ -119,8 +119,12 @@ to Zoom
 ; to Zoom
 ;
 MSG_PREFS_CACHEDDATA
-Cached Data:
-; Cached Data:
+Cached Data: %s in %d files.
+; Cached Data: %s in %d files.
+;
+MSG_PREFS_DELETEDATA
+%d deleted, %d kept.
+; %d deleted, %d kept.
 ;
 MSG_PREFS_MARKERTYPES
 None|Point|Cross|Lines
@@ -135,7 +139,7 @@ Some Statistics:
 ; Some Statistics:
 ;
 MSG_STAT_SESSION
-This Session
+This Session111
 ; This Session
 ;
 MSG_STAT_OVERALL

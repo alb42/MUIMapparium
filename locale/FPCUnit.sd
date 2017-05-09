@@ -62,7 +62,7 @@ begin
   CloseCatalog;
   if (Catalog = nil) and (LocaleBase <> NIL) then
   begin
-    tags[0] := OC_BuiltInLanguage; tags[1] := AsTag(PChar(builtinlanguage));
+    tags[0] := OC_BuiltInLanguage; tags[1] := 0; //AsTag(PChar(builtinlanguage));
     tags[2] := OC_Version;         tags[3] := Version;
     tags[4] := TAG_END;
   end;

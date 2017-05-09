@@ -90,9 +90,12 @@ MSG_PREFS_UPTOZOOM (2111//)
 to Zoom
 ;
 MSG_PREFS_CACHEDDATA (2112//)
-Cached Data:
+Cached Data: %s in %d files.
 ;
-MSG_PREFS_MARKERTYPES (2113//)
+MSG_PREFS_DELETEDATA (2113//)
+%d deleted, %d kept.
+;
+MSG_PREFS_MARKERTYPES (2114//)
 None|Point|Cross|Lines
 ;
 MSG_STAT_WINTITLE (2200//)

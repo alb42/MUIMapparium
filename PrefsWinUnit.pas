@@ -89,13 +89,13 @@ begin
       Inc(Bytes, Info.Size);
       if GetTickCount64 - StartTime > 200 then
       begin
-        MH_Set(FilesLabel, MUIA_Text_Contents, AsTag(PChar('Cached data: ' + ScaleBytes(Bytes) + ' in ' +  IntToStr(Counter) + ' files.')));
+        MH_Set(FilesLabel, MUIA_Text_Contents, AsTag(PChar(Format(GetLocString(MSG_PREFS_CACHEDDATA), [ScaleBytes(Bytes), Counter]))));
         StartTime := GetTickCount64;
       end;
     until FindNext(Info) <> 0;
   end;
   FindClose(Info);
-  MH_Set(FilesLabel, MUIA_Text_Contents, AsTag(PChar('Cached data: ' + ScaleBytes(Bytes) + ' in ' +  IntToStr(Counter) + ' files.')));
+  MH_Set(FilesLabel, MUIA_Text_Contents, AsTag(PChar(Format(GetLocString(MSG_PREFS_CACHEDDATA), [ScaleBytes(Bytes), Counter]))));
 end;
 
 function ClearButtonEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
@@ -131,7 +131,7 @@ begin
       end;
       if GetTickCount64 - StartTime > 200 then
       begin
-        MH_Set(FilesLabel, MUIA_Text_Contents, AsTag(PChar(IntToStr(DeletedFiles) + ' deleted, ' + IntToStr(IgnoredFiles) + ' kept.')));
+        MH_Set(FilesLabel, MUIA_Text_Contents, AsTag(PChar(Format(GetLocString(MSG_PREFS_DELETEDATA), [DeletedFiles, IgnoredFiles]))));
         StartTime := GetTickCount64;
       end;
     until FindNext(Info) <> 0;
@@ -220,7 +220,7 @@ begin
             MUIA_String_Integer, 7,
             TAG_DONE])),
           TAG_DONE])),
-        Child, AsTag(MH_Text(FilesLabel, GetLocString(MSG_PREFS_CACHEDDATA))), // 'Cached Data:'
+        Child, AsTag(MH_Text(FilesLabel, AsTag('                                                  '))), // 'Cached Data:'
         TAG_DONE])),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,

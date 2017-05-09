@@ -8,7 +8,7 @@ uses
   {$endif}
   MUIMappariumLocale,
   imagesunit, positionunit, osmhelper, networkingunit, prefsunit,
-  Exec, Utility, intuition, agraphics, Layers, AmigaDos,
+  Exec, Utility, intuition, agraphics, Layers, AmigaDos, icon,
   cybergraphics, mui, muihelper, MUIWrap, prefswinunit,
   StatisticsUnit, waypointunit, WPPropsUnit, TrackPropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
@@ -1468,6 +1468,7 @@ var
   StartTime: Int64;
   WayMenuHooks: array[0..0] of THook;
   RexxHook: THook;
+  ThisAppDiskIcon: Pointer;
 begin
   //Initialize Frame titles 'Search', 'WayPoints', 'Tracks'
   TabStrings[0] := string(GetLocString(MSG_FRAME_SEARCH));
@@ -1645,7 +1646,9 @@ begin
 
     // Application +++++++++++++++++++++++++++++++++++++++++++++++++++++
     MH_SetHook(RexxHook, @RexxHookEvent, nil);
-
+    //
+    ThisAppDiskIcon := GetDiskObject(PChar(ParamStr(0)));
+    //
     App := MH_Application([
       MUIA_Application_Title,       AsTag('MUIMapparium'),
       MUIA_Application_Version,     AsTag(PChar(VERSIONSTRING)),
@@ -1653,6 +1656,7 @@ begin
       MUIA_Application_Author,      AsTag('Marcus "ALB" Sackrow'),
       MUIA_Application_Description, AsTag('Open Street Map viewer. (MUI)'),
       MUIA_Application_Base,        AsTag('MAPPARIUM'),
+      MUIA_Application_DiskObject,  AsTag(ThisAppDiskIcon),
       MUIA_Application_RexxHook,    AsTag(@RexxHook),
 
       SubWindow, AsTag(MH_Window(Window, [
@@ -1798,6 +1802,8 @@ begin
       MUI_DisposeObject(app);
     if Assigned(MCC) then
       MUI_DeleteCustomClass(MCC);
+    if Assigned(ThisAppDiskIcon) then
+      FreeDiskObject(ThisAppDiskIcon);
     SRes.Free;
   end;
 end;
