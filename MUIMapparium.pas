@@ -6,13 +6,14 @@ uses
   {$if defined(MorphOS) or defined(Amiga68k)}
   amigalib,
   {$endif}
-  MUIMappariumLocale,
+  MUIMappariumLocale, MUIPaintBoxUnit,
   imagesunit, positionunit, osmhelper, networkingunit, prefsunit,
   Exec, Utility, intuition, agraphics, Layers, AmigaDos, icon,
   cybergraphics, mui, muihelper, MUIWrap, prefswinunit,
   StatisticsUnit, waypointunit, WPPropsUnit, TrackPropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
-  SysUtils, StrUtils, Types, Classes, Math, versionunit;
+  SysUtils, StrUtils, Types, Classes, Math, versionunit,
+  MapPanelUnit;
 
 const
   // MainMenu
@@ -32,19 +33,10 @@ var
   TabStrings: array[0..2] of string = ('Search', 'WayPoints', 'Tracks');
   TabTitles: array[0..3] of PChar = ('Search'#0, 'WayPoints'#0, 'Tracks'#0, nil);
 
-type
-  TMyData = record
-    dummy: LongInt;
-  end;
-
 var
   Running: Boolean = False;
-  EHNode: TMUI_EventHandlerNode;
-  DownPos: TPoint;
-  LastMouse: TPoint;
-  LeftDown: Boolean;
-  StartCoord: TCoord;
-  MapPanel, CoordsLabel,
+
+  CoordsLabel,
   // Search
   SearchEdit, SearchList, SearchListEntry,
   // Waypoints
@@ -60,300 +52,18 @@ var
   //
   SRes: TSearchResults;
   SearchTitleStr: string;
-  // middle Marker
-  MiddleMarker: LongWord = 1; //
-  MiddleMarkerColor: LongWord = 0; //
-  MiddleMarkerSize: LongWord = 1;
+
+  MUIMapPanel: TMapPanel;
 
   WM1: PObject_;
 
-  MyTv: record
-    Secs, Micros: LongWord;
-  end;
-
-function PixelToPos(T: TPoint): TCoord; forward;
-function PosToPixel(C: TCoord): TPoint; forward;
-procedure RefreshImage; forward;
-procedure ZoomIn(ToPos: Boolean); forward;
-procedure ZoomOut; forward;
 procedure UpdateLocationLabel; forward;
 function BoundingBoxToZoom(BoundString: string): Integer; forward;
 procedure ShowSidePanel(ShowIt: Boolean); forward;
 
-procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect); forward;
-procedure DrawMarker(RP: PRastPort; DrawRange: TRect); forward;
-procedure DrawTracks(RP: PRastPort; DrawRange: TRect); forward;
 procedure OpenPrefs; forward;
 procedure UpdateWayPoints; forward;
 
-
-//############################################
-// SETUP
-function mSetup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Setup): PtrUInt;
-begin
-  Result := DoSuperMethodA(cl, obj, msg);
-  EHNode.ehn_Priority := 0;
-  EHNode.ehn_Flags := 0;
-  EHNode.ehn_Object := obj;
-  EHNode.ehn_Class := cl;
-  EHNode.ehn_Events := IDCMP_MOUSEBUTTONS or IDCMP_MOUSEMOVE or IDCMP_RAWKEY;
-  DoMethod(OBJ_win(obj), [MUIM_Window_AddEventHandler, PtrUInt(@EHNode)]);
-end;
-
-//############################################
-// CLEANUP
-function mCleanup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Cleanup): PtrUInt;
-begin
-  DoMethod(OBJ_win(obj), [MUIM_Window_RemEventHandler, PtrUInt(@EHNode)]);
-  Result := DoSuperMethodA(cl,obj,msg);
-end;
-
-//############################################
-// ASKMINMAX
-//
-// AskMinMax method will be called before the window is opened
-// and before layout takes place. We need to tell MUI the
-// minimum, maximum and default size of our object.
-function mAskMinMax(cl: PIClass; Obj: PObject_; Msg: PMUIP_AskMinMax): PtrUInt;
-begin
-  mAskMinMax := 0;
-
-  // let our superclass first fill in what it thinks about sizes.
-  // this will e.g. add the size of frame and inner spacing.
-
-  DoSuperMethodA(cl, obj, msg);
-
-  // now add the values specific to our object. note that we
-  // indeed need to *add* these values, not just set them!
-
-  msg^.MinMaxInfo^.MinWidth  := msg^.MinMaxInfo^.MinWidth + 170;
-  msg^.MinMaxInfo^.DefWidth  := msg^.MinMaxInfo^.DefWidth + 320;
-  msg^.MinMaxInfo^.MaxWidth  := MUI_MAXMAX;
-
-  msg^.MinMaxInfo^.MinHeight := msg^.MinMaxInfo^.MinHeight + 100;
-  msg^.MinMaxInfo^.DefHeight := msg^.MinMaxInfo^.DefHeight + 256;
-  msg^.MinMaxInfo^.MaxHeight := MUI_MAXMAX;
-end;
-
-//############################################
-// DRAW
-//
-// Draw method is called whenever MUI feels we should render
-// our object. This usually happens after layout is finished
-// or when we need to refresh in a simplerefresh window.
-// Note: You may only render within the rectangle
-//       OBJ_mleft(obj), OBJ_mtop(obj), OBJ_mwidth(obj), OBJ_mheight(obj).
-function mDraw(cl: PIClass; Obj: PObject_; Msg: PMUIP_Draw): PtrUInt;
-var
-  Clip: Pointer;
-  ri: PMUI_RenderInfo;
-  rp: PRastPort;
-  PTMid: TPoint;
-  LOffset: TPoint;
-  DrawRect: TRect;
-  LocalRP: PRastPort;
-  li: pLayer_Info;
-begin
-  mDraw := 0;
-
-  // let our superclass draw itself first, area class would
-  // e.g. draw the frame and clear the whole region. What
-  // it does exactly depends on msg->flags.
-  DoSuperMethodA(cl,obj,msg);
-  // if MADF_DRAWOBJECT isn't set, we shouldn't draw anything.
-  // MUI just wanted to update the frame or something like that.
-
-  if (Msg^.flags and MADF_DRAWOBJECT) = 0 then
-  begin
-    Exit;
-  end;
-  // get render info
-  ri := MUIRenderInfo(Obj);
-  if not Assigned(ri) then
-    Exit;
-  // get rastport for drawing
-  rp := OBJ_rp(Obj);
-  if not Assigned(rp) then
-    Exit;
-  //
-  DrawRect.Left := Obj_mLeft(Obj);
-  DrawRect.Top := Obj_mTop(Obj);
-  DrawRect.Width := Obj_mWidth(Obj);
-  DrawRect.Height := Obj_mHeight(Obj);
-  // install the clip region (do not draw over the border)
-  clip := MUI_AddClipping(ri, DrawRect.Left, DrawRect.Top, DrawRect.Width, DrawRect.Height);
-  // changed size -> redo the image
-  if (RecordedSize.X <> DrawRect.Width) or (RecordedSize.Y <> DrawRect.Height) then
-    DrawFullImage(DrawRect.Width, DrawRect.Height);
-  PTMid.X := DrawRect.Width div 2;
-  PTMid.Y := DrawRect.Height div 2;
-  // Make a temporary Rastport to draw to
-  LocalRP := CreateRastPort;
-  li := NewLayerInfo(); // Layerinfo we also need
-  // Bitmap and layer for the temp rastport
-  LocalRP^.Bitmap := AllocBitMap(DrawRect.Width, DrawRect.Height, rp^.Bitmap^.Depth, BMF_MINPLANES or BMF_DISPLAYABLE, rp^.Bitmap);
-  LocalRP^.Layer := CreateUpFrontHookLayer(li, LocalRP^.Bitmap, 0, 0, DrawRect.Width - 1, DrawRect.Height - 1, LAYERSIMPLE, nil, nil);
-  SetFont(LocalRP, rp^.Font);
-  // initialize to background color
-  SetAPen(LocalRP, 0);
-  SetBPen(LocalRP, 0);
-  // fill with background color
-  RectFill(LocalRP, 0, 0, DrawRect.Right, DrawRect.Bottom);
-  // draw the actual Images to there
-  LOffset.X := MiddleCoord.Pixel.X - MoveOffset.X;
-  LOffset.Y := MiddleCoord.Pixel.Y - MoveOffset.Y;
-  WritePixelArray(FullBitmap.Data, 0, 0, FullBitmap.Width * SizeOf(LongWord), LocalRP, PTMid.X + ((0 + GPixOff.X)*256) - LOffset.X, PTMid.Y + ((0 + GPixOff.Y)*256) - LOffset.Y, FullBitmap.Width, FullBitmap.Height, RECTFMT_RGBA);
-  RedrawImage := False;
-  // Draw Tracks
-  DrawTracks(LocalRP, DrawRect);
-  // Draw Marker
-  DrawMarker(LocalRP, DrawRect);
-  // Draw Middle Marker
-  DrawMiddleMarker(LocalRP, DrawRect);
-  // blit the temp rastport to the real one, one step so no flickering
-  ClipBlit(LocalRP, 0,0, rp, DrawRect.Left, DrawRect.Top, DrawRect.Width, DrawRect.Height, $00C0);
-  // delete the layer
-  DeleteLayer(0, LocalRP^.layer);
-  DisposeLayerInfo(li);
-  // delete the bitmap
-  FreeBitmap(LocalRP^.Bitmap);
-  LocalRP^.Layer := nil;
-  LocalRP^.Bitmap := nil;
-  // Destroy the temp rastport
-  FreeRastPort(LocalRP);
-  // remove the clip regio again
-  MUI_RemoveClipRegion(ri, clip);
-end;
-
-//############################################
-// Handle Event
-//
-function mHandleEvent(cl: PIClass; Obj: PObject_; Msg: PMUIP_HandleEvent): PtrUInt;
-var
-  RelX, RelY: Integer;
-begin
-  Result := DoSuperMethodA(cl,obj,msg);
-  if OBJ_IsInObject(Msg^.Imsg^.MouseX, Msg^.Imsg^.MouseY, Obj) and not Boolean(MH_Get(Window, MUIA_Window_Sleep)) then
-  begin
-    //writeln('Event: ',Msg^.imsg^.IClass,' ', Msg^.imsg^.Code);
-    case Msg^.imsg^.IClass of
-      // Mouse Buttons
-      IDCMP_MOUSEBUTTONS:
-      begin
-        RelX := Msg^.imsg^.MouseX - obj_Left(obj);
-        RelY := Msg^.imsg^.MouseY - obj_Top(obj);
-        case Msg^.imsg^.Code of
-          SELECTDOWN:
-          begin
-            if DoubleClick(MyTv.Secs, MyTv.Micros, Msg^.imsg^.Seconds, Msg^.imsg^.Micros) and
-              (DownPos.X - RelX < 2) and (DownPos.Y - RelY < 2) then
-            begin
-              ZoomIn(True);
-              LeftDown := False;
-            end
-            else
-            begin
-              MyTv.Secs := Msg^.imsg^.Seconds;
-              MyTv.Micros := Msg^.imsg^.Micros;
-              LeftDown := True;
-              DownPos := Point(RelX, RelY);
-              LastMouse := DownPos;
-              StartCoord := MiddlePos;
-            end;
-            Result := MUI_EventHandlerRC_Eat;
-          end;
-          SELECTUP:
-          begin
-            if LeftDown then
-            begin
-              MoveOffset.X := 0;
-              MoveOffset.Y := 0;
-              LeftDown := False;
-              RefreshImage();
-            end;
-            Result := MUI_EventHandlerRC_Eat;
-          end;
-        end;
-      end;
-      // Mouse Move
-      IDCMP_MOUSEMOVE:
-      begin
-        RelX := Msg^.imsg^.MouseX - obj_Left(obj);
-        RelY := Msg^.imsg^.MouseY - obj_Top(obj);
-        LastMouse := Point(RelX, RelY);
-        if LeftDown then
-        begin
-          MiddlePos.Lon := StartCoord.Lon - (RelX - DownPos.X) * GResX;
-          MiddlePos.Lat := StartCoord.Lat - (RelY - DownPos.Y) * GResY;
-          MoveOffset.X := RelX - DownPos.X;
-          MoveOffset.Y := RelY - DownPos.Y;
-          RedrawImage := True;
-        end
-        else
-        begin
-          UpdateLocationLabel;
-        end;
-        Result := MUI_EventHandlerRC_Eat;
-      end;
-      // Raw Key
-      IDCMP_RAWKEY:
-      begin
-        case Msg^.imsg^.Code of
-          $7A, 94: ZoomIn(False); // mouse wheel up and + on numpad
-          $7B, 93: ZoomOut;       // mouse wheel down and - on numpad
-          CURSORDOWN:
-            begin
-              MiddlePos := PixelToPos(Point(Obj_Width(Obj) div 2, Obj_Height(Obj) div 2 + 10));
-              RefreshImage;
-            end;
-          CURSORUP:
-            begin
-              MiddlePos := PixelToPos(Point(Obj_Width(Obj) div 2, Obj_Height(Obj) div 2 - 10));
-              RefreshImage;
-            end;
-          CURSORRIGHT:
-            begin
-              MiddlePos := PixelToPos(Point(Obj_Width(Obj) div 2 + 10, Obj_Height(Obj) div 2));
-              RefreshImage;
-            end;
-          CURSORLEFT:
-            begin
-              MiddlePos := PixelToPos(Point(Obj_Width(Obj) div 2 - 10, Obj_Height(Obj) div 2));
-              RefreshImage;
-            end;
-        end;
-        Result := MUI_EventHandlerRC_Eat;
-      end;
-    end;
-  end
-  else
-  begin
-    if LeftDown then
-    begin
-      LeftDown := False;
-      RefreshImage();
-    end;
-  end;
-end;
-
-
-// Here comes the dispatcher for our custom class.
-// Unknown/unused methods are passed to the superclass immediately.
-
-function MyDispatcher(cl: PIClass; Obj: PObject_; Msg: intuition.PMsg): PtrUInt;
-begin
-  case Msg^.MethodID of
-    MUIM_Setup: MyDispatcher := mSetup(cl, Obj, Pointer(Msg));
-    MUIM_Cleanup: MyDispatcher := mCleanup(cl, Obj, Pointer(Msg));
-    //
-    MUIM_AskMinMax: MyDispatcher := mAskMinMax(cl, Obj, Pointer(Msg));
-    //
-    MUIM_Draw: MyDispatcher := mDraw(cl, Obj, Pointer(Msg));
-    MUIM_HANDLEEVENT: MyDispatcher := mHandleEvent(cl, Obj, Pointer(Msg));
-    else
-      MyDispatcher := DoSuperMethodA(cl, obj, msg);
-  end;
-end;
 
 
 // *********************************************************************
@@ -371,273 +81,6 @@ begin
   UpdateWayPoints;
 end;
 
-
-// Draw the middle Marker
-procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
-var
-  PTMid: TPoint;
-  {$ifdef Amiga}
-  Pen: LongWord;
-  {$endif}
-begin
-  {$ifndef MorphOS}
-  PTMid.X := DrawRange.Width div 2;
-  PTMid.Y := DrawRange.Height div 2;
-  {$else}
-  PTMid.X := DrawRange.Width div 2 + 4;
-  PTMid.Y := DrawRange.Height div 2 + 4;
-  {$endif}
-  {$ifdef Amiga}
-  Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, MiddleMarkerColor shl 8,MiddleMarkerColor shl 16,MiddleMarkerColor shl 24, nil);
-  SetAPen(RP, Pen);
-  {$else}
-  SetRPAttrs(RP,[
-    RPTAG_PenMode, AsTag(False),
-    RPTAG_FGColor, AsTag(MiddleMarkerColor),
-    TAG_DONE]);
-  {$endif}
-  case MiddleMarker of
-    1: RectFill(RP, PTMid.X - MiddleMarkerSize, PTMid.Y - MiddleMarkerSize, PTMid.X + MiddleMarkerSize, PTMid.Y + MiddleMarkerSize);
-    2: begin
-      GfxMove(RP, PTMid.X - (MiddleMarkerSize + 2), PTMid.Y);
-      Draw(RP, PTMid.X + MiddleMarkerSize + 2, PTMid.Y);
-      GfxMove(RP, PTMid.X, PTMid.Y - (MiddleMarkerSize + 2));
-      Draw(RP, PTMid.X, PTMid.Y + MiddleMarkerSize + 2);
-    end;
-    3: begin
-      GfxMove(RP, 0, PTMid.Y);
-      Draw(RP, DrawRange.Width, PTMid.Y);
-      GfxMove(RP, PTMid.X, 0);
-      Draw(RP, PTMid.X, DrawRange.Height);
-    end;
-  end;
-  {$ifdef Amiga}
-  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
-  {$endif}
-end;
-
-// Draw the Waypoints
-procedure DrawMarker(RP: PRastPort; DrawRange: TRect);
-const
-  AREA_BYTES = 4000;
-var
-  WPColor: LongWord = $0000FF;
-  i,j: Integer;
-  Points: packed array of packed record
-    x,y: SmallInt;
-  end;
-  pt: TPoint;
-  Ras: TPlanePtr;
-  TRas: TTmpRas;
-  WarBuff: array[0..AREA_BYTES] of Word;
-  ari: TAreaInfo;
-  {$ifdef Amiga}
-  Pen: LongWord;
-  {$endif}
-  TE: TTextExtent;
-  MarkerText: string;
-begin
-  {$ifdef Amiga}
-  Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, WPColor shl 8,WPColor shl 16,WPColor shl 24, nil);
-  SetAPen(RP, Pen);
-  {$else}
-  SetRPAttrs(RP,[
-    RPTAG_PenMode, AsTag(False),
-    RPTAG_FGColor, AsTag(WPColor),
-    TAG_DONE]);
-  {$endif}
-  SetDrMd(RP, JAM1);
-  // make tmprast
-  Ras := AllocRaster(DrawRange.Width, DrawRange.Height);
-  InitTmpRas(@TRas, ras, DrawRange.Width * DrawRange.Height * 3);
-  for i := 0 to MarkerList.Count - 1 do
-  begin
-    if MarkerList[i].Visible then
-    begin
-      SetLength(Points, 4);
-      pt := PosToPixel(MarkerList[i].Position);
-      Points[0].X := pt.x;
-      Points[0].Y := pt.y;
-      if (Points[0].X >= -20) and (Points[0].Y >= -20) and (Points[0].X <= DrawRange.Width + 20) and (Points[0].Y <= DrawRange.Height + 20) then
-      begin
-        Points[1].X := Max(0, Points[0].X - 5);
-        Points[1].Y := Max(0, Points[0].Y - 20);
-        Points[2].X := Max(0, Points[0].X + 5);
-        Points[2].Y := Max(0, Points[0].Y - 20);
-        Points[3].X := Points[0].X;
-        Points[3].Y := Points[0].Y;
-
-        InitArea(@ari, @WarBuff[0], AREA_BYTES div 5);
-        RP^.TmpRas := @TRas;
-        RP^.AreaInfo := @Ari;
-        AreaMove(RP, Points[0].X, Points[0].Y);
-        for j := 0 to High(Points) do
-          AreaDraw(RP, Points[j].X, Points[j].Y);
-        AreaEnd(RP);
-
-        //TE := Ca.TextExtent(MarkerText);
-        MarkerText := MarkerList[i].Name;
-        TextExtent(Rp, PChar(MarkerText), Length(MarkerText), @TE);
-
-        GFXMove(RP, Points[0].X - (TE.te_Width div 2), Points[1].Y - TE.te_Height div 2);
-        GfxText(Rp, PChar(MarkerText), Length(MarkerText));
-        //Ca.TextOut(Points[0].X - (TE.CY div 2), Points[1].Y - TE.cy, AnsiToUtf8(MarkerText));
-      end;
-    end;
-  end;
-  RP^.TmpRas := nil;
-  RP^.AreaInfo := nil;
-  FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
-  {$ifdef Amiga}
-  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
-  {$endif}
-end;
-
-// Draw the tracks
-procedure DrawTracks(RP: PRastPort; DrawRange: TRect);
-const
-  AREA_BYTES = 4000;
-  TrackColor: LongWord = $FF0000;
-var
-  PT: TPoint;
-  i, j: Integer;
-  {Points: packed array of packed record
-    x,y: SmallInt;
-  end;
-  Ras: TPlanePtr;
-  TRas: TTmpRas;
-  WarBuff: array[0..AREA_BYTES] of Word;
-  ari: TAreaInfo;}
-  TrackPtSize: Integer;
-  {$ifdef Amiga}
-  Pen: LongWord;
-  {$endif}
-begin
-  TrackPtSize := Max(2, CurZoom - 10);
-  {$ifdef Amiga}
-  Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, TrackColor shl 8,TrackColor shl 16,TrackColor shl 24, nil);
-  SetAPen(RP, Pen);
-  {$else}
-  SetRPAttrs(RP,[
-    RPTAG_PenMode, AsTag(False),
-    RPTAG_FGColor, AsTag(TrackColor),
-    TAG_DONE]);
-  {$endif}
-  SetDrMd(RP, JAM1);
-  // make tmprast
-  {
-  Ras := AllocRaster(DrawRange.Width, DrawRange.Height);
-  InitTmpRas(@TRas, ras, DrawRange.Width * DrawRange.Height * 3);
-  }
-  // Draw Tracks
-  for i := 0 to TrackList.Count - 1 do
-  begin
-    if not TrackList[i].Visible then
-      Continue;
-    {if TrackList[i] = CurTrack then
-    begin
-      Ca.Brush.Color := ActiveTrackColor;
-      Ca.Pen.Color := ActiveTrackColor;
-    end
-    else
-    begin
-      Ca.Brush.Color := TrackColor;
-      Ca.Pen.Color := TrackColor;
-    end;
-    ShowActivePt := (TrackList[i] = CurTrack);}
-    //SetLength(Points, 3);
-    for j := 0 to High(TrackList[i].Pts) do
-    begin
-      Pt := PosToPixel(TrackList[i].Pts[j].Position);
-      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
-      begin
-        RectFill(RP, Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
-        if j = 0 then
-          GfxMove(RP, PT.X, PT.Y)
-        else
-          Draw(RP, Pt.X, PT.Y);
-      end;
-    end;
-    {if ShowActivePt and (ActiveTrackPt >=0) and (ActiveTrackPt <= High(TrackList[i].Pts)) then
-    begin
-      Ca.Brush.Color := clBlue;
-      Ca.Brush.Style := bsSolid;
-      Ca.Pen.Color := clBlack;
-      Ca.Pen.Style := psSolid;
-      Pt := PosToPixel(TrackList[i].Pts[ActiveTrackPt].Position);
-      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= PB.Width + 100) and (Pt.Y <= PB.Height + 100) then
-      begin
-        Points[0] := Pt;
-        Points[1].X := Max(0, Points[0].X - 5);
-        Points[1].Y := Max(0, Points[0].Y - 20);
-        Points[2].X := Max(0, Points[0].X + 5);
-        Points[2].Y := Max(0, Points[0].Y - 20);
-        Ca.Polygon(Points);
-      end;
-    end;}
-  end;
-  //RP^.TmpRas := nil;
-  //RP^.AreaInfo := nil;
-  //FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
-  {$ifdef Amiga}
-  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
-  {$endif}
-end;
-
-// Refresh the FullBitmap
-procedure RefreshImage;
-var
-  Width, Height: LongInt;
-begin
-  if Assigned(MapPanel) then
-  begin
-    //MH_Set(app, MUIA_Application_Sleep, AsTag(True));
-    Width := Obj_Width(MapPanel);
-    Height := Obj_Height(MapPanel);
-    //writeln('Draw Full: ', Width,' x ', Height);
-    DrawFullImage(Width, Height);
-    ReDrawImage := True;
-    //MH_Set(app, MUIA_Application_Sleep, AsTag(False));
-  end;
-end;
-
-// Calculate Pixel to real coordinate
-function PixelToPos(T: TPoint): TCoord;
-var
-  PTMid: TPoint;
-begin
-  if Assigned(MapPanel) then
-  begin
-    PTMid := Point((Obj_Width(MapPanel) div 2), (Obj_Height(MapPanel) div 2));
-    Result.Lon := MiddlePos.Lon - ((PTMid.X - T.X) * GResX);
-    Result.Lat := MiddlePos.Lat - ((PTMid.Y - T.Y) * GResY);
-  end;
-end;
-
-function PosToPixel(C: TCoord): TPoint;
-var
-  PTMid: TPoint;
-  NCoord: TTileCoord;
-  TileDist: TPoint;
-  MidDist: TPoint;
-begin
-  Result.X := 0;
-  Result.Y := 0;
-  if not assigned(MapPanel) then
-    Exit;
-
-  PTMid := Point((Obj_Width(MapPanel) div 2), (Obj_Height(MapPanel) div 2));
-  NCoord := CoordToTile(CurZoom, C);
-  //
-  MidDist.X := PTMid.X - MiddleCoord.Pixel.X;
-  MidDist.Y := PTMid.Y - MiddleCoord.Pixel.Y;
-  //
-  TileDist.X := (NCoord.Tile.X - MiddleCoord.Tile.X) * 256;
-  TileDist.Y := (NCoord.Tile.Y - MiddleCoord.Tile.Y) * 256;
-  //
-  Result.X := TileDist.X + NCoord.Pixel.X + MidDist.X + MoveOffset.X;
-  Result.Y := TileDist.Y + NCoord.Pixel.Y + MidDist.Y + MoveOffset.Y;
-end;
 
 // calculate the Zoom level, that the Bounding box is completely visible
 // needed for search
@@ -678,53 +121,13 @@ begin
   end;
 end;
 
-// do a Zoom in (ToPos = using Mouse position to zoom to)
-procedure ZoomIn(ToPos: Boolean);
-var
-  Dist, OldPosi, NewPosi: TCoord;
-  LMiddleCoord: Classes.TPoint;
-  TileRect: TRectCoord;
-begin
-  if (LastMouse.X = -1) and (LastMouse.Y = -1) then
-    Exit;
-  OldPosi := PixelToPos(LastMouse);
-  CurZoom := Min(19, CurZoom + 1);
-  //if CurZoom = 19 then
-  //  ZoomInEnabled := False;
-  //
-  if ToPos then
-  begin
-    LMiddleCoord := GetTileCoord(CurZoom, MiddlePos);
-    TileRect := GetTileRect(CurZoom, LMiddleCoord);
-    GResX := (TileRect.MaxLon - TileRect.MinLon) / 256;
-    GResY := (TileRect.MaxLat - TileRect.MinLat) / 256;
-    //
-    NewPosi := PixelToPos(LastMouse);
-    //
-    Dist.Lat := NewPosi.Lat - MiddlePos.Lat;
-    Dist.Lon := NewPosi.Lon - MiddlePos.Lon;
-    //
-    MiddlePos.Lat := OldPosi.Lat - Dist.Lat;
-    MiddlePos.Lon := OldPosi.Lon - Dist.Lon;
-    //
-  end;
-  RefreshImage;
-end;
-
-// Do a Zoom Out
-procedure ZoomOut;
-begin
-  CurZoom := Max(2, CurZoom - 1);
-  RefreshImage;
-end;
-
 // Update the Location below the picture
 procedure UpdateLocationLabel;
 var
   Coord: TCoord;
   StrCoord: string;
 begin
-  Coord := PixelToPos(LastMouse);
+  Coord := MUIMapPanel.PixelToPos(MUIMapPanel.LastMouse);
   StrCoord := FloatToStrF(Coord.Lat, ffFixed, 8,6) + ' ; ' + FloatToStrF(Coord.Lon, ffFixed, 8,6) + ' ; ' + IntToStr(CurZoom) + '  ';
   StrCoord := Format('%25s', [StrCoord]);
   MH_Set(CoordsLabel, MUIA_Text_Contents, AsTag(PChar(StrCoord)));
@@ -847,7 +250,7 @@ begin
           MiddlePos.Lat := SR.Lat;
           MiddlePos.Lon := SR.Lon;
           CurZoom:= SR.Zoom;
-          RefreshImage;
+          MUIMapPanel.RefreshImage;
         end;
       end;
     end else
@@ -905,7 +308,7 @@ begin
           CurZoom := 6;
         MiddlePos.Lat := Lat;
         MiddlePos.Lon := Lon;
-        RefreshImage;
+        MUIMapPanel.RefreshImage;
         //TrackPosition := False;
         //LocationPanel.Caption := AnsiToUtf8(c + ' ' + r + ' ' + l);
       end;
@@ -975,7 +378,7 @@ begin
         //
         MiddlePos.Lat := Lat;
         MiddlePos.Lon := Lon;
-        RefreshImage;
+        MUIMapPanel.RefreshImage;
         //TrackPosition := False;
         //LocationPanel.Caption := '';
       end;
@@ -989,7 +392,7 @@ begin
       //
       MiddlePos.Lat := NMPos.Lat;
       MiddlePos.Lon := NMPos.Lon;
-      RefreshImage;
+      MUIMapPanel.RefreshImage;
       //TrackPosition := False;
       //LocationPanel.Caption := '';
       Exit;
@@ -1014,8 +417,8 @@ begin
     MID_Save: SaveWayFile;
     MID_Quit: Running := False;
     MID_SidePanel: ShowSidePanel(Boolean(MH_Get(MenuSidePanel, MUIA_Menuitem_Checked)));
-    MID_ZOOMIN: ZoomIn(False);
-    MID_ZOOMOUT: ZoomOut;
+    MID_ZOOMIN: MUIMapPanel.ZoomIn(False);
+    MID_ZOOMOUT: MUIMapPanel.ZoomOut;
     MID_FINDME: SearchIP('');
     MID_PREFS: OpenPrefs();
     MID_Statistics: MH_Set(StatWin, MUIA_Window_Open, AsTag(True));
@@ -1040,7 +443,7 @@ begin
       MiddlePos.Lat := SR.Lat;
       MiddlePos.Lon := SR.Lon;
       CurZoom:= SR.Zoom;
-      RefreshImage;
+      MUIMapPanel.RefreshImage;
     end;
   end;
 end;
@@ -1061,7 +464,7 @@ begin
     begin
       MiddlePos.Lat := Ma.Position.Lat;
       MiddlePos.Lon := Ma.Position.Lon;
-      RefreshImage;
+      MUIMapPanel.RefreshImage;
     end;
   end;
 end;
@@ -1114,7 +517,7 @@ begin
             CurZoom := i;
         end;
         CurZoom := CurZoom + 1;
-        RefreshImage;
+        MUIMapPanel.RefreshImage;
       end;
     end;
   end;
@@ -1138,7 +541,7 @@ begin
   begin
     MarkerList.Delete(Active);
     DoMethod(WaypointListEntry, [MUIM_List_Remove, Active]);
-    MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+    MUIMapPanel.RedrawObject;
   end;
 end;
 
@@ -1169,7 +572,7 @@ begin
   begin
     TrackList.Delete(Active);
     DoMethod(TracksListEntry, [MUIM_List_Remove, Active]);
-    MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+    MUIMapPanel.RedrawObject;
   end;
 end;
 
@@ -1206,7 +609,7 @@ begin
       Ma.FullName := '(' + Ma.FullName + ')';
     DoMethod(WaypointListEntry, [MUIM_List_Remove, Active]);
     DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
-    MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+    MUIMapPanel.RedrawObject;
   end;
 end;
 
@@ -1427,9 +830,6 @@ end;
 //
 procedure UpdatePrefs;
 begin
-  MiddleMarker := Prefs.MiddleMarker;
-  MiddleMarkerColor := Prefs.MiddleMarkerColor;
-  MiddleMarkerSize := Prefs.MarkerSize;
   MaxImages := Prefs.MaxTiles;
   // let redraw to make the marker changes visible
   RedrawImage := True;
@@ -1439,14 +839,14 @@ end;
 procedure WPChangedEvent;
 begin
   UpdateWayPoints;
-  MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+  MUIMapPanel.RedrawObject;
 end;
 
 // Tracks Property edit changed something ;-)
 procedure TrackChangedEvent;
 begin
   UpdateTracks;
-  MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+  MUIMapPanel.RedrawObject;
 end;
 
 
@@ -1457,7 +857,6 @@ end;
 procedure StartMe;
 var
   Sigs: LongInt;
-  MCC: PMUI_CustomClass;
   StrCoord: string;
   MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook, CloseSideHook: THook;
   RemTrack: PObject_;
@@ -1487,21 +886,6 @@ begin
   OnWPChanged := @WPChangedEvent;
   OnTrackChanged := @TrackChangedEvent;
   try
-    // Create the new custom class with a call to MH_CreateCustomClass().
-    // Caution: This function returns not a struct IClass, but a
-    // TMUI_CustomClass which contains a struct IClass to be
-    // used with MH_NewObject() calls.
-    // Note well: MUI creates the dispatcher hook for you, you may
-    // *not* use its h_Data field! If you need custom data, use the
-    // cl_UserData of the IClass structure!
-
-    MCC := MH_CreateCustomClass(nil, MUIC_Area, nil, SizeOf(TMyData), @MyDispatcher);
-    if not Assigned(MCC) then
-    begin
-      writeln(GetLocString(MSG_ERROR_CUSTOM_CLASS)); // 'Could not create custom class.'
-      Exit;
-    end;
-    //
     SearchTitleStr :=  GetLocString(MSG_SEARCH_RESULTS_TITLE); // 'Search Results';
     //
     StrCoord := FloatToStrF(MiddlePos.Lat, ffFixed, 8,6) + ' ; ' + FloatToStrF(MiddlePos.Lon, ffFixed, 8,6) + ' ; ' + IntToStr(CurZoom) + '  ';
@@ -1644,6 +1028,10 @@ begin
       TAG_DONE]);
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+    MUIMapPanel := TMapPanel.Create([MUIA_Weight, 200, TAG_DONE]);
+    MUIMapPanel.OnUpdateLocationLabel := @UpdateLocationLabel;
+    // writeln(GetLocString(MSG_ERROR_CUSTOM_CLASS)); // 'Could not create custom class.'
+
     // Application +++++++++++++++++++++++++++++++++++++++++++++++++++++
     MH_SetHook(RexxHook, @RexxHookEvent, nil);
     //
@@ -1672,17 +1060,7 @@ begin
           Child, AsTag(MH_HGroup([
             Child, AsTag(SidePanel),
             Child, AsTag(MH_Balance(MainBalance, [MUIA_CycleChain, 1, MUIA_ShowMe, AsTag(False), TAG_END])),
-            Child, AsTag(MH_NewObject(MapPanel, mcc^.mcc_Class, nil, [
-              MUIA_Weight, 200,
-              MUIA_Frame, MUIV_Frame_Text,
-              MUIA_Background, MUII_BACKGROUND,
-              MUIA_Font, AsTag(MUIV_Font_Button),
-              MUIA_FillArea, AsTag(False),
-              MUIA_InnerLeft, 0,
-              MUIA_InnerTop, 0,
-              MUIA_InnerBottom, 0,
-              MUIA_InnerRight, 0,
-              TAG_DONE])),
+            Child, AsTag(MUIMapPanel.MUIObject),
             TAG_DONE])),
           Child, AsTag(MH_HGroup([
             Child, AsTag(MH_Text('Map data '+#169+' OpenStreetMap contributors    ')),
@@ -1753,21 +1131,21 @@ begin
     begin
       Running := True;
       // first drawing of the image
-      RefreshImage;
+      MUIMapPanel.RefreshImage;
       // main cycle
       StartTime := GetMUITime;
       while Integer(DoMethod(app, [MUIM_Application_NewInput, AsTag(@sigs)])) <> MUIV_Application_ReturnID_Quit do
       begin
         if UpdateImage then
         begin
-          RefreshImage;
+          MUIMapPanel.RefreshImage;
           UpdateImage := False;
           UpdateLocationLabel;
           //writeln(7);
         end;
         if RedrawImage then
         begin
-          MUI_Redraw(MapPanel, MADF_DRAWOBJECT);
+          MUIMapPanel.RedrawObject;
           ReDrawImage := False;
           //writeln(8);
         end;
@@ -1800,11 +1178,10 @@ begin
       MUI_DisposeObject(WayPointMenu);
     if Assigned(App) then
       MUI_DisposeObject(app);
-    if Assigned(MCC) then
-      MUI_DeleteCustomClass(MCC);
     if Assigned(ThisAppDiskIcon) then
       FreeDiskObject(ThisAppDiskIcon);
     SRes.Free;
+    MUIMapPanel.Free;
   end;
 end;
 
