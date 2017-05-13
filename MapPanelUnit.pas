@@ -5,7 +5,7 @@ interface
 uses
   Math, Classes, SysUtils, MUIPaintBoxUnit, imagesunit, positionunit,
   osmhelper, mui, agraphics, intuition, utility, prefsunit, types, layers,
-  cybergraphics, waypointunit;
+  cybergraphics, waypointunit, muiwrap;
 
 type
 

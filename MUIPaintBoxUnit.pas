@@ -3,6 +3,9 @@ unit MUIPaintBoxUnit;
 interface
 
 uses
+  {$if defined(MorphOS) or defined(Amiga68k)}
+  amigalib,
+  {$endif}
   Classes, Math, Sysutils,
   Exec, Utility, Intuition, inputevent, AGraphics, mui, muihelper, keymap;
 type
@@ -66,7 +69,6 @@ type
     property DefWidth: Integer read FDefWidth write FDefWidth;
     property DefHeight: Integer read FDefHeight write FDefHeight;
 
-    property MUIObject: PObject_ read FMUIObject;
     // Events
     property OnDrawObject: TMUIDrawEvent read FOnDrawObject write FOnDrawObject;
     property OnMUIMouseDown: TMUIMouseEvent read FOnMUIMouseDown write FOnMUIMouseDown;
@@ -79,6 +81,8 @@ type
 
     property Width: Integer read GetWidth;
     property Height: Integer read GetHeight;
+    // use this Object for the mui creation
+    property MUIObject: PObject_ read FMUIObject;
   end;
 
 var
@@ -86,17 +90,18 @@ var
 
 implementation
 
-
+// Constructor
 constructor TMUIPaintBox.Create(const Args: array of PtrUInt);
 begin
   inherited Create;
+  // Basic min max settings
   FMinWidth := 0;
   FMinHeight := 0;
   FMaxWidth := MUI_MAXMAX;
   FMaxHeight := MUI_MAXMAX;
   FDefWidth := 100;
   FDefHeight := 100;
-  //
+  // Create the Object
   MH_NewObject(FMUIObject, MUIPBType^.mcc_Class, nil, [
     //MUIA_Weight, 200,
     MUIA_Frame, MUIV_Frame_Text,
@@ -108,26 +113,37 @@ begin
     MUIA_InnerBottom, 0,
     MUIA_InnerRight, 0,
     MUIA_UserData, AsTag(Self),        // thats me ;)
-    TAG_MORE, AsTag(@Args[0]),
+    TAG_MORE, AsTag(@Args[0]),         // if the user supply some more tags
     TAG_DONE]);
+  // Put the Object into the INST_DATA
   Pointer(INST_DATA(MUIPBType^.mcc_Class, Pointer(FMUIObject))^) := Self
 end;
 
+// Get actual width
 function TMUIPaintBox.GetWidth: Integer;
 begin
-  Result := Obj_Width(FMUIObject);
+  // use DefWidth if MuiObject not there (should never happen)
+  Result := FDefWidth;
+  if Assigned(FMUIObject) then
+    Result := Obj_Width(FMUIObject);
 end;
 
+// get actual height
 function TMUIPaintBox.GetHeight: Integer;
 begin
-  Result := Obj_Height(FMUIObject);
+  Result := FDefHeight;
+  if Assigned(FMUIObject) then
+    Result := Obj_Height(FMUIObject);
 end;
 
+// Call to redraw the object
 procedure TMUIPaintBox.RedrawObject;
 begin
-  MUI_Redraw(FMUIObject, MADF_DRAWOBJECT);
+  if Assigned(FMUIObject) then
+    MUI_Redraw(FMUIObject, MADF_DRAWOBJECT);
 end;
 
+// OM_SETUP
 function TMUIPaintBox.DoSetup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Setup): PtrUInt;
 begin
   Result := DoSuperMethodA(cl, obj, msg);
@@ -139,24 +155,22 @@ begin
   DoMethod(OBJ_win(obj), [MUIM_Window_AddEventHandler, PtrUInt(@EHNode)]);
 end;
 
+// OM_CLEANUP
 function TMUIPaintBox.DoCleanup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Cleanup): PtrUInt;
 begin
   DoMethod(OBJ_win(obj), [MUIM_Window_RemEventHandler, PtrUInt(@EHNode)]);
   Result := DoSuperMethodA(cl,obj,msg);
 end;
 
+// MUIM_ASKMINMAX
 function TMUIPaintBox.DoAskMinMax(cl: PIClass; Obj: PObject_; Msg: PMUIP_AskMinMax): PtrUInt;
 begin
   Result := 0;
-
   // let our superclass first fill in what it thinks about sizes.
   // this will e.g. add the size of frame and inner spacing.
-
   DoSuperMethodA(cl, obj, msg);
-
   // now add the values specific to our object. note that we
   // indeed need to *add* these values, not just set them!
-
   msg^.MinMaxInfo^.MinWidth  := msg^.MinMaxInfo^.MinWidth + FMinWidth;
   msg^.MinMaxInfo^.DefWidth  := msg^.MinMaxInfo^.DefWidth + FDefHeight;
   msg^.MinMaxInfo^.MaxWidth  := IfThen(msg^.MinMaxInfo^.MaxWidth + FMaxWidth >= MUI_MAXMAX, MUI_MAXMAX, msg^.MinMaxInfo^.MaxWidth + FMaxWidth);
@@ -166,6 +180,7 @@ begin
   msg^.MinMaxInfo^.MaxHeight := IfThen(msg^.MinMaxInfo^.MaxHeight + FMaxHeight >= MUI_MAXMAX, MUI_MAXMAX, msg^.MinMaxInfo^.MaxHeight + FMaxHeight);
 end;
 
+// MUIM_DRAW
 function TMUIPaintBox.DoDraw(cl: PIClass; Obj: PObject_; Msg: PMUIP_Draw): PtrUInt;
 var
   Clip: Pointer;
@@ -199,6 +214,7 @@ begin
   MUI_RemoveClipRegion(Ri, Clip);
 end;
 
+// MUIM_HANDLEEVENT
 function TMUIPaintBox.DoHandleEvent(cl: PIClass; Obj: PObject_; Msg: PMUIP_HandleEvent): PtrUInt;
 var
   InObject: Boolean;
@@ -354,32 +370,32 @@ begin
   end;
 end;
 
-// Here comes the dispatcher for our custom class.
-// Unknown/unused methods are passed to the superclass immediately.
-
+// Dispatcher
+// send everything to the object
 function MPBDispatcher(cl: PIClass; Obj: PObject_; Msg: intuition.PMsg): PtrUInt;
 var
   MUIPB: TMUIPaintBox;
 begin
   case Msg^.MethodID of
-    OM_NEW, OM_DISPOSE: MPBDispatcher := DoSuperMethodA(cl, obj, msg);
+    OM_NEW, OM_DISPOSE: MPBDispatcher := DoSuperMethodA(cl, obj, msg); // New/Dispose handled here
     else
     begin
-      //MUIPB := TMUIPaintBox(MH_Get(Obj, MUIA_UserData));
-      MUIPB := TMUIPaintBox(INST_DATA(cl, Pointer(obj))^);
+      MUIPB := TMUIPaintBox(INST_DATA(cl, Pointer(obj))^); // get class
       if Assigned(MUIPB) then
-        MUIPB.MUIEvent(cl, Obj, Msg)
+        MUIPB.MUIEvent(cl, Obj, Msg)                       // call the class dispatcher
       else
-        MPBDispatcher := DoSuperMethodA(cl, obj, msg);
+        MPBDispatcher := DoSuperMethodA(cl, obj, msg);     // Still not assigned just use default
     end;
   end;
 end;
 
+// create CustomClass
 procedure MakePaintBoxClass;
 begin
   MUIPBType := MH_CreateCustomClass(nil, MUIC_Area, nil, SizeOf(Pointer), @MPBDispatcher);
 end;
 
+// Destroy CustomClass
 procedure FreePaintBoxClass;
 begin
   if Assigned(MUIPBType) then
@@ -389,5 +405,5 @@ end;
 initialization
   MakePaintBoxClass;
 finalization
-
+  FreePaintBoxClass;
 end.
