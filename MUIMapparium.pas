@@ -781,7 +781,7 @@ begin
 end;
 
 
-function RexxHookEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): LongInt;
+function RexxHookEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): PtrInt;
 var
   RexxMsg: PRexxMsg;
   Txt: string;
@@ -807,7 +807,7 @@ begin
   if Boolean(MH_Get(MenuSidePanel, MUIA_Menuitem_Checked)) <> ShowIt then
     MH_Set(MenuSidePanel, MUIA_Menuitem_Checked, AsTag(ShowIt));
   MH_Set(SidePanel, MUIA_ShowMe, AsTag(ShowIt));
-  MH_Set(MainBalance, MUIA_ShowMe, AsTag(ShowIt));
+  //MH_Set(MainBalance, MUIA_ShowMe, AsTag(ShowIt));
 end;
 // event for the close button
 function CloseSideEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
@@ -1059,7 +1059,7 @@ begin
             TAG_DONE])),
           Child, AsTag(MH_HGroup([
             Child, AsTag(SidePanel),
-            Child, AsTag(MH_Balance(MainBalance, [MUIA_CycleChain, 1, MUIA_ShowMe, AsTag(False), TAG_END])),
+            Child, AsTag(MH_Balance(MainBalance, [MUIA_CycleChain, 1, TAG_END])),
             Child, AsTag(MUIMapPanel.MUIObject),
             TAG_DONE])),
           Child, AsTag(MH_HGroup([

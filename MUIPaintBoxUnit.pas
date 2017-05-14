@@ -116,7 +116,7 @@ begin
     TAG_MORE, AsTag(@Args[0]),         // if the user supply some more tags
     TAG_DONE]);
   // Put the Object into the INST_DATA
-  Pointer(INST_DATA(MUIPBType^.mcc_Class, Pointer(FMUIObject))^) := Self
+  Pointer(INST_DATA(MUIPBType^.mcc_Class, Pointer(FMUIObject))^) := Self;
 end;
 
 // Get actual width
@@ -165,10 +165,9 @@ end;
 // MUIM_ASKMINMAX
 function TMUIPaintBox.DoAskMinMax(cl: PIClass; Obj: PObject_; Msg: PMUIP_AskMinMax): PtrUInt;
 begin
-  Result := 0;
   // let our superclass first fill in what it thinks about sizes.
   // this will e.g. add the size of frame and inner spacing.
-  DoSuperMethodA(cl, obj, msg);
+  Result := DoSuperMethodA(cl, obj, msg);
   // now add the values specific to our object. note that we
   // indeed need to *add* these values, not just set them!
   msg^.MinMaxInfo^.MinWidth  := msg^.MinMaxInfo^.MinWidth + FMinWidth;
@@ -252,15 +251,18 @@ begin
             FOnMUIMouseUp(Self, mmbLeft, RelX, RelY, EatMe);
           if DoubleClick(FMouseClickTime.LSecs, FMouseClickTime.LMicros, Msg^.imsg^.Seconds, Msg^.imsg^.Micros) then
           begin
-            if Assigned(FOnMUIDblClick) then
+            if Assigned(FOnMUIDblClick) and InObject then
               FOnMUIDblClick(Self, mmbLeft, RelX, RelY, EatMe);
             FMouseClickTime.LSecs := 0;
             FMouseClickTime.LMicros := 0;
           end
           else
           begin
-            FMouseClickTime.LSecs := Msg^.imsg^.Seconds;
-            FMouseClickTime.LMicros := Msg^.imsg^.Micros;
+            if InObject then
+            begin
+              FMouseClickTime.LSecs := Msg^.imsg^.Seconds;
+              FMouseClickTime.LMicros := Msg^.imsg^.Micros;
+            end;
           end;
 
         end;
@@ -277,15 +279,18 @@ begin
             FOnMUIMouseUp(Self, mmbRight, RelX, RelY, EatMe);
           if DoubleClick(FMouseClickTime.RSecs, FMouseClickTime.RMicros, Msg^.imsg^.Seconds, Msg^.imsg^.Micros) then
           begin
-            if Assigned(FOnMUIDblClick) then
+            if Assigned(FOnMUIDblClick) and InObject then
               FOnMUIDblClick(Self, mmbRight, RelX, RelY, EatMe);
             FMouseClickTime.RSecs := 0;
             FMouseClickTime.RMicros := 0;
           end
           else
           begin
-            FMouseClickTime.RSecs := Msg^.imsg^.Seconds;
-            FMouseClickTime.RMicros := Msg^.imsg^.Micros;
+            if InObject then
+            begin
+              FMouseClickTime.RSecs := Msg^.imsg^.Seconds;
+              FMouseClickTime.RMicros := Msg^.imsg^.Micros;
+            end;
           end;
 
         end;
@@ -377,7 +382,10 @@ var
   MUIPB: TMUIPaintBox;
 begin
   case Msg^.MethodID of
-    OM_NEW, OM_DISPOSE: MPBDispatcher := DoSuperMethodA(cl, obj, msg); // New/Dispose handled here
+    OM_NEW: MPBDispatcher := DoSuperMethodA(cl, obj, msg);
+    OM_DISPOSE: MPBDispatcher := DoSuperMethodA(cl, obj, msg);
+    OM_GET: MPBDispatcher := DoSuperMethodA(cl, obj, msg);
+    OM_SET: MPBDispatcher := DoSuperMethodA(cl, obj, msg);
     else
     begin
       MUIPB := TMUIPaintBox(INST_DATA(cl, Pointer(obj))^); // get class
