@@ -6,11 +6,11 @@ uses
   {$if defined(MorphOS) or defined(Amiga68k)}
   amigalib,
   {$endif}
-  MUIMappariumLocale, MUIPaintBoxUnit,
+  MUIMappariumlocale, MUIPaintBoxUnit,
   imagesunit, positionunit, osmhelper, networkingunit, prefsunit,
   Exec, Utility, intuition, agraphics, Layers, AmigaDos, icon,
-  cybergraphics, mui, muihelper, MUIWrap, prefswinunit,
-  StatisticsUnit, waypointunit, WPPropsUnit, TrackPropsUnit,
+  cybergraphics, mui, muihelper, MUIWrap, PrefsWinUnit,
+  Statisticsunit, waypointunit, WPPropsUnit, TrackPropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math, versionunit,
   MapPanelUnit;
