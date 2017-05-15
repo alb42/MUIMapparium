@@ -37,7 +37,45 @@ function AllocAslRequestTags(reqType: LongWord; const Param: array of PtrUInt): 
 
 function GetMUITime: Int64;
 
+// Set color in the RastPort / unset again for Pens (Amiga)
+function SetColor(RP:PRastPort; Col: LongWord; BGColor: Boolean = False): LongWord; // Color as RGB
+procedure UnSetColor(Pen: LongWord);  //
+
 implementation
+
+function SetColor(RP: PRastPort; Col: LongWord; BGColor: Boolean = False): LongWord;
+begin
+  Result := 0;
+  {$ifdef Amiga}
+  Result := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Col shl 8, Col shl 16, Col shl 24, nil);
+  if BGColor then
+    SetBPen(RP, Result)
+  else
+    SetAPen(RP, Result)
+  {$else}
+  if BGColor then
+  begin
+    SetRPAttrs(RP,[
+      RPTAG_PenMode, AsTag(False),
+      RPTAG_BGColor, AsTag(Col),
+      TAG_DONE]);
+  end
+  else
+  begin
+    SetRPAttrs(RP,[
+      RPTAG_PenMode, AsTag(False),
+      RPTAG_FGColor, AsTag(Col),
+      TAG_DONE]);
+  END;
+  {$endif}
+end;
+
+procedure UnSetColor(Pen: LongWord);
+begin
+  {$ifdef Amiga}
+  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
+  {$endif}
+end;
 
 // *****************************************************
 // Use local GetMsCount with fixed timer.device, faster

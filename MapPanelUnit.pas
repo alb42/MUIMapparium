@@ -217,9 +217,7 @@ end;
 procedure TMapPanel.DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
 var
   PTMid: TPoint;
-  {$ifdef Amiga}
   Pen: LongWord;
-  {$endif}
 begin
   {$ifndef MorphOS}
   PTMid.X := DrawRange.Width div 2;
@@ -228,15 +226,7 @@ begin
   PTMid.X := DrawRange.Width div 2 + 4;
   PTMid.Y := DrawRange.Height div 2 + 4;
   {$endif}
-  {$ifdef Amiga}
-  Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, MiddleMarkerColor shl 8,MiddleMarkerColor shl 16,MiddleMarkerColor shl 24, nil);
-  SetAPen(RP, Pen);
-  {$else}
-  SetRPAttrs(RP,[
-    RPTAG_PenMode, AsTag(False),
-    RPTAG_FGColor, AsTag(MiddleMarkerColor),
-    TAG_DONE]);
-  {$endif}
+  Pen := SetColor(RP, MiddleMarkerColor);
   case MiddleMarker of
     1: RectFill(RP, PTMid.X - MiddleMarkerSize, PTMid.Y - MiddleMarkerSize, PTMid.X + MiddleMarkerSize, PTMid.Y + MiddleMarkerSize);
     2: begin
@@ -252,9 +242,7 @@ begin
       Draw(RP, PTMid.X, DrawRange.Height);
     end;
   end;
-  {$ifdef Amiga}
-  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
-  {$endif}
+  UnSetColor(Pen);
 end;
 
 // Draw the Waypoints
@@ -272,21 +260,11 @@ var
   TRas: TTmpRas;
   WarBuff: array[0..AREA_BYTES] of Word;
   ari: TAreaInfo;
-  {$ifdef Amiga}
   Pen: LongWord;
-  {$endif}
   TE: TTextExtent;
   MarkerText: string;
 begin
-  {$ifdef Amiga}
-  Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, WPColor shl 8,WPColor shl 16,WPColor shl 24, nil);
-  SetAPen(RP, Pen);
-  {$else}
-  SetRPAttrs(RP,[
-    RPTAG_PenMode, AsTag(False),
-    RPTAG_FGColor, AsTag(WPColor),
-    TAG_DONE]);
-  {$endif}
+  Pen := SetColor(RP, WPColor);
   SetDrMd(RP, JAM1);
   // make tmprast
   Ras := AllocRaster(DrawRange.Width, DrawRange.Height);
@@ -329,9 +307,7 @@ begin
   RP^.TmpRas := nil;
   RP^.AreaInfo := nil;
   FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
-  {$ifdef Amiga}
-  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
-  {$endif}
+  UnSetColor(Pen);
 end;
 
 // Draw the tracks
@@ -350,20 +326,10 @@ var
   WarBuff: array[0..AREA_BYTES] of Word;
   ari: TAreaInfo;}
   TrackPtSize: Integer;
-  {$ifdef Amiga}
   Pen: LongWord;
-  {$endif}
 begin
   TrackPtSize := Max(2, CurZoom - 10);
-  {$ifdef Amiga}
-  Pen := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, TrackColor shl 8,TrackColor shl 16,TrackColor shl 24, nil);
-  SetAPen(RP, Pen);
-  {$else}
-  SetRPAttrs(RP,[
-    RPTAG_PenMode, AsTag(False),
-    RPTAG_FGColor, AsTag(TrackColor),
-    TAG_DONE]);
-  {$endif}
+  Pen := SetColor(RP, TrackColor);
   SetDrMd(RP, JAM1);
   // make tmprast
   {
@@ -420,9 +386,7 @@ begin
   //RP^.TmpRas := nil;
   //RP^.AreaInfo := nil;
   //FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
-  {$ifdef Amiga}
-  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
-  {$endif}
+  UnSetColor(Pen);
 end;
 
 // Refresh the FullBitmap
