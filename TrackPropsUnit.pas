@@ -7,11 +7,13 @@ uses
     amigalib,
   {$endif}
   SysUtils, exec, utility, intuition, agraphics, mui, muihelper,
-  prefsunit, osmhelper, MUIWrap, imagesunit, positionunit, waypointunit;
+  prefsunit, osmhelper, MUIWrap, imagesunit, positionunit, waypointunit,
+  MUIPlotBoxUnit;
 
 var
   TrackPropsWin: PObject_;
   OnTrackChanged: TProcedure = nil;
+  PlotPanel: TPlotPanel;
 
 procedure ShowTrackProps(NewTrack: TTrack);
 
@@ -52,6 +54,7 @@ end;
 
 procedure CreateTrackPropsWin;
 begin
+  PlotPanel := TPlotPanel.Create([TAG_DONE]);
   TrackPropsWin := MH_Window([
     MUIA_Window_Title,     AsTag(GetLocString(MSG_TRACKPROP_TITLE)), // 'Track Properties'
     MUIA_Window_ID,        AsTag(MAKE_ID('T','R','A','P')),
@@ -65,6 +68,7 @@ begin
           MUIA_String_Contents, AsTag('________________________'),
           TAG_END])),
         TAG_END])),
+      Child, AsTag(PlotPanel.MUIObject),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
         Child, AsTag(MH_Button(SaveButton, GetLocString(MSG_GENERAL_SAVE))), // 'Save'
@@ -86,5 +90,5 @@ end;
 initialization
   CreateTrackPropsWin;
 finalization
-
+  PlotPanel.Free;
 end.

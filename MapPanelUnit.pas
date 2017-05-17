@@ -111,7 +111,7 @@ begin
   DownPos := Point(X, Y);
   FLastMouse := DownPos;
   StartCoord := MiddlePos;
-  EatEvent := True;
+  EatEvent := False;
 end;
 
 // KeyUp Event
@@ -123,8 +123,8 @@ begin
     MoveOffset.Y := 0;
     LeftDown := False;
     RefreshImage();
+    EatEvent := True;
   end;
-  EatEvent := True;
 end;
 
 // Mouse Move

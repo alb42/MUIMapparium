@@ -390,7 +390,7 @@ begin
     begin
       MUIPB := TMUIPaintBox(INST_DATA(cl, Pointer(obj))^); // get class
       if Assigned(MUIPB) then
-        MUIPB.MUIEvent(cl, Obj, Msg)                       // call the class dispatcher
+        MPBDispatcher := MUIPB.MUIEvent(cl, Obj, Msg)                       // call the class dispatcher
       else
         MPBDispatcher := DoSuperMethodA(cl, obj, msg);     // Still not assigned just use default
     end;
