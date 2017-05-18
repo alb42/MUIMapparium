@@ -19,6 +19,7 @@ const
      '10{^3}','10{^6}','10{^9}','10{^12}','10{^15}','10{^18}','10{^21}','10{^24}');
 
 type
+  TDoubleArray = array of Double;
   TAxis = class;
   TAxisScale = (atLin,atLog);
   TAxisPosition = (apBottom,apLeft,apTop,apRight);
@@ -55,12 +56,16 @@ type
     FAxUnit: string;
     VertTextShift:integer;
     MinorNo: Integer;
+    MinSet, MaxSet: Boolean;
+    FColor: TColor;
   public
     procedure DoDraw(Rp: PRastPort; DrawRect: TRect);
     function Place(Value: Double): TPoint;
     function Shift(Position: TPoint; Value: Double): TPoint;
+    function PosToValue(Pos: integer): Double;
     function GetWidth(RP: PRastPort; GetForced: boolean = True): integer;
     procedure SetIncrement(MinDist: Integer);
+    procedure ValidateMinMax;
     property Options: TAxisOptions read FOptions write FOptions;
     property MinValue: Double read FMinValue write FMinValue;
     property MaxValue: Double read FMaxValue write FMaxValue;
@@ -68,6 +73,7 @@ type
     property TextPosition: TAxisPosition read FTextPosition write FTextPosition;
     property Title: string read FTitle write FTitle;
     property AxUnit: string read FAxUnit write FAxUnit;
+    property Color: TColor read FColor write FColor;
   end;
 
   TPlotPanel = class(TMUIPaintBox)
@@ -86,7 +92,9 @@ type
     FLayerInfo: PLayer_Info;
     FRastPort: PRastPort;
     RPDrawRect: TRect;
-    // middle Marker
+    // Mousepos
+    MouseDown: Boolean;
+    ZoomBox: TRect;
   protected
     procedure DrawCurves(RP: PRastPort; ClipRect: TRect);
   public
@@ -94,13 +102,16 @@ type
     destructor Destroy; override;
     procedure DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect);
     procedure DoPlotDraw(RP: PRastPort; DrawRect: TRect; ScaleOnly: Boolean = False);
+    procedure RescaleByCurves;
     //
     procedure AddCurve(var x,y:array of double; var valid:array of boolean; XAxis,YAxis:TAxisPosition; Color:TColor=$000000; Name:string=''; Index: Integer = -1);
     procedure Clear;
+    procedure PlotData;
     //
-    {procedure MouseDownEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
+    procedure MouseDownEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
     procedure MouseUpEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
-    procedure MouseDblClick(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
+    procedure MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
+    {procedure MouseDblClick(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
     procedure MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
     procedure MouseWheelEvent(Sender: TObject; ScrollUp: Boolean; var EatEvent: Boolean);
     //
@@ -205,7 +216,7 @@ procedure ParamNameOut(s: string; RP: PRastPort;
 //    xout,sase,tp:integer;
 //    sf:TFont;
 begin
-  GfxMove(Rp, rect.Left,rect.Top);
+  GfxMove(Rp, rect.Left,rect.Top + 4);
   GfxText(Rp, PChar(s), Length(s));
 (*
   sf:=TFont.Create;
@@ -372,7 +383,10 @@ var
   pt:TPoint;
   w10, afterdot: Integer;
   de: Double;
+  Pen: LongWord;
 begin
+  Pen := SetColor(RP, Color);
+
   GfxMove(Rp, DrawRect.Left + Start.X, DrawRect.Top + Start.Y);
   Draw(RP, DrawRect.Left + Stop.X, DrawRect.Top + Stop.Y);
   //writeln('DRaw Axis ', Start.X, ' ', Start.Y, ' to ', Stop.X,' ', Stop.Y);
@@ -554,6 +568,7 @@ begin
   //          RotOut(Canvas,Start.X+VertTextShift,(Start.Y+Stop.Y+wd) div 2,90,ds);
     end;
   end;
+  UnSetColor(Pen);
 end;
 
 function TAxis.Place(value: Double): TPoint;
@@ -619,6 +634,64 @@ begin
     except
       Result:=Position
     end;
+  end;
+end;
+
+function TAxis.PosToValue(Pos: integer): Double;
+var
+  h1, h2, h3: Double;
+begin
+  try
+    case FPosition of
+      apTop, apBottom:
+        begin
+          if (Stop.x = Start.X) or (FMaxValue = FMinValue) then
+          begin
+            Result := Start.X;
+            Exit;
+          end;
+          if FAxisScale = atLin then
+          begin
+            h1 := (Pos - 1 - Start.X) / (Stop.X - Start.X) * (FMaxValue - FMinValue) + FMinValue;
+            h2 := (Pos - Start.x) / (Stop.X - Start.X) * (FMaxValue - FMinValue) + FMinValue;
+            h3 := (Pos + 1 - Start.x) / (Stop.X - Start.X) * (FMaxValue - FMinValue) + FMinValue;
+          end
+          else
+          begin
+            h1 := Exp((Pos - 1 - Start.x) / (Stop.X - Start.X) * Ln(FMaxValue / FMinValue)) * FMinValue;
+            h2 := Exp((Pos - Start.x) / (Stop.X - Start.X) * Ln(FMaxValue / FMinValue)) * FMinValue;
+            h3 := Exp((Pos + 1 - Start.x) / (Stop.X - Start.X) * Ln(FMaxValue / FMinValue)) * FMinValue;
+          end;
+        end
+      else
+        begin
+          if (Stop.y = Start.y) or (FMaxValue <= FMinValue) then
+          begin
+            Result := Start.Y;
+            Exit;
+          end;
+          if FAxisScale = atLin then
+          begin
+            h1 := (Pos - 1 - Start.y) / (Stop.y - Start.y) * (FMaxValue - FMinValue) + FMinValue;
+            h2 := (Pos - Start.y) / (Stop.y-Start.y) * (FMaxValue - FMinValue) + FMinValue;
+            h3 := (Pos + 1-Start.y) / (Stop.y-Start.y) * (FMaxValue - FMinValue) + FMinValue;
+          end
+          else
+          begin
+            h1 := Exp((Pos - 1 - Start.y) / (Stop.y-Start.y) * Ln(FMaxValue / FMinValue)) * FMinValue;
+            h2 := Exp((Pos - Start.y) / (Stop.y-Start.y) * Ln(FMaxValue / FMinValue)) * FMinValue;
+            h3 := Exp((Pos + 1 - Start.y) / (Stop.y-Start.y) * Ln(FMaxValue / FMinValue)) * FMinValue;
+          end;
+        end;
+    end;
+    h1 := Abs(h2 - h1) / 2;
+    h3 := Abs(h2 - h3) / 2;
+    if h3 > h1 then
+      h1 := h3;
+    h1 := Exp(Round(Ln(h1) / ln10 - 1) * ln10);
+    Result := Round(h2 / h1) * h1;
+  except
+    Result:=0;
   end;
 end;
 
@@ -792,14 +865,32 @@ begin
 end;
 
 
+procedure TAxis.ValidateMinMax;
+begin
+  if FMaxValue = FMinValue then
+  begin
+    if FMaxValue <> 0 then
+    begin
+      FMinValue := 0;
+      FMaxValue := 2 * FMaxValue;
+    end
+    else
+    begin
+      FMinValue := -0.5;
+      FMaxValue := 0.5;
+    end;
+  end;
+end;
+
+
 
 // #####################################################################
 //   TPlotPanel.Create
 constructor TPlotPanel.Create(const Args: array of PtrUInt);
-var
-  x,y: array of Double;
-  Valid: array of Boolean;
-  i: Integer;
+//var
+  //x,y: array of Double;
+  //Valid: array of Boolean;
+  //i: Integer;
 begin
   inherited;
 
@@ -820,6 +911,7 @@ begin
   FAxisTop.TextPosition := apTop;
   FAxisTop.MinValue := 0;
   FAxisTop.MaxValue := 100;
+  FAxisTop.Color := clBlack;
   FAxisTop.Options := []; //[aoShowTics,aoShowLabels,aoShowTitle];
 
   FAxisLeft := TAxis.Create;
@@ -827,6 +919,7 @@ begin
   FAxisLeft.TextPosition := apLeft;
   FAxisLeft.MinValue := 0;
   FAxisLeft.MaxValue := 100;
+  FAxisLeft.Color := clBlack;
   FAxisLeft.Options := [aoShowTics,aoShowLabels,aoShowTitle];
 
   FAxisBottom := TAxis.Create;
@@ -834,6 +927,7 @@ begin
   FAxisBottom.TextPosition := apBottom;
   FAxisBottom.MinValue := 0;
   FAxisBottom.MaxValue := 100;
+  FAxisBottom.Color := clBlack;
   FAxisBottom.Options := [aoShowTics,aoShowLabels,aoShowTitle];
 
   FAxisRight := TAxis.Create;
@@ -841,8 +935,9 @@ begin
   FAxisRight.TextPosition := apRight;
   FAxisRight.MinValue := 0;
   FAxisRight.MaxValue := 100;
+  FAxisRight.Color := clBlack;
   FAxisRight.Options := [];//[aoShowTics,aoShowLabels,aoShowTitle];
-
+{
   SetLength(x, 100);
   SetLength(y, 100);
   SetLength(Valid, 100);
@@ -852,12 +947,16 @@ begin
     y[i] := Random(100);
     Valid[i] := True;
   end;
-  AddCurve(x,y,Valid, apBottom, apLeft, $0000FF, 'test1');
+  AddCurve(x,y,Valid, apBottom, apLeft, $0000FF, 'test1');}
   //
   FForceRedraw := True;
   FRastPort := nil;
   FLayerInfo := nil;
   RPDrawRect := Rect(0,0, 0, 0);
+  //
+  OnMUIMouseDown := @MouseDownEvent;
+  OnMUIMouseUp := @MouseUpEvent;
+  OnMUIMouseMove := @MouseMoveEvent;
 end;
 
 destructor TPlotPanel.Destroy;
@@ -870,6 +969,7 @@ begin
   begin
     // delete the layer
     DeleteLayer(0, FRastPort^.layer);
+    DisposeLayerInfo(FLayerInfo);
     // delete the bitmap
     FreeBitmap(FRastPort^.Bitmap);
     FRastPort^.Layer := nil;
@@ -877,7 +977,6 @@ begin
     // Destroy the temp rastport
     FreeRastPort(FRastPort);
   end;
-  DisposeLayerInfo(FLayerInfo);
   inherited;
 end;
 
@@ -1014,6 +1113,18 @@ begin
     FForceRedraw := False;
   end;
   ClipBlit(FRastPort, 0,0, rp, DrawRect.Left, DrawRect.Top, DrawRect.Width, DrawRect.Height, $00C0);
+  // Draw Zoomrect if needed
+  if MouseDown then
+  begin
+    Pen := SetColor(RP, $FF00FF);
+    SetDrMd(RP, COMPLEMENT);
+    GfxMove(RP, DrawRect.Left + ZoomBox.Left, DrawRect.Top + ZoomBox.Top);
+    Draw(RP, DrawRect.Left + ZoomBox.Right, DrawRect.Top + ZoomBox.Top);
+    Draw(RP, DrawRect.Left + ZoomBox.Right, DrawRect.Top + ZoomBox.Bottom);
+    Draw(RP, DrawRect.Left + ZoomBox.Left, DrawRect.Top + ZoomBox.Bottom);
+    Draw(RP, DrawRect.Left + ZoomBox.Left, DrawRect.Top + ZoomBox.Top);
+    UnSetColor(Pen);
+  end;
 end;
 
 
@@ -1028,7 +1139,7 @@ var
   Pen: LongWord;
 begin
   //wd:=TH(RP,'|');
-  for i:=0 to length(Curves)-1 do
+  for i:=0 to Length(Curves)-1 do
   begin
     if Length(Curves[i].x) = 0 then
       Continue;
@@ -1122,60 +1233,211 @@ procedure TPlotPanel.AddCurve(var x,y:array of double; var valid:array of boolea
 var
   i,vlgt,si:integer;
 begin
-  if Index=-1
-  then
-    begin
-      si:=length(Curves);
-      Setlength(Curves,si+1);
-    end
+  if Index=-1 then
+  begin
+    si:=length(Curves);
+    Setlength(Curves,si+1);
+  end
   else
-    begin
-      if index>=length(Curves)
-      then
-        Setlength(Curves,index+1);
-      si:=index;
-    end;
-  setlength(Curves[si].x,length(x));
-  setlength(Curves[si].y,length(y));
-  setlength(Curves[si].valid,length(y));
-  vlgt:=length(valid);
-  for i:=0 to length(x)-1 do
-    Curves[si].x[i]:=x[i];
-  for i:=0 to length(y)-1 do
-    begin
-      Curves[si].y[i]:=y[i];
-      if i<vlgt
-      then
-        Curves[si].valid[i]:=valid[i]
-      else
-        Curves[si].valid[i]:=true;
-    end;
+  begin
+    if Index >= Length(Curves) then
+      Setlength(Curves, Index + 1);
+    si := Index;
+  end;
+  Setlength(Curves[si].x, Length(x));
+  Setlength(Curves[si].y, Length(y));
+  Setlength(Curves[si].valid, Length(y));
+  vlgt := Length(Valid);
+  for i := 0 to length(x) - 1 do
+    Curves[si].x[i] := x[i];
+  for i := 0 to Length(y) - 1 do
+  begin
+    Curves[si].y[i] := y[i];
+    if i < vlgt then
+      Curves[si].valid[i] := Valid[i]
+    else
+      Curves[si].valid[i] := True;
+  end;
   case XAxis of
-    apTop:Curves[si].xaxis:=AxisTop;
-    apBottom:Curves[si].xaxis:=AxisBottom;
-    apLeft:Curves[si].xaxis:=AxisLeft;
-    apRight:Curves[si].xaxis:=AxisRight;
+    apTop: Curves[si].XAxis := AxisTop;
+    apBottom: Curves[si].XAxis := AxisBottom;
+    apLeft: Curves[si].XAxis := AxisLeft;
+    apRight: Curves[si].XAxis := AxisRight;
   end;
   case YAxis of
-    apTop:Curves[si].yaxis:=AxisTop;
-    apBottom:Curves[si].yaxis:=AxisBottom;
-    apLeft:Curves[si].yaxis:=AxisLeft;
-    apRight:Curves[si].yaxis:=AxisRight;
+    apTop: Curves[si].YAxis := AxisTop;
+    apBottom: Curves[si].YAxis := AxisBottom;
+    apLeft: Curves[si].YAxis := AxisLeft;
+    apRight: Curves[si].YAxis := AxisRight;
   end;
-  Curves[si].xAxPos:=XAxis;
-  Curves[si].yAxPos:=YAxis;
+  Curves[si].XAxPos := XAxis;
+  Curves[si].YAxPos := YAxis;
   //Curves[si].Width:=Width;
-  Curves[si].Name:=Name;
+  Curves[si].Name := Name;
   //Curves[si].ScatterStyle:=ScatterStyle;
   //Curves[si].ScatterSize:=ScatterWidth;
-  Curves[si].Color:=color;
+  Curves[si].Color := Color;
   //Curves[si].LinesOn:=LinesOn;
 end;
+
+procedure TPlotPanel.RescaleByCurves;
+var i,j:integer;
+begin
+  with AxisTop do
+  begin
+    MinSet:=false;
+    MaxSet:=false;
+  end;
+  with AxisLeft do
+  begin
+    MinSet:=false;
+    MaxSet:=false;
+  end;
+  with AxisRight do
+  begin
+    MinSet:=false;
+    MaxSet:=false;
+  end;
+  with AxisBottom do
+  begin
+    MinSet:=false;
+    MaxSet:=false;
+  end;
+  for i := 0 to Length(Curves) - 1 do
+  begin
+    for j := 0 to Length(Curves[i].x) - 1 do
+    begin
+      with Curves[i].XAxis do
+      begin
+        if not (aoMinFixed in Options) then
+        begin
+          if ((not MinSet) or (Curves[i].x[j] < FMinValue)) and ((FAxisScale = atLin) or (Curves[i].x[j] > 1e-10)) then
+          begin
+            FMinValue := Curves[i].x[j];
+            MinSet := True;
+          end;
+          end;
+        if not (aoMaxFixed in Options) then
+        begin
+          if not MaxSet then
+            FMaxValue := Curves[i].x[j]
+          else
+            if Curves[i].x[j] > FMaxValue then
+              FMaxValue := Curves[i].x[j];
+        end;
+        MaxSet := True;
+      end;
+    end;
+    for j := 0 to Length(Curves[i].y) - 1 do
+    begin
+      with Curves[i].YAxis do
+      begin
+        if not (aoMinFixed in Options) then
+        begin
+          if ((not MinSet) or (Curves[i].y[j] < FMinValue)) and ((FAxisScale = atLin) or (Curves[i].y[j] > 1e-10)) then
+          begin
+            FMinValue := Curves[i].y[j];
+            MinSet := True;
+          end;
+        end;
+        if not (aoMaxFixed in Options) then
+        begin
+          if not MaxSet then
+            FMaxValue := Curves[i].y[j]
+          else
+            if Curves[i].y[j] > FMaxValue then
+              FMaxValue := Curves[i].y[j];
+        end;
+        MaxSet:=true;
+      end;
+    end;
+  end;
+  AxisTop.ValidateMinMax;
+  AxisBottom.ValidateMinMax;
+  AxisLeft.ValidateMinMax;
+  AxisRight.ValidateMinMax;
+end;
+
+procedure TPlotPanel.MouseDownEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
+begin
+  if MouseBtn = mmbLeft then
+  begin
+    MouseDown := True;
+    ZoomBox.Left := X;
+    ZoomBox.Top := Y;
+    ZoomBox.Width := 1;
+    ZoomBox.Height := 1;
+    RedrawObject;
+    EatEvent := True;
+  end;
+end;
+
+procedure TPlotPanel.MouseUpEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
+var
+  a, b: Double;
+begin
+  if MouseBtn = mmbLeft then
+  begin
+    if MouseDown then
+    begin
+      MouseDown := False;
+      if (ZoomBox.Width > 2) and (ZoomBox.Height > 2) then
+      begin
+        ZoomBox.Right := X;
+        ZoomBox.Bottom := Y;
+        a := AxisLeft.PosToValue(ZoomBox.Bottom);
+        b := AxisLeft.PosToValue(ZoomBox.Top);
+        AxisLeft.MinValue := a;
+        AxisLeft.MaxValue := b;
+        //
+        a := AxisBottom.PosToValue(ZoomBox.Left);
+        b := AxisBottom.PosToValue(ZoomBox.Right);
+        AxisBottom.MinValue := a;
+        AxisBottom.MaxValue := b;
+        //
+        FForceRedraw := True;
+        RedrawObject;
+      end
+      else
+      begin
+        if (ZoomBox.Width < -2) or (ZoomBox.Height < -2) then
+        begin
+          RescaleByCurves;
+          //
+          FForceRedraw := True;
+        end;
+      end;
+      RedrawObject;
+      EatEvent := True;
+    end;
+  end;
+end;
+
+procedure TPlotPanel.MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
+begin
+  if MouseDown then
+  begin
+    ZoomBox.Right := X;
+    ZoomBox.Bottom := Y;
+    RedrawObject;
+    EatEvent := True;
+  end;
+  //SysDebugln('Pos: ' + IntToStr(x) + ', '  + IntToStr(y) +  ' -> ' + FloatToStr(AxisBottom.PosToValue(X)) +  ', ' + FloatToStr(AxisLeft.PosToValue(Y)));
+end;
+
 
 procedure TPlotPanel.Clear;
 begin
   SetLength(Curves, 0);
   FForceRedraw := True;
 end;
+
+procedure TPlotPanel.PlotData;
+begin
+  RescaleByCurves;
+  FForceRedraw := True;
+  RedrawObject;
+end;
+
 
 end.

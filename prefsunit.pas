@@ -11,8 +11,8 @@ type
   TColor = LongWord;
 
 const
-  clRed = $0000ff;
-  clBlue = $ff0000;
+  clRed = $FF0000;
+  clBlue = $0000FF;
   clLime = $00ff00;
   clGreen = $00aa00;
   clFuchsia = $ff00ff;
