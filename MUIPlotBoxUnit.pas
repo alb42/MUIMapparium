@@ -60,6 +60,7 @@ type
     FColor: TColor;
   public
     procedure DoDraw(Rp: PRastPort; DrawRect: TRect);
+    procedure DrawGrid(Rp: PRastPort; ClipRect: TRect);
     function Place(Value: Double): TPoint;
     function Shift(Position: TPoint; Value: Double): TPoint;
     function PosToValue(Pos: integer): Double;
@@ -133,8 +134,8 @@ type
   end;
 
 function TH(RP: PRastPort; Text: string): Integer;
-function TW(RP: PRastPort; Text: string): Integer;
-function RoundToStr(Value: Double; Precision: Integer): string;
+function TW(RP: PRastPort; Text: string): Integer; inline;
+function ValueToStr(Value: Double; Precision: Integer): string;
 
 implementation
 
@@ -152,159 +153,65 @@ begin
   Result := TextLength(RP, PChar(text), Length(Text));
 end;
 
-function RoundToStr(Value: Double; Precision: Integer): string;
-var
-  j: Integer;
-  sgn: string;
-  prcval: Double;
-  ds: string;
-  di:integer;
-  om: Double;
-  didit: Boolean;
+function ValueToStr(Value: Double; Precision: Integer): string;
 begin
-  if Precision < 0 then
-    Precision := 0;
-  DidIt := False;
-  sgn := '';
-  if Value < 0 then
-    sgn := '-';
-  PrcVal := Abs(Value);
-  //
-  Om := 1;
-  while Om <= PrcVal do
-    Om := Om * 10;
-  ds := '';
-  j := 0;
-  repeat
-    if (om < 1) and (om > 0.05) and (precision > 0) then
-      ds := ds + FormatSettings.DecimalSeparator;
-    if om < 1 then
-      j := j + 1;
-    di := Trunc(PrcVal / Om);
-    if (di > 0) or (om < 10) or didit then
-    begin
-      ds := ds + IntToStr(di);
-      Didit := True;
-    end;
-    prcval:=prcval-om*di;
-    om := om/10;
-  until (om < 1) and (j >= precision + 1);
-  if StrToInt(ds[length(ds)]) >= 5 then
-  begin
-    j := Length(ds) - 1;
-    if ds[j] = FormatSettings.DecimalSeparator then
-      dec(j);
-    while (j > 0) and (ds[j] = '9') do
-    begin
-      ds[j] := '0';
-      dec(j);
-      if (j > 0) and (ds[j]=FormatSettings.DecimalSeparator) then
-        Dec(j);
-    end;
-    if j > 0 then
-      ds[j] := char(Ord(ds[j]) + 1)
-    else
-      ds := '1' + ds;
-  end;
-  SetLength(ds, Length(ds) - 1);
-  Result := sgn + ds;
+  Result := FloatToStrF(Value, ffFixed, 16, Precision);
 end;
 
 procedure ParamNameOut(s: string; RP: PRastPort;
-  Rect: TRect;Rot90:boolean=false);
-//var ds,ds2:string;
-//    xout,sase,tp:integer;
-//    sf:TFont;
+  Color: TColor; Rect: TRect; Rot90:boolean=false);
+{var
+  TempRP: PRastPort;
+  TE: TTextExtent;
+  nx, ny, x, y: Integer;
+  Pen: LongWord;}
 begin
-  GfxMove(Rp, rect.Left,rect.Top + 4);
-  GfxText(Rp, PChar(s), Length(s));
-(*
-  sf:=TFont.Create;
-  sf.Assign(canvas.Font);
-  ds:=s;
-      xout:=0;
-      while pos('{',ds)>0 do
-        begin
-          ds2:=ds;
-          delete(ds2,pos('{',ds2),length(ds2));
-          if Rot90
-          then
-            RotOut(Canvas,rect.Left,rect.Bottom-xout,90,ds2)
-          else
-            Canvas.TextOut(rect.Left+xout,rect.Top,ds2);
-          xout:=xout+
-            Canvas.TextWidth(ds2);
-          delete(ds,1,pos('{',ds));
-          ds2:='';
-          while (length(ds)>0) and (ds[1]<>'}') do
-            begin
-              ds2:=ds2+ds[1];
-              delete(ds,1,1);
-            end;
-          if length(ds)>0
-          then
-            delete(ds,1,1);
-          sase:=Canvas.Font.Size;
-          TP:=0;
-          if length(ds2)>0
-          then
-            case ds2[1] of
-              'G':
-                begin
-                  Canvas.Font.Name:='Symbol';
-                  delete(ds2,1,1);
-                end;
-              '_':
-                begin
-                  Canvas.Font.Name:=sf.name;
-                  TP:=Canvas.TextHeight('|');
-                  Canvas.Font.Size:=
-                    round(sase*0.6);
-                  TP:=TP-Canvas.TextHeight('|');
-                  delete(ds2,1,1);
-                end;
-              '^':
-                begin
-                  Canvas.Font.Name:=sf.name;
-                  Canvas.Font.Size:=
-                    round(sase*0.6);
-                  TP:=0;
-                  delete(ds2,1,1);
-                end;
-            end;
-          if Rot90
-          then
-            RotOut(Canvas,rect.Left+TP,rect.Bottom-xout,90,ds2)
-          else
-            Canvas.TextOut(rect.Left+xout,
-              rect.Top+TP,ds2);
-          xout:=xout+
-            Canvas.TextWidth(ds2);
-          Canvas.Font.Name:=sf.name;
-          Canvas.Font.Size:=sase;
-        end;
-      if Rot90
-      then
-        RotOut(Canvas,rect.left,rect.Bottom-xout,90,ds)
-      else
-        Canvas.TextOut(rect.Left+xout,rect.Top,ds);
-  sf.Free;*)
+  if Rot90 then
+  begin
+    {
+    TextExtent(RP, PChar(s), Length(s), @TE);
+    TempRP := CreateRastPort;
+    TempRP^.Bitmap := AllocBitMap(TE.te_Width, TE.te_Height, rp^.Bitmap^.Depth, BMF_MINPLANES or BMF_DISPLAYABLE, rp^.Bitmap);
+    TempRP^.Font := RP^.Font;
+    Pen := SetColor(TempRP, 0);
+    RectFill(TempRP, 0,0, TE.te_Width-1, TE.te_Height-1);
+    UnSetColor(Pen);
+    Pen := GetAPen(RP);
+    Pen := SetColor(TempRP, Color);
+    GfxMove(TempRp, 0, 0 + TE.te_Height);
+    GfxText(TempRp, PChar(s), Length(s));
+    UnSetColor(Pen);
+    for y := 0 to TE.te_Height - 1 do
+    begin
+      for x := 0 to TE.te_Width - 1 do
+      begin
+        nx := Rect.Left + (TE.te_Height - 1 - y) - 5;
+        ny := Rect.Top + x;
+        Pen :=  ReadRGBPixel(TempRP, x, y);
+        if Pen <> 0 then
+          WriteRGBPixel(RP, nx, ny, Pen);
+      end;
+    end;
+    FreeBitmap(TempRP^.Bitmap);
+    FreeRastPort(TempRP);}
+  end
+  else
+  begin
+    GfxMove(Rp, rect.Left,rect.Top + 6);
+    GfxText(Rp, PChar(s), Length(s));
+  end;
 end;
 
-procedure ClipLine(RP: PRastPort;const x0,y0,x1,y1:integer;
-  const Cliprect:TRect;var DoOld:boolean);
-  function InRect(const x,y:integer;const Rect:TRect):boolean;
-  begin
-    result:=(x>=rect.Left) and
-     (x<=rect.Right) and
-     (y>=rect.Top) and
-     (y<=rect.Bottom);
+function PointInRect(const x,y:integer;const Rect:TRect):boolean; inline;
+begin
+  Result:=(x >= Rect.Left) and (x <= Rect.Right) and (y >= Rect.Top) and (y <= Rect.Bottom);
+end;
 
-  end;
+procedure ClippedLine(RP: PRastPort;const x0,y0,x1,y1:integer; const Cliprect:TRect;var DoOld:boolean);
 var
   dx,dy,xa0,ya0,xa1,ya1,a,b: Double;
 begin
-  if InRect(X0,Y0,ClipRect) and InRect(X1,Y1,ClipRect) then
+  if PointInRect(X0,Y0,ClipRect) and PointInRect(X1,Y1,ClipRect) then
   begin
     if DoOld then
       GfxMove(Rp, x0,y0);
@@ -389,8 +296,6 @@ begin
 
   GfxMove(Rp, DrawRect.Left + Start.X, DrawRect.Top + Start.Y);
   Draw(RP, DrawRect.Left + Stop.X, DrawRect.Top + Stop.Y);
-  //writeln('DRaw Axis ', Start.X, ' ', Start.Y, ' to ', Stop.X,' ', Stop.Y);
-  //writeln('DrawRect  ', DrawRect.Left, ' ', DrawRect.Top, ' to ', DrawRect.Right,' ', DrawRect.Bottom);
 
   disp := 0;
 
@@ -398,9 +303,9 @@ begin
   begin
     if (FAxisScale = atLin) and (Increment <> 0) then
     begin
-      for i := Round(FMinValue / Increment) - 1 to Round(FMinValue / Increment) + 1 do
+      for i := Round(FMinValue / Increment) - 1 to Round(FMaxValue / Increment) + 1 do
       begin
-        if (i * Increment >= FMinValue) and (i * Increment <= FMinValue) then
+        if (i * Increment >= FMinValue) and (i * Increment <= FMaxValue) then
         begin
           pt := Place(i * Increment);
           GfxMove(Rp, Pt.x, Pt.y);
@@ -412,7 +317,7 @@ begin
             apLeft:
               Draw(Rp, DrawRect.Left + Pt.x + 5, DrawRect.Top + Pt.y);
             apRight:
-              Draw(Rp, DrawRect.Left + Pt.x-5, DrawRect.Top + Pt.y);
+              Draw(Rp, DrawRect.Left + Pt.x - 5, DrawRect.Top + Pt.y);
           end;
         end;
       end;
@@ -425,7 +330,7 @@ begin
         begin
           if (Exp(i * ln10) >= FMinValue) and (Exp(i * ln10) <= FMaxValue) then
           begin
-            pt:=Place(exp(i*ln10));
+            pt := Place(exp(i*ln10));
             GfxMove(Rp, Pt.x, Pt.y);
             case TextPosition of
               apTop:
@@ -447,7 +352,7 @@ begin
   begin
     hg := Round(TH(RP, '|') * 1.2);
     disp := hg;
-    hg2 := Round(TH(RP, '|') * 0.2);
+    hg2 := Round(TH(RP, '|') * 0.5);
     afterdot := 0;
     if (FAxisScale = atLin) and (Increment <> 0) then
     begin
@@ -455,7 +360,7 @@ begin
 //    then
       begin
         de := Increment / DivideFac;
-        ds := RoundToStr(de, 5);
+        ds := ValueToStr(de, 5);
         if Pos(FormatSettings.DecimalSeparator, ds) = 0 then
           AfterDot := 0
         else
@@ -469,17 +374,17 @@ begin
         if (i * Increment >= FMinValue) and (i * Increment <= FMaxValue) then
         begin
           pt := Place(i * Increment);
-          ds := RoundToStr(i * increment / DivideFac, Afterdot);
+          ds := ValueToStr(i * increment / DivideFac, Afterdot);
           wd := TW(Rp, ds);
           case TextPosition of
             apBottom:
-              GfxMove(Rp, pt.X-wd div 2, pt.Y+hg2 * 4);
+              GfxMove(Rp, pt.X-wd div 2, pt.Y + hg);
             apLeft:
-              GfxMove(Rp, Pt.X-wd-hg2, pt.Y + hg div 2);
+              GfxMove(Rp, Pt.X-wd-hg2, pt.Y + hg2 div 2);
             apTop:
-              GfxMove(Rp, pt.X-wd div 2, pt.Y-hg2);
+              GfxMove(Rp, pt.X-wd div 2, pt.Y - hg);
             apRight:
-              GfxMove(Rp, pt.X+hg2, pt.Y + hg div 2);
+              GfxMove(Rp, pt.X+hg2, pt.Y + hg2 div 2);
           end;
           GfxText(Rp, PChar(ds), Length(ds))
         end;
@@ -547,29 +452,140 @@ begin
     wd:=TW(Rp,ds2);
     case TextPosition of
       apBottom:
-        ParamNameOut(ds,Rp,rect(
-          DrawRect.Left + (Start.X+Stop.X-wd) div 2, DrawRect.Top + Start.Y+hg2+disp,
-          DrawRect.Left + (Start.X+Stop.X+wd) div 2, DrawRect.Top + Start.Y+hg+hg2+disp));
-  //         Canvas.TextOut((Start.X+Stop.X-wd) div 2,Start.Y+hg2+disp,ds);
+        ParamNameOut(ds,Rp, Color, rect(
+          DrawRect.Left + (Start.X+Stop.X-wd) div 2, DrawRect.Top + Start.Y+hg+disp,
+          DrawRect.Left + (Start.X+Stop.X+wd) div 2, DrawRect.Top + Start.Y+hg+hg+disp));
       apLeft:
-        ParamNameOut(ds,Rp,rect(
+        ParamNameOut(ds,Rp, Color, rect(
           DrawRect.Left + Start.X-VertTextShift-hg, DrawRect.Top + (Start.Y+Stop.Y-wd) div 2,
           DrawRect.Left + Start.X-VertTextShift, DrawRect.Top + (Start.Y+Stop.Y+wd) div 2),true);
-  //          RotOut(Canvas,Start.X-VertTextShift-hg,(Start.Y+Stop.Y+wd) div 2,90,ds);
       apTop:
-        ParamNameOut(ds,Rp,rect(
+        ParamNameOut(ds,Rp, Color, rect(
           DrawRect.Left + (Start.X+Stop.X-wd) div 2, DrawRect.Top + Start.Y-hg-disp,
           DrawRect.Left + (Start.X+Stop.X+wd) div 2, DrawRect.Top + Start.Y-2*hg-disp));
-  //          Canvas.TextOut((Start.X+Stop.X-wd) div 2,Start.Y-hg-disp,ds);
       apRight:
-        ParamNameOut(ds,Rp,rect(
+        ParamNameOut(ds,Rp, Color, rect(
           DrawRect.Left + Start.X+VertTextShift+round(hg*0.3), DrawRect.Top + (Start.Y+Stop.Y-wd) div 2,
           DrawRect.Left + Start.X+VertTextShift+round(hg*1.3), DrawRect.Top + (Start.Y+Stop.Y+wd) div 2),true);
-  //          RotOut(Canvas,Start.X+VertTextShift,(Start.Y+Stop.Y+wd) div 2,90,ds);
     end;
   end;
   UnSetColor(Pen);
 end;
+
+procedure TAxis.DrawGrid(Rp: PRastPort; ClipRect: TRect);
+var
+  i,j,n:integer;
+  pt:TPoint;
+  NoM:integer;
+  r,g,b: LongWord;
+  r1,r2,g1,g2,b1,b2: Byte;
+  MajColor,MinColor: TColor;
+  Pen: LongWord;
+begin
+  if aoMajorGrid in Options then
+  begin
+    // Calculate MajorGridColor/MinGridColor
+    r := (Color and $ff0000) shr 16;
+    g := Color and $00ff00 shr 8;
+    b := Color and $0000ff;
+    //
+    n := 10;
+    r1 := ((r + (255 * n)) div (n+1)) and $ff;
+    g1 := ((g + (255 * n)) div (n+1)) and $ff;
+    b1 := ((b + (255 * n)) div (n+1)) and $ff;
+
+    n := 20;
+    r2 := ((r + (255 * n)) div (n+1)) and $ff;
+    g2 := ((g + (255 * n)) div (n+1)) and $ff;
+    b2 := ((b + (255 * n)) div (n+1)) and $ff;
+
+    MajColor := (r1 shl 16) or (g1 shl 8) or b1;
+    MinColor := (r2 shl 16) or (g2 shl 8) or b2;
+    //
+    NoM := MinorNo + 1;
+    if (FAxisScale = atLin) and (Increment <> 0) then
+    begin
+      for i:= Round(FMinValue / Increment * NoM) to Round(FMaxValue / Increment * NoM) do
+      begin
+        if (i * Increment / NoM > FMinValue) and (i * Increment / NoM < FMaxValue) then
+        begin
+          if i mod NoM = 0 then
+          begin
+            Pen := SetColor(RP, MajColor);
+          end
+          else
+          begin
+            if not (aoMinorGrid in Options) then
+              Continue;
+            Pen := SetColor(RP, MinColor);
+          end;
+          pt := Place(i * Increment / NoM);
+          case TextPosition of
+            apTop,apBottom:
+              begin
+                GfxMove(RP, pt.x, ClipRect.Top);
+                Draw(RP, pt.x,ClipRect.Bottom);
+              end;
+            apLeft,apRight:
+              begin
+                GfxMove(RP, ClipRect.left,pt.y);
+                Draw(RP, ClipRect.right,pt.y);
+              end;
+          end;
+          UnsetColor(Pen);
+        end;
+      end;
+    end
+    else
+      if (FMinValue > 0) and (FMaxValue > 0) then
+      begin
+        for i := Round(Ln(FMinValue) / ln10) - 1 to Round(Ln(FMaxValue) / ln10) do
+        begin
+          Pen := SetColor(RP, MajColor);
+          pt := Place(Exp(i * ln10));
+          if (Exp(i * ln10) > FMinValue) and (Exp(i * ln10) < FMaxValue) then
+          begin
+            case TextPosition of
+              apTop,apBottom:
+                begin
+                  GfxMove(Rp, pt.x,ClipRect.Top);
+                  Draw(RP, pt.x,ClipRect.Bottom);
+                end;
+              apLeft,apRight:
+                begin
+                  GfxMove(RP, ClipRect.left,pt.y);
+                  Draw(RP, ClipRect.right,pt.y);
+                end;
+            end;
+          end;
+          UnSetColor(Pen);
+          if aoMinorGrid in Options then
+          begin
+            Pen := SetColor(RP, MinColor);
+            for j := 2 to 9 do
+            begin
+              pt := Place(Exp(i * ln10) * j);
+              if (Exp(i * ln10) * j > FMinValue) and (Exp(i * ln10) * j < FMaxValue) then
+                case TextPosition of
+                  apTop,apBottom:
+                    begin
+                      GfxMove(RP, pt.x,ClipRect.Top);
+                      Draw(RP, pt.x,ClipRect.Bottom);
+                    end;
+                  apLeft,apRight:
+                    begin
+                      GfxMove(RP, ClipRect.left,pt.y);
+                      Draw(RP, ClipRect.right,pt.y);
+                    end;
+                end;
+            end;
+            UnSetColor(Pen);
+          end;
+        end;
+      end;
+  end;
+end;
+
 
 function TAxis.Place(value: Double): TPoint;
 begin
@@ -739,7 +755,7 @@ begin
             //writeln('  left/right , showlabels');
             wmax := 10;
             de := Increment / DivideFac;
-            ds := RoundToStr(de, 5);
+            ds := ValueToStr(de, 5);
             afterdot := 0;
             if Pos(FormatSettings.decimalSeparator, ds) = 0 then
               afterdot := 0
@@ -754,7 +770,7 @@ begin
               if Increment > 0 then
                 for i := Round(FMinValue / Increment) to Round(FMaxValue / Increment) do
                 begin
-                  ds := RoundToStr(i * Increment / DivideFac, afterdot);
+                  ds := ValueToStr(i * Increment / DivideFac, afterdot);
                   wdh := TW(Rp, ds);
                   if wdh > wmax then
                     wmax := wdh;
@@ -1083,10 +1099,10 @@ begin
     //
     //DrawFields(RP, Rect(lf, tp, rg, bt));
     //
-    //AxisLeft.DrawGrid(RP,rect(lf,tp,rg,bt));
-    //AxisRight.DrawGrid(RP,rect(lf,tp,rg,bt));
-    //AxisTop.DrawGrid(RP,rect(lf,tp,rg,bt));
-    //AxisBottom.DrawGrid(RP,rect(lf,tp,rg,bt));
+    AxisLeft.DrawGrid(FRastPort,rect(lf,tp,rg,bt));
+    AxisRight.DrawGrid(FRastPort,rect(lf,tp,rg,bt));
+    AxisTop.DrawGrid(FRastPort,rect(lf,tp,rg,bt));
+    AxisBottom.DrawGrid(FRastPort,rect(lf,tp,rg,bt));
 
     DrawCurves(FRastPort, Rect(lf,tp,rg,bt));
     //DrawMarkers(Canvas,rect(lf,tp,rg,bt));
@@ -1158,9 +1174,9 @@ begin
         loc := Curves[i].XAxis.Place(Curves[i].x[j]);
         Loc := Curves[i].YAxis.Shift(Loc, Curves[i].y[j]);
         if ov and DoMove then
-          ClipLine(Rp, ox, oy, ox, oy, ClipRect, DoMove);
+          ClippedLine(Rp, ox, oy, ox, oy, ClipRect, DoMove);
         if Curves[i].valid[j] and ov then
-          ClipLine(Rp, ox, oy, loc.x, loc.y, ClipRect, DoMove);
+          ClippedLine(Rp, ox, oy, loc.x, loc.y, ClipRect, DoMove);
         if not ov then
           DoMove := True;
         ox := loc.x;
@@ -1169,61 +1185,6 @@ begin
       end;
     end;
     //
-    (*
-    for j:=0 to length(Curves[i].x) - 1 do
-    begin
-      if curves[i].valid[j] then
-      begin
-        loc:=Curves[i].xaxis.Place(Curves[i].x[j]);
-        Loc:=Curves[i].yaxis.Shift(loc,Curves[i].y[j]);
-        if (loc.x<cliprect.Left) or (loc.x>cliprect.Right) or
-        (loc.y<cliprect.top) or (loc.y>cliprect.Bottom)
-        then
-          continue;
-        wi:=round(wd*Curves[i].ScatterSize/10);
-        case Curves[i].ScatterStyle of
-          scsCross:
-           begin
-             Canvas.MoveTo(Loc.X-wi,Loc.y-wi);
-             Canvas.LineTo(Loc.X+wi+1,Loc.y+wi+1);
-             Canvas.MoveTo(Loc.X+wi,Loc.y-wi);
-             Canvas.LineTo(Loc.X-wi-1,Loc.y+wi+1);
-           end;
-          scsPlus:
-           begin
-             Canvas.MoveTo(Loc.X,Loc.y-wi);
-             Canvas.LineTo(Loc.X,Loc.y+wi+1);
-             Canvas.MoveTo(Loc.X+wi,Loc.y);
-             Canvas.LineTo(Loc.X-wi-1,Loc.y);
-           end;
-          scsCircle:
-           begin
-             Canvas.Brush.Color:=Styles.BackgroundColor;
-             Canvas.Ellipse(Loc.X-wi,Loc.y-wi,
-                            Loc.X+wi,Loc.y+wi);
-           end;
-          scsCircleSolid:
-           begin
-             Canvas.Brush.Color:=Curves[i].Color;
-             Canvas.Ellipse(Loc.X-wi,Loc.y-wi,
-                            Loc.X+wi,Loc.y+wi);
-           end;
-          scsSquare:
-           begin
-             Canvas.Brush.Color:=Styles.BackgroundColor;
-             Canvas.Rectangle(Loc.X-wi,Loc.y-wi,
-                              Loc.X+wi,Loc.y+wi);
-           end;
-          scsSquareSolid:
-           begin
-             Canvas.Brush.Color:=Curves[i].Color;
-             Canvas.Rectangle(Loc.X-wi,Loc.y-wi,
-                              Loc.X+wi,Loc.y+wi);
-           end;
-        end;
-      end;
-
-    end;*)
     UnSetColor(Pen)
   end;
 end;
@@ -1394,6 +1355,16 @@ begin
         b := AxisBottom.PosToValue(ZoomBox.Right);
         AxisBottom.MinValue := a;
         AxisBottom.MaxValue := b;
+        //
+        a := AxisTop.PosToValue(ZoomBox.Left);
+        b := AxisTop.PosToValue(ZoomBox.Right);
+        AxisTop.MinValue := a;
+        AxisTop.MaxValue := b;
+        //
+        a := AxisRight.PosToValue(ZoomBox.Bottom);
+        b := AxisRight.PosToValue(ZoomBox.Top);
+        AxisRight.MinValue := a;
+        AxisRight.MaxValue := b;
         //
         FForceRedraw := True;
         RedrawObject;

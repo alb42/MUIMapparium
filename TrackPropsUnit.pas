@@ -241,26 +241,26 @@ begin
     PlotPanel.AxisRight.Color := clBlack;
     PlotPanel.AxisBottom.AxUnit := XUnit;
     PlotPanel.AxisBottom.Title := XName;
-    PlotPanel.AxisBottom.Options := PlotPanel.AxisBottom.Options + [aoForceNoExp];
+    PlotPanel.AxisBottom.Options := PlotPanel.AxisBottom.Options + [aoForceNoExp, aoMajorGrid, aoMinorGrid];
     if (Length(XAxis) > 0) and (Length(YAxis1) > 0) then
     begin
       PlotPanel.AddCurve(XAxis, YAxis1, Valid, apBottom, apLeft, clBlue, '');
-      PlotPanel.AxisLeft.Options := PlotPanel.AxisLeft.Options + [aoShowTics, aoShowLabels];
+      PlotPanel.AxisLeft.Options := PlotPanel.AxisLeft.Options + [aoShowTics, aoShowLabels, aoMajorGrid];
       PlotPanel.AxisLeft.Color := clBlue;
     end
     else
     begin
-      PlotPanel.AxisLeft.Options := PlotPanel.AxisLeft.Options - [aoShowTics, aoShowLabels];
+      PlotPanel.AxisLeft.Options := PlotPanel.AxisLeft.Options - [aoShowTics, aoShowLabels, aoMajorGrid];
     end;
     if (Length(XAxis) > 0) and (Length(YAxis2) > 0) then
     begin
       PlotPanel.AddCurve(XAxis, YAxis2, Valid, apBottom, apRight, clRed, '');
-      PlotPanel.AxisRight.Options := PlotPanel.AxisRight.Options + [aoShowTics, aoShowLabels];
+      PlotPanel.AxisRight.Options := PlotPanel.AxisRight.Options + [aoShowTics, aoShowLabels, aoMajorGrid];
       PlotPanel.AxisRight.Color := clRed;
     end
     else
     begin
-      PlotPanel.AxisRight.Options := PlotPanel.AxisRight.Options - [aoShowTics, aoShowLabels];
+      PlotPanel.AxisRight.Options := PlotPanel.AxisRight.Options - [aoShowTics, aoShowLabels, aoMajorGrid];
     end;
     PlotPanel.PlotData;
   end;
