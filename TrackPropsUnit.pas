@@ -6,7 +6,7 @@ uses
   {$if defined(Amiga68k) or defined(MorphOS)}
     amigalib,
   {$endif}
-  SysUtils, exec, utility, intuition, agraphics, mui, muihelper,
+  SysUtils, exec, utility, intuition, agraphics, locale, mui, muihelper,
   prefsunit, osmhelper, MUIWrap, imagesunit, positionunit, waypointunit,
   MUIPlotBoxUnit;
 
@@ -17,19 +17,19 @@ const
   XAXIS_DIST_METER = 3;
   XAXIS_DIST_KM = 4;
 
-  XAxisTitles: array[0..5] of PChar =
-    ('Time [s]'#0, 'Time [min]'#0, 'Time [h]'#0, 'Distance [m]'#0, 'Distance [km]'#0, nil);
-
   YAXIS_NONE = 0;
   YAXIS_HEIGHT_METER = 1;
   YAXIS_SLOPE_METER = 2;
   YAXIS_SPEED_METERS = 3;
   YAXIS_SPEED_KMS = 4;
 
-
-  YAxisTitles: array[0..5] of PChar =
-    ('None', 'Height [m]'#0, 'Slope [m]'#0, 'Speed [m/s]'#0, 'Speed [km/h]'#0, nil);
-
+var
+  XAxisStrings: array[0..4] of string =
+    ('Time [s]'#0, 'Time [min]'#0, 'Time [h]'#0, 'Distance [m]'#0, 'Distance [km]'#0);
+  YAxisStrings: array[0..4] of string =
+    ('None'#0, 'Height [m]'#0, 'Slope [m]', 'Speed [m/s]', 'Speed [km/h]');
+  XAxisTitles: array of PChar;
+  YAxisTitles: array of PChar;
 type
   TTrackPoint = record
     Time: Double;
@@ -48,7 +48,9 @@ var
   OnTrackChanged: TProcedure = nil;
   PlotPanel: TPlotPanel;
   ChooseXAxis, ChooseYLeft, ChooseYRight, DrawButton: PObject_;
-
+  IsISO: Boolean;
+  LengthUnits: array[0..1] of string;
+  LengthFactors: array[0..1] of Single;
 
 procedure ShowTrackProps(NewTrack: TTrack);
 
@@ -61,6 +63,26 @@ var
   TrackName, SaveButton, CloseButton: PObject_;
   CurTrack: TTrack = nil;
   SaveHook, DrawButtonHook: THook;
+
+procedure GetLengthUnit;
+begin
+  if IsISO then
+  begin
+    LengthUnits[0] := 'm';
+    LengthFactors[0] := 1;
+    LengthUnits[1] := 'km';
+    LengthFactors[1] := 1;
+  end
+  else
+  begin
+    LengthUnits[0] := 'ft';
+    LengthFactors[0] := 0.3048;
+    LengthUnits[1] := 'ml';
+    LengthFactors[1] := 1.609344;
+  end;
+end;
+
+
 
 // Open Properties Window
 procedure ShowTrackProps(NewTrack: TTrack);
@@ -133,28 +155,28 @@ begin
       case Idx of
         XAXIS_TIME_S: begin
           Result[i] := TC.Data[i].Time;           // Time [s]
-          Name := 'Time';
+          Name := GetLocString(MSG_TRACKPROP_TIME);
           AxUnit := 's';
         end;
         XAXIS_TIME_MIN: begin
           Result[i] := TC.Data[i].Time / 60;      // Time [min]
-          Name := 'Time';
+          Name := GetLocString(MSG_TRACKPROP_TIME);
           AxUnit := 'min';
         end;
         XAXIS_TIME_HOUR: begin
           Result[i] := TC.Data[i].Time / 60 / 60; // Time [h]
-          Name := 'Time';
+          Name := GetLocString(MSG_TRACKPROP_TIME);
           AxUnit := 'h';
         end;
         XAXIS_DIST_METER: begin
           Result[i] := TC.Data[i].Pos;            // Distance [m]
-          Name := 'Distance';
-          AxUnit := 'm';
+          Name := GetLocString(MSG_TRACKPROP_DISTANCE);
+          AxUnit := LengthUnits[0];
         end;
         XAXIS_DIST_KM: begin
           Result[i] := TC.Data[i].Pos / 1000;     // Distance [km]
-          Name := 'Distance';
-          AxUnit := 'km';
+          Name := GetLocString(MSG_TRACKPROP_DISTANCE);
+          AxUnit := LengthUnits[1];
         end
         else
           Result[i] := 0;
@@ -181,25 +203,25 @@ begin
     for i := 0 to High(Result) do
     begin
       case Idx of
-        YAXIS_HEIGHT_METER: Result[i] := TC.Data[i].Height;         // Height [m]
+        YAXIS_HEIGHT_METER: Result[i] := (TC.Data[i].Height) * LengthFactors[0];         // Height [m]
         YAXIS_SLOPE_METER : begin
           if i > 0 then
           begin
-            Result[i] := TC.Data[i].Height - TC.Data[i - 1].Height;
+            Result[i] := (TC.Data[i].Height - TC.Data[i - 1].Height) * LengthFactors[0];
           end;
         end;
         YAXIS_SPEED_METERS: begin
           if i > 0 then
           begin
             if (TC.Data[i].time - TC.Data[i - 1].time <> 0) then
-              Result[i] := (TC.Data[i].Pos - TC.Data[i - 1].Pos) / (TC.Data[i].time - TC.Data[i - 1].time);
+              Result[i] := ((TC.Data[i].Pos - TC.Data[i - 1].Pos) * LengthFactors[0]) / (TC.Data[i].time - TC.Data[i - 1].time);
           end;
         end;
         YAXIS_SPEED_KMS: begin
           if i > 0 then
           begin
             if ((TC.Data[i].time - TC.Data[i - 1].time) / 60 / 60) <> 0 then
-              Result[i] := ((TC.Data[i].Pos - TC.Data[i - 1].Pos) / 1000) / ((TC.Data[i].time - TC.Data[i - 1].time) / 60 / 60);
+              Result[i] := (((TC.Data[i].Pos - TC.Data[i - 1].Pos) / 1000) * LengthFactors[1]) / ((TC.Data[i].time - TC.Data[i - 1].time) / 60 / 60);
           end;
         end;
         else
@@ -269,8 +291,54 @@ begin
   end;
 end;
 
-procedure CreateTrackPropsWin;
+procedure CheckLocale;
+var
+  Loc: PLocale;
 begin
+  IsISO := True;
+  Loc := OpenLocale(nil);
+  if Assigned(Loc) then
+  begin
+    IsISO := Loc^.loc_MeasuringSystem = MS_ISO;
+    CloseLocale(Loc);
+  end;
+  GetLengthUnit;
+end;
+
+
+procedure CreateTrackPropsWin;
+var
+  i: Integer;
+begin
+  CheckLocale;
+  // make x Axis
+  XAxisStrings[0] := GetLocString(MSG_TRACKPROP_TIME) + ' [s]';
+  XAxisStrings[1] := GetLocString(MSG_TRACKPROP_TIME) + ' [min]';
+  XAxisStrings[2] := GetLocString(MSG_TRACKPROP_TIME) + ' [h]';
+  XAxisStrings[3] := GetLocString(MSG_TRACKPROP_DISTANCE) + ' [' + LengthUnits[0] + ']';
+  XAxisStrings[4] := GetLocString(MSG_TRACKPROP_DISTANCE) + ' [' + LengthUnits[1] + ']';
+  //
+  SetLength(XAxisTitles, Length(XAxisStrings) + 1);
+  for i := 0 to High(XAxisTitles) do
+  begin
+    XAxisTitles[i] := PChar(@(XAxisStrings[i][1]));
+  end;
+  XAxisTitles[High(XAxisTitles)] := nil;
+  // make y Axis
+  YAxisStrings[0] := GetLocString(MSG_TRACKPROP_NONE);
+  YAxisStrings[1] := GetLocString(MSG_TRACKPROP_HEIGHT) + ' [' + LengthUnits[0] + ']';
+  YAxisStrings[2] := GetLocString(MSG_TRACKPROP_SLOPE) + ' [' + LengthUnits[0] + ']';
+  YAxisStrings[3] := GetLocString(MSG_TRACKPROP_SPEED) + ' [' + LengthUnits[0] + '/s]';
+  YAxisStrings[4] := GetLocString(MSG_TRACKPROP_SPEED) + ' [' + LengthUnits[1] + '/h]';
+  //
+  SetLength(YAxisTitles, Length(YAxisStrings) + 1);
+  for i := 0 to High(YAxisTitles) do
+  begin
+    YAxisTitles[i] := PChar(@(YAxisStrings[i][1]));
+  end;
+  YAxisTitles[High(YAxisTitles)] := nil;
+  //
+  // make plotpanel
   PlotPanel := TPlotPanel.Create([TAG_DONE]);
   TrackPropsWin := MH_Window([
     MUIA_Window_Title,     AsTag(GetLocString(MSG_TRACKPROP_TITLE)), // 'Track Properties'
@@ -287,28 +355,28 @@ begin
         TAG_END])),
       Child, AsTag(PlotPanel.MUIObject),
       Child, AsTag(MH_HGroup([
-        Child, AsTag(MH_Text(MUIX_R + 'X Axis: ')),
+        Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_XAXIS)))),
         Child, AsTag(MH_Cycle(ChooseXAxis, [
-          MUIA_Cycle_Entries, AsTag(@XAxisTitles),
+          MUIA_Cycle_Entries, AsTag(@(XAxisTitles[0])),
           TAG_DONE])),
         Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Text(MUIX_R + 'Left Axis: ')),
+        Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_LEFTAXIS)))),
         Child, AsTag(MH_Image([
           MUIA_Image_Spec, AsTag('2:00000000,00000000,ffffffff'),
           TAG_DONE])),
         Child, AsTag(MH_Cycle(ChooseYLeft, [
-          MUIA_Cycle_Entries, AsTag(@YAxisTitles),
+          MUIA_Cycle_Entries, AsTag(@(YAxisTitles[0])),
           TAG_DONE])),
         Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Text(MUIX_R + 'Right Axis: ')),
+        Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_RIGHTAXIS)))),
         Child, AsTag(MH_Image([
           MUIA_Image_Spec, AsTag('2:ffffffff,00000000,00000000'),
           TAG_DONE])),
         Child, AsTag(MH_Cycle(ChooseYRight, [
-          MUIA_Cycle_Entries, AsTag(@YAxisTitles),
+          MUIA_Cycle_Entries, AsTag(@(YAxisTitles[0])),
           TAG_DONE])),
         Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Button(DrawButton, 'Draw')),
+        Child, AsTag(MH_Button(DrawButton, GetLocString(MSG_TRACKPROP_DRAW))),
         TAG_END])),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,

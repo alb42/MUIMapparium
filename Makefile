@@ -10,7 +10,7 @@ $(UNITSDIR):
 	@echo Create units dir $@
 	@makedir $@
 
-locale: catalog source
+locale: ctfile catalog source
 
 ctfile:
 	@flexcat locale/MUIMapparium.cd Catalogs/english.ct NEWCTFILE Catalogs/english.ct

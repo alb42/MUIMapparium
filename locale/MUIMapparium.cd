@@ -40,7 +40,7 @@ Wrong number of parameter: %s
 MSG_ERROR_REXX_ILLEGALPARAM (1008//)
 Illegal parameter %d, should be a float value
 ;
-; 
+;#### Search
 MSG_SEARCH_RESULTS_TITLE (2000//)
 Search Results
 ;
@@ -56,6 +56,7 @@ Tracks
 MSG_SEARCH_RESULTS (2004//)
 %d Results for "%s"
 ;
+;#### Prefs
 MSG_PREFS_TITLE (2101//)
 Preferences
 ;
@@ -85,7 +86,7 @@ Count
 ;
 MSG_PREFS_BUTTONCLEAR (2110//)
 Clear
-; 
+;
 MSG_PREFS_UPTOZOOM (2111//)
 to Zoom
 ;
@@ -98,6 +99,7 @@ MSG_PREFS_DELETEDATA (2113//)
 MSG_PREFS_MARKERTYPES (2114//)
 None|Point|Cross|Lines
 ;
+;#### Statistics
 MSG_STAT_WINTITLE (2200//)
 Statistics
 ;
@@ -128,6 +130,7 @@ Bytes downloaded
 MSG_STAT_SPEED (2209//)
 Average Speed
 ;
+; #### Waypoint Props
 MSG_WAYPROP_TITLE (2300//)
 Waypoint Properties
 ;
@@ -140,11 +143,42 @@ Position
 MSG_WAYPROP_CURRENTPOS (2303//)
 Current Position
 ;
+; #### Track properties
 MSG_TRACKPROP_TITLE (2400//)
 Track Properties
 ;
 MSG_TRACKPROP_NAME (2401//)
 Track Title
+;
+MSG_TRACKPROP_XAXIS (2402//)
+X Axis
+;
+MSG_TRACKPROP_LEFTAXIS (2403//)
+Left Axis
+;
+MSG_TRACKPROP_RIGHTAXIS (2404//)
+Right Axis
+;
+MSG_TRACKPROP_DRAW (2405//)
+Draw
+;
+MSG_TRACKPROP_TIME (2406//)
+Time
+;
+MSG_TRACKPROP_DISTANCE (2407//)
+Distance
+;
+MSG_TRACKPROP_NONE (2408//)
+None
+;
+MSG_TRACKPROP_HEIGHT (2409//)
+Height
+;
+MSG_TRACKPROP_SLOPE (2410//)
+Slope
+;
+MSG_TRACKPROP_SPEED (2411//)
+Speed
 ;
 ;
 ;#### Menus

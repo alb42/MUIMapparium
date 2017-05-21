@@ -53,7 +53,7 @@ MSG_ERROR_REXX_ILLEGALPARAM
 Parameter %d is ungültig, sollte ein float sein.
 ; Illegal parameter %d, should be a float value
 ;
-; 
+;#### Search
 MSG_SEARCH_RESULTS_TITLE
 Suchergebnis
 ; Search Results
@@ -74,6 +74,7 @@ MSG_SEARCH_RESULTS
 %d Ergebnisse für "%s"
 ; %d Results for "%s"
 ;
+;#### Prefs
 MSG_PREFS_TITLE
 Einstellungen
 ; Preferences
@@ -113,7 +114,7 @@ Zählen
 MSG_PREFS_BUTTONCLEAR
 Löschen
 ; Clear
-; 
+;
 MSG_PREFS_UPTOZOOM
 bis Zoomlevel
 ; to Zoom
@@ -130,6 +131,7 @@ MSG_PREFS_MARKERTYPES
 Keiner|Punkt|Kreuz|Linien
 ; None|Point|Cross|Lines
 ;
+;#### Statistics
 MSG_STAT_WINTITLE
 Statistiken
 ; Statistics
@@ -170,6 +172,7 @@ MSG_STAT_SPEED
 Geschwindigkeit
 ; Average Speed
 ;
+; #### Waypoint Props
 MSG_WAYPROP_TITLE
 Wegpunkt Eigenschaften
 ; Waypoint Properties
@@ -186,6 +189,7 @@ MSG_WAYPROP_CURRENTPOS
 aktuelle Position
 ; Current Position
 ;
+; #### Track properties
 MSG_TRACKPROP_TITLE
 Pfad Eigenschaften
 ; Track Properties
@@ -193,6 +197,46 @@ Pfad Eigenschaften
 MSG_TRACKPROP_NAME
 Pfadname
 ; Track Title
+;
+MSG_TRACKPROP_XAXIS
+X Achse
+; X Axis
+;
+MSG_TRACKPROP_LEFTAXIS
+Linke Achse
+; Left Axis
+;
+MSG_TRACKPROP_RIGHTAXIS
+Rechte Achse
+; Right Axis
+;
+MSG_TRACKPROP_DRAW
+Zeichnen
+; Draw
+;
+MSG_TRACKPROP_TIME
+Zeit
+; Time
+;
+MSG_TRACKPROP_DISTANCE
+Entfernung
+; Distance
+;
+MSG_TRACKPROP_NONE
+Nichts
+; None
+;
+MSG_TRACKPROP_HEIGHT
+Höhe
+; Height
+;
+MSG_TRACKPROP_SLOPE
+Steigung
+; Slope
+;
+MSG_TRACKPROP_SPEED
+Geschwindigkeit
+; Speed
 ;
 ;
 ;#### Menus
