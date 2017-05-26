@@ -3,11 +3,22 @@ unit MUIPlotBoxUnit;
 interface
 
 uses
+  {$if defined(MorphOS) or defined(Amiga68k)}
+  amigalib,
+  {$endif}
   Math, Classes, SysUtils, MUIPaintBoxUnit, mui, agraphics, intuition,
-  utility, prefsunit, types, layers,
+  utility, prefsunit, types, layers, MuiHelper,
   cybergraphics, muiwrap;
 
 const
+  PID_Rescale  = 0;
+  PID_Zoom     = 1;
+  PID_Position = 2;
+  PID_Data     = 3;
+
+  PID_Last  = 3;
+
+
   ln10=2.30258509299404568401799145468436;
   PreFixChar:array[-8..8] of char=
     ('y','z','a','f','p','n','u','m',
@@ -40,6 +51,8 @@ type
     Name:string;
   end;
 
+  TMouseMode = (mmZoom, mmPosition, mmData);
+
   TAxis = class
   private
     FMinValue: Double;
@@ -58,6 +71,7 @@ type
     MinorNo: Integer;
     MinSet, MaxSet: Boolean;
     FColor: TColor;
+    AfterDot: Integer;
   public
     procedure DoDraw(Rp: PRastPort; DrawRect: TRect);
     procedure DrawGrid(Rp: PRastPort; ClipRect: TRect);
@@ -96,6 +110,12 @@ type
     // Mousepos
     MouseDown: Boolean;
     ZoomBox: TRect;
+    CrossPos: TPoint;
+    CrossText: TStringList;
+    PopupMenu: PObject_;
+    PopupHook: THook;
+    FMouseModus: TMouseMode;
+    PM: array[0..PID_Last] of PObject_; //
   protected
     procedure DrawCurves(RP: PRastPort; ClipRect: TRect);
   public
@@ -112,6 +132,8 @@ type
     procedure MouseDownEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
     procedure MouseUpEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
     procedure MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
+    procedure MouseLeaveEvent(Sender: TObject);
+    procedure PopupEvent(EventID: Integer);
     {procedure MouseDblClick(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
     procedure MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
     procedure MouseWheelEvent(Sender: TObject; ScrollUp: Boolean; var EatEvent: Boolean);
@@ -131,11 +153,25 @@ type
     property AxisLeft: TAxis read FAxisLeft write FAxisLeft;
     property AxisBottom: TAxis read FAxisBottom write FAxisBottom;
     property AxisRight: TAxis read FAxisRight write FAxisRight;
+    property MouseModuse: TMouseMode read FMouseModus;
   end;
 
 function TH(RP: PRastPort; Text: string): Integer;
 function TW(RP: PRastPort; Text: string): Integer; inline;
 function ValueToStr(Value: Double; Precision: Integer): string;
+
+var
+  Menutitle_Plot: string = 'Plot';
+  Menutitle_Rescale: string = 'Rescale';
+  Menutitle_Zoom: string = 'Zoom';
+  Menutitle_Position: string = 'Position Data';
+  Menutitle_Data: string = 'Curve Data';
+
+  HintText_XAxis1: string = 'X Axis';
+  HintText_XAxis2: string = 'X Axis';
+  HintText_YAxis1: string = 'Left Axis';
+  HintText_YAxis2: string = 'Right Axis';
+
 
 implementation
 
@@ -288,7 +324,7 @@ var
   i: Integer;
   fad: Integer;
   pt:TPoint;
-  w10, afterdot: Integer;
+  w10: Integer;
   de: Double;
   Pen: LongWord;
 begin
@@ -348,12 +384,12 @@ begin
     end;
   end;
   //
+  afterdot := 0;
   if aoShowLabels in Options then
   begin
     hg := Round(TH(RP, '|') * 1.2);
     disp := hg;
     hg2 := Round(TH(RP, '|') * 0.5);
-    afterdot := 0;
     if (FAxisScale = atLin) and (Increment <> 0) then
     begin
 //    if not (aoForceNoExp in Options)
@@ -392,6 +428,7 @@ begin
     else
       if (FMinValue > 0) and (FMaxValue > 0) then
       begin
+        AfterDot := 0;
         w10 := TW(Rp, '10');
         for i := Round(ln(FMinValue) / ln10) to Round(ln(FMaxValue) / ln10) do
           if (Exp(i * ln10) >= FMinValue) and (Exp(i*ln10) <= FMaxValue) then
@@ -717,7 +754,7 @@ var
   wd,wdh,wmax,i,hg: Integer;
   ds:string;
   de: Double;
-  fad, afterdot: Integer;
+  fad: Integer;
 begin
   //writeln('--> get width ', FPosition, ' textpos', TextPosition);
   Result := 0;
@@ -898,17 +935,30 @@ begin
   end;
 end;
 
+function PopupCurEvent(Hook: PHook; Obj: PObject_; AMsg: Pointer): NativeInt;
+var
+  Plot: TPlotPanel;
+  Idx: Integer;
+begin
+  Result := 0;
+  Plot := TPlotPanel(Hook^.h_Data);
+  if Assigned(Plot) and Assigned(Obj) then
+  begin
+    Idx := MH_Get(Obj, MUIA_UserData);
+    Plot.PopupEvent(Idx);
+  end;
+end;
 
 
 // #####################################################################
 //   TPlotPanel.Create
 constructor TPlotPanel.Create(const Args: array of PtrUInt);
-//var
-  //x,y: array of Double;
-  //Valid: array of Boolean;
-  //i: Integer;
+var
+  i: Integer;
 begin
   inherited;
+  CrossPos := Point(-1,-1);
+  CrossText := TStringList.Create;
 
   MinWidth := 300;
   MinHeight := 200;
@@ -928,7 +978,7 @@ begin
   FAxisTop.MinValue := 0;
   FAxisTop.MaxValue := 100;
   FAxisTop.Color := clBlack;
-  FAxisTop.Options := []; //[aoShowTics,aoShowLabels,aoShowTitle];
+  FAxisTop.Options := [];
 
   FAxisLeft := TAxis.Create;
   FAxisLeft.FPosition := apLeft;
@@ -952,18 +1002,7 @@ begin
   FAxisRight.MinValue := 0;
   FAxisRight.MaxValue := 100;
   FAxisRight.Color := clBlack;
-  FAxisRight.Options := [];//[aoShowTics,aoShowLabels,aoShowTitle];
-{
-  SetLength(x, 100);
-  SetLength(y, 100);
-  SetLength(Valid, 100);
-  for i := 0 to High(x) do
-  begin
-    x[i] := i;
-    y[i] := Random(100);
-    Valid[i] := True;
-  end;
-  AddCurve(x,y,Valid, apBottom, apLeft, $0000FF, 'test1');}
+  FAxisRight.Options := [];
   //
   FForceRedraw := True;
   FRastPort := nil;
@@ -973,10 +1012,52 @@ begin
   OnMUIMouseDown := @MouseDownEvent;
   OnMUIMouseUp := @MouseUpEvent;
   OnMUIMouseMove := @MouseMoveEvent;
+  OnMUIMouseLeave := @MouseLeaveEvent;
+  // Popupmenu
+  FMouseModus := mmZoom;
+  //
+  PopUpMenu := MH_Menustrip([
+    Child, AsTag(MH_Menu([                      // 'Plot'
+      MUIA_MENU_Title, AsTag(PChar(Menutitle_Plot)),
+      Child, AsTag(MH_MenuItem(PM[0], [
+        MUIA_Menuitem_Title, AsTag(PChar(Menutitle_Rescale)),   // 'Rescale'
+        MUIA_UserData, PID_Rescale,
+        TAG_DONE])),
+      Child, AsTag(MH_MenuItem([MUIA_Menuitem_Title, AsTag(-1), TAG_DONE])),
+      Child, AsTag(MH_MenuItem(PM[1], [
+        MUIA_Menuitem_Title, AsTag(PChar(Menutitle_Zoom)),   // 'Zoom'
+        MUIA_Menuitem_Checked, AsTag(True),
+        MUIA_Menuitem_Toggle, AsTag(False),
+        MUIA_Menuitem_Checkit, AsTag(True),
+        MUIA_Menuitem_Exclude, AsTag((1 shl 3) or (1 shl 4)),
+        MUIA_UserData, PID_Zoom,
+        TAG_DONE])),
+      Child, AsTag(MH_MenuItem(PM[2], [
+        MUIA_Menuitem_Title, AsTag(PChar(Menutitle_Position)),   // 'Show Position'
+        MUIA_Menuitem_Toggle, AsTag(False),
+        MUIA_Menuitem_Checkit, AsTag(True),
+        MUIA_Menuitem_Exclude, AsTag((1 shl 2) or (1 shl 4)),
+        MUIA_UserData, PID_Position,
+        TAG_DONE])),
+      Child, AsTag(MH_MenuItem(PM[3], [
+        MUIA_Menuitem_Title, AsTag(PChar(Menutitle_Data)),   // 'Show Curve Data'
+        MUIA_Menuitem_Toggle, AsTag(False),
+        MUIA_Menuitem_Checkit, AsTag(True),
+        MUIA_Menuitem_Exclude, AsTag((1 shl 2) or (1 shl 3)),
+        MUIA_UserData, PID_Data,
+        TAG_DONE])),
+      TAG_DONE])),
+    TAG_DONE]);
+  MH_Set(MUIObject, MUIA_ContextMenu, AsTag(PopUpMenu));
+
+  // Popupmenu events
+  for i := 0 to High(PM) do
+    ConnectHookFunction(MUIA_Menuitem_Trigger, MUIV_EveryTime, PM[i], Self, @PopupHook, @PopupCurEvent);
 end;
 
 destructor TPlotPanel.Destroy;
 begin
+  CrossText.Free;
   FAxisTop.Free;
   FAxisLeft.Free;
   FAxisBottom.Free;
@@ -996,24 +1077,37 @@ begin
   inherited;
 end;
 
+procedure TPlotPanel.PopupEvent(EventID: Integer);
+begin
+  case EventID of
+    PID_Rescale:
+    begin
+      RescaleByCurves;
+      FForceRedraw := True;
+      RedrawObject;
+    end;
+    PID_Zoom:
+    begin
+      FMouseModus := mmZoom;
+      CrossPos := Point(-1, -1);
+      RedrawObject;
+    end;
+    PID_Position:
+    begin
+      FMouseModus := mmPosition;
+      MouseDown := False;
+    end;
+    PID_Data:
+    begin
+      FMouseModus := mmData;
+      MouseDown := False;
+    end;
+  end;
+end;
+
 procedure TPlotPanel.DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect);
-{var
-  Pen: LongWord;
-  TE: TTextExtent;
-  TitlePos: TPoint;}
 begin
   DoPlotDraw(RP, DrawRect);
-  {Pen := SetColor(Rp, $FFFFFF);
-  RectFill(Rp, DrawRect.Left, DrawRect.Top, DrawRect.Left + DrawRect.Width, DrawRect.Top + DrawRect.Height);
-  UnSetColor(Pen);
-  Pen := SetColor(Rp, $000000);
-  SetDrMd(Rp, JAM1);
-  TextExtent(RP, PChar(FTitle), Length(FTitle), @TE);
-  TitlePos.X := (DrawRect.Left + (DrawRect.Width div 2)) - TE.te_Width div 2;
-  TitlePos.Y := DrawRect.Top + TE.te_Height;
-  GfxMove(Rp, TitlePos.X, TitlePos.Y);
-  GfxText(Rp, PChar(FTitle), Length(FTitle));
-  UnSetColor(Pen);}
 end;
 
 
@@ -1023,6 +1117,8 @@ var
   lf,tp,rg,bt,i,fsze: Integer;
   //iw,ih: Integer;
   Pen: LongWord;
+  TextRect: TRect;
+  TextH, TextW: Integer;
 begin
   if FForceRedraw or not assigned(FRastPort) or (RPDrawRect.Width <> DrawRect.Width) or (RPDrawRect.Height <> DrawRect.Height) then
   begin
@@ -1141,6 +1237,53 @@ begin
     Draw(RP, DrawRect.Left + ZoomBox.Left, DrawRect.Top + ZoomBox.Top);
     UnSetColor(Pen);
   end;
+  if (CrossPos.X >= 0) and (CrossPos.Y >= 0) then
+  begin
+    Pen := SetColor(RP, $0000FF);
+    SetDrMd(RP, COMPLEMENT);
+    GfxMove(RP, DrawRect.Left + CrossPos.X - 5, DrawRect.Top + CrossPos.Y);
+    Draw(RP, DrawRect.Left + CrossPos.X + 5, DrawRect.Top + CrossPos.Y);
+    GfxMove(RP, DrawRect.Left + CrossPos.X, DrawRect.Top + CrossPos.Y - 5);
+    Draw(RP, DrawRect.Left + CrossPos.X, DrawRect.Top + CrossPos.Y + 5);
+    UnSetColor(Pen);
+    GfxMove(RP, DrawRect.Left + CrossPos.X, DrawRect.Top + CrossPos.Y - 20);
+
+    TextH := Round((TH(RP, '|') * 1.2));
+    TextW := 0;
+    for i := 0 to CrossText.Count - 1 do
+      TextW := Max(TextW, TW(RP, CrossText[i]));
+    // calculate Text rectangle
+    TextRect.Left := DrawRect.Left + CrossPos.X + 5;
+    TextRect.Top := DrawRect.Top + CrossPos.Y + 5;
+    TextRect.Width := TextW + 10;
+    TextRect.Height := TextH * CrossText.Count + 5;
+    if TextRect.Right > DrawRect.Right then
+    begin
+      TextRect.SetLocation(TextRect.Left - TextRect.Width - 10, TextRect.Top);
+    end;
+    if TextRect.Top - TextRect.Height > DrawRect.Top then
+    begin
+      TextRect.SetLocation(TextRect.Left, TextRect.Top - TextRect.Height - 10);
+    end;
+    // Draw background
+    SetDrMd(RP, JAM1);
+    Pen := SetColor(RP, $FFFFAA);
+    RectFill(Rp, TextRect.Left, TextRect.Top, TextRect.Right, TextRect.Bottom);
+    UnSetColor(Pen);
+    Pen := SetColor(RP, $000000);
+    GfxMove(RP, TextRect.Left, TextRect.Top);
+    Draw(RP, TextRect.Right, TextRect.Top);
+    Draw(RP, TextRect.Right, TextRect.Bottom);
+    Draw(RP, TextRect.Left, TextRect.Bottom);
+    Draw(RP, TextRect.Left, TextRect.Top);
+    for i := 0 to CrossText.Count - 1 do
+    begin
+      GfxMove(RP, TextRect.Left + 5, (TextRect.Top + (i * TextH)) + (TextH div 2) + 5);
+      GfxText(RP, PChar(CrossText[i]), Length(CrossText[i]));
+    end;
+    UnSetColor(Pen);
+  end;
+
 end;
 
 
@@ -1321,7 +1464,7 @@ end;
 
 procedure TPlotPanel.MouseDownEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
 begin
-  if MouseBtn = mmbLeft then
+  if (MouseBtn = mmbLeft)  and (FMouseModus = mmZoom) then
   begin
     MouseDown := True;
     ZoomBox.Left := X;
@@ -1385,6 +1528,11 @@ begin
 end;
 
 procedure TPlotPanel.MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
+var
+  i, j: Integer;
+  MinDist, Dist: Double;
+  FoundCurve, FoundPos: Integer;
+  Loc, MinLoc: TPoint;
 begin
   if MouseDown then
   begin
@@ -1392,9 +1540,84 @@ begin
     ZoomBox.Bottom := Y;
     RedrawObject;
     EatEvent := True;
+  end
+  else
+  begin
+    if FMouseModus = mmData then
+    begin
+      MinDist := 1e100;
+      FoundCurve := -1;
+      for i := 0 to High(Curves) do
+      begin
+        for j:=0 to High(Curves[i].X) do
+        begin
+          if (Curves[i].x[j] >= Curves[i].xaxis.MinValue) and (Curves[i].x[j] <= Curves[i].xaxis.MaxValue) and
+            (Curves[i].y[j] >= Curves[i].yaxis.MinValue) and (Curves[i].y[j] <= Curves[i].yaxis.MaxValue) then
+          begin
+            loc := Curves[i].XAxis.Place(Curves[i].x[j]);
+            loc := Curves[i].YAxis.Shift(loc,Curves[i].y[j]);
+            Dist := Sqr(loc.X - x) + sqr(loc.y - y);
+            if Dist < MinDist then
+            begin
+              MinDist := Dist;
+              FoundCurve := i;
+              FoundPos := j;
+              MinLoc := Loc;
+            end;
+          end;
+        end;
+      end;
+      if FoundCurve >= 0 then
+      begin
+        CrossText.Clear;
+        CrossText.Add(Curves[FoundCurve].Name);
+        CrossText.Add('X: ' + ValueToStr(Curves[FoundCurve].x[FoundPos], Curves[FoundCurve].XAxis.AfterDot + 1) + ' ' + Curves[FoundCurve].XAxis.AxUnit);
+        CrossText.Add('Y: ' + ValueToStr(Curves[FoundCurve].y[FoundPos], Curves[FoundCurve].YAxis.AfterDot + 1) + ' ' + Curves[FoundCurve].YAxis.AxUnit);
+        CrossPos := MinLoc;
+      end
+      else
+      begin
+        CrossPos := Point(-1, -1);
+      end;
+      RedrawObject;
+    end;
+    if FMouseModus = mmPosition then
+    begin
+      CrossText.Clear;
+      if aoShowLabels in AxisBottom.Options then
+      begin
+        Dist := AxisBottom.PosToValue(x);
+        CrossText.Add(HintText_XAxis2 + ': ' + ValueToStr(Dist, AxisBottom.AfterDot + 1) + ' ' + AxisBottom.AxUnit);
+      end;
+      if aoShowLabels in AxisTop.Options then
+      begin
+        Dist := AxisTop.PosToValue(x);
+        CrossText.Add(HintText_XAxis1 + ': ' + ValueToStr(Dist, AxisTop.AfterDot + 1) + ' ' + AxisTop.AxUnit);
+      end;
+      if aoShowLabels in AxisLeft.Options then
+      begin
+        Dist := AxisLeft.PosToValue(x);
+        CrossText.Add(HintText_YAxis1 + ': ' + ValueToStr(Dist, AxisLeft.AfterDot + 1) + ' ' + AxisLeft.AxUnit);
+      end;
+      if aoShowLabels in AxisRight.Options then
+      begin
+        Dist := AxisRight.PosToValue(x);
+        CrossText.Add(HintText_YAxis2 + ': ' + ValueToStr(Dist, AxisRight.AfterDot + 1) + ' ' + AxisRight.AxUnit);
+      end;
+      CrossPos := Point(x, y);
+      RedrawObject;
+    end;
+    EatEvent := True;
   end;
   //SysDebugln('Pos: ' + IntToStr(x) + ', '  + IntToStr(y) +  ' -> ' + FloatToStr(AxisBottom.PosToValue(X)) +  ', ' + FloatToStr(AxisLeft.PosToValue(Y)));
 end;
+
+procedure TPlotPanel.MouseLeaveEvent(Sender: TObject);
+begin
+  CrossPos := Point(-1, -1);
+  RedrawObject;
+end;
+
 
 
 procedure TPlotPanel.Clear;

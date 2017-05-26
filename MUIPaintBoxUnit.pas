@@ -37,6 +37,7 @@ type
     FMUIObject: PObject_;
     FMouseClickTime: TMouseClickTime;
     EHNode: TMUI_EventHandlerNode;
+    FMouseInObject: Boolean;
     // Events
     FOnDrawObject: TMUIDrawEvent;
     FOnMUIMouseDown: TMUIMouseEvent;
@@ -46,6 +47,7 @@ type
     FOnMUIMouseMove: TMUIMouseMove;
     FOnMUIKeyDown: TMUIKeyDown;
     FOnMUIKeyUp: TMUIKeyUp;
+    FOnMUIMouseLeave: TNotifyEvent;
   private
     function GetWidth: Integer;
     function GetHeight: Integer;
@@ -76,6 +78,7 @@ type
     property OnMUIDblClick: TMUIMouseEvent read FOnMUIDblClick write FOnMUIDblClick;
     property OnMUIMouseWheel: TMUIMouseWheel read FOnMUIMouseWheel write FOnMUIMouseWheel;
     property OnMUIMouseMove: TMUIMouseMove read FOnMUIMouseMove write FOnMUIMouseMove;
+    property OnMUIMouseLeave: TNotifyEvent read FOnMUIMouseLeave write FOnMUIMouseLeave;
     property OnMUIKeyDown: TMUIKeyDown read FOnMUIKeyDown write FOnMUIKeyDown;
     property OnMUIKeyUp: TMUIKeyUp read FOnMUIKeyUp write FOnMUIKeyUp;
 
@@ -94,6 +97,7 @@ implementation
 constructor TMUIPaintBox.Create(const Args: array of PtrUInt);
 begin
   inherited Create;
+  FMouseInObject := False;
   // Basic min max settings
   FMinWidth := 0;
   FMinHeight := 0;
@@ -299,8 +303,15 @@ begin
     // Mouse Move
     IDCMP_MOUSEMOVE:
     begin
+      if FMouseInObject and not InObject then
+      begin
+        FMouseInObject := False;
+        if Assigned(FOnMUIMouseLeave) then
+          FOnMUIMouseLeave(Self);
+      end;
       if not InObject then
         Exit;
+      FMouseInObject := True;
       RelX := Msg^.imsg^.MouseX - obj_Left(obj);
       RelY := Msg^.imsg^.MouseY - obj_Top(obj);
       if Assigned(FOnMUIMouseMove) then
@@ -382,11 +393,15 @@ var
   MUIPB: TMUIPaintBox;
 begin
   case Msg^.MethodID of
-    OM_NEW: MPBDispatcher := DoSuperMethodA(cl, obj, msg);
+    {OM_NEW: MPBDispatcher := DoSuperMethodA(cl, obj, msg);
     OM_DISPOSE: MPBDispatcher := DoSuperMethodA(cl, obj, msg);
     OM_GET: MPBDispatcher := DoSuperMethodA(cl, obj, msg);
-    OM_SET: MPBDispatcher := DoSuperMethodA(cl, obj, msg);
-    else
+    OM_SET: MPBDispatcher := DoSuperMethodA(cl, obj, msg);}
+    MUIM_Setup,
+    MUIM_Cleanup,
+    MUIM_AskMinMax,
+    MUIM_Draw,
+    MUIM_HANDLEEVENT:
     begin
       MUIPB := TMUIPaintBox(INST_DATA(cl, Pointer(obj))^); // get class
       if Assigned(MUIPB) then
@@ -394,6 +409,8 @@ begin
       else
         MPBDispatcher := DoSuperMethodA(cl, obj, msg);     // Still not assigned just use default
     end;
+    else
+      MPBDispatcher := DoSuperMethodA(cl, obj, msg);
   end;
 end;
 

@@ -203,7 +203,10 @@ begin
     for i := 0 to High(Result) do
     begin
       case Idx of
-        YAXIS_HEIGHT_METER: Result[i] := (TC.Data[i].Height) * LengthFactors[0];         // Height [m]
+        YAXIS_HEIGHT_METER:
+        begin
+          Result[i] := (TC.Data[i].Height) * LengthFactors[0];         // Height [m]
+        end;
         YAXIS_SLOPE_METER : begin
           if i > 0 then
           begin
@@ -266,17 +269,32 @@ begin
     PlotPanel.AxisBottom.Options := PlotPanel.AxisBottom.Options + [aoForceNoExp, aoMajorGrid, aoMinorGrid];
     if (Length(XAxis) > 0) and (Length(YAxis1) > 0) then
     begin
-      PlotPanel.AddCurve(XAxis, YAxis1, Valid, apBottom, apLeft, clBlue, '');
+      PlotPanel.AxisLeft.AxUnit := '';
+      case YIdx1 of
+        YAXIS_HEIGHT_METER,
+        YAXIS_SLOPE_METER:  PlotPanel.AxisLeft.AxUnit := 'm';
+        YAXIS_SPEED_METERS: PlotPanel.AxisLeft.AxUnit := 'm/s';
+        YAXIS_SPEED_KMS: PlotPanel.AxisLeft.AxUnit := 'km/h';
+      end;
+      PlotPanel.AddCurve(XAxis, YAxis1, Valid, apBottom, apLeft, clBlue, YAxisStrings[YIdx1]);
       PlotPanel.AxisLeft.Options := PlotPanel.AxisLeft.Options + [aoShowTics, aoShowLabels, aoMajorGrid];
       PlotPanel.AxisLeft.Color := clBlue;
     end
     else
     begin
+      PlotPanel.AxisLeft.AxUnit := '';
       PlotPanel.AxisLeft.Options := PlotPanel.AxisLeft.Options - [aoShowTics, aoShowLabels, aoMajorGrid];
     end;
     if (Length(XAxis) > 0) and (Length(YAxis2) > 0) then
     begin
-      PlotPanel.AddCurve(XAxis, YAxis2, Valid, apBottom, apRight, clRed, '');
+      PlotPanel.AxisRight.AxUnit := '';
+      case YIdx2 of
+        YAXIS_HEIGHT_METER,
+        YAXIS_SLOPE_METER:  PlotPanel.AxisRight.AxUnit := 'm';
+        YAXIS_SPEED_METERS: PlotPanel.AxisRight.AxUnit := 'm/s';
+        YAXIS_SPEED_KMS: PlotPanel.AxisRight.AxUnit := 'km/h';
+      end;
+      PlotPanel.AddCurve(XAxis, YAxis2, Valid, apBottom, apRight, clRed, YAxisStrings[YIdx2]);
       PlotPanel.AxisRight.Options := PlotPanel.AxisRight.Options + [aoShowTics, aoShowLabels, aoMajorGrid];
       PlotPanel.AxisRight.Color := clRed;
     end
@@ -311,6 +329,19 @@ var
   i: Integer;
 begin
   CheckLocale;
+  //
+  // Locale for Plots
+  Menutitle_Plot := GetLocString(MSG_PLOT_TITLE);
+  Menutitle_Rescale := GetLocString(MSG_PLOT_RESCALE);
+  Menutitle_Zoom := GetLocString(MSG_PLOT_ZOOM);
+  Menutitle_Position := GetLocString(MSG_PLOT_POSITION);
+  Menutitle_Data := GetLocString(MSG_PLOT_DATA);
+  //
+  HintText_XAxis1 := GetLocString(MSG_TRACKPROP_XAXIS);
+  HintText_XAxis2 := GetLocString(MSG_TRACKPROP_XAXIS);
+  HintText_YAxis1 := GetLocString(MSG_TRACKPROP_LEFTAXIS);
+  HintText_YAxis2 := GetLocString(MSG_TRACKPROP_RIGHTAXIS);
+  //
   // make x Axis
   XAxisStrings[0] := GetLocString(MSG_TRACKPROP_TIME) + ' [s]';
   XAxisStrings[1] := GetLocString(MSG_TRACKPROP_TIME) + ' [min]';

@@ -238,6 +238,26 @@ MSG_TRACKPROP_SPEED
 Speed
 ; Speed
 ;
+MSG_PLOT_TITLE
+Plot
+; Plot
+;
+MSG_PLOT_RESCALE
+Rescale
+; Rescale
+;
+MSG_PLOT_ZOOM
+Zoom
+; Zoom
+;
+MSG_PLOT_POSITION
+Position Data
+; Position Data
+;
+MSG_PLOT_DATA
+Curve Data
+; Curve Data
+;
 ;
 ;#### Menus
 MSG_POPUP_WAYPOINT

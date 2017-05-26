@@ -180,6 +180,21 @@ Slope
 MSG_TRACKPROP_SPEED (2411//)
 Speed
 ;
+MSG_PLOT_TITLE (2500//)
+Plot
+;
+MSG_PLOT_RESCALE (2501//)
+Rescale
+;
+MSG_PLOT_ZOOM (2502//)
+Zoom
+;
+MSG_PLOT_POSITION (2503//)
+Position Data
+;
+MSG_PLOT_DATA (2504//)
+Curve Data
+;
 ;
 ;#### Menus
 MSG_POPUP_WAYPOINT (3000//)

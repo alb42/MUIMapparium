@@ -26,6 +26,11 @@ type
   end;
   PRexxMsg = ^TRexxMsg;
 
+{$ifdef Amiga68k}
+const
+  MUIV_CreateBubble_DontHidePointer = 1 shl 0;
+{$endif}
+
 procedure ConnectHookFunction(MUIField: PtrUInt; TriggerValue: PtrUInt; Obj: PObject_; Data: TObject; Hook: PHook; HookFunc: THookFunc);
 {$ifndef AROS}
 function CreateRastPort: PRastPort;

@@ -177,6 +177,21 @@ const
   MSG_TRACKPROP_SPEED = 2411 ;
   MSG_TRACKPROP_SPEED_STR = 'Speed'#0;
 
+  MSG_PLOT_TITLE = 2500 ;
+  MSG_PLOT_TITLE_STR = 'Plot'#0;
+
+  MSG_PLOT_RESCALE = 2501 ;
+  MSG_PLOT_RESCALE_STR = 'Rescale'#0;
+
+  MSG_PLOT_ZOOM = 2502 ;
+  MSG_PLOT_ZOOM_STR = 'Zoom'#0;
+
+  MSG_PLOT_POSITION = 2503 ;
+  MSG_PLOT_POSITION_STR = 'Position Data'#0;
+
+  MSG_PLOT_DATA = 2504 ;
+  MSG_PLOT_DATA_STR = 'Curve Data'#0;
+
   MSG_POPUP_WAYPOINT = 3000 ;
   MSG_POPUP_WAYPOINT_STR = 'Waypoint'#0;
 
@@ -280,7 +295,7 @@ type
      str: string;
   end;
 
-  TAppStringArray = array[0..82] of TAppString;
+  TAppStringArray = array[0..87] of TAppString;
 
 const
   AppStrings: TAppStringArray = (
@@ -338,6 +353,11 @@ const
     (id: MSG_TRACKPROP_HEIGHT ; str: MSG_TRACKPROP_HEIGHT_STR ),
     (id: MSG_TRACKPROP_SLOPE ; str: MSG_TRACKPROP_SLOPE_STR ),
     (id: MSG_TRACKPROP_SPEED ; str: MSG_TRACKPROP_SPEED_STR ),
+    (id: MSG_PLOT_TITLE ; str: MSG_PLOT_TITLE_STR ),
+    (id: MSG_PLOT_RESCALE ; str: MSG_PLOT_RESCALE_STR ),
+    (id: MSG_PLOT_ZOOM ; str: MSG_PLOT_ZOOM_STR ),
+    (id: MSG_PLOT_POSITION ; str: MSG_PLOT_POSITION_STR ),
+    (id: MSG_PLOT_DATA ; str: MSG_PLOT_DATA_STR ),
     (id: MSG_POPUP_WAYPOINT ; str: MSG_POPUP_WAYPOINT_STR ),
     (id: MSG_POPUP_WAYPOINT_TOGGLE ; str: MSG_POPUP_WAYPOINT_TOGGLE_STR ),
     (id: MSG_MENU_PROJECT ; str: MSG_MENU_PROJECT_STR ),

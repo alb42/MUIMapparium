@@ -4,7 +4,7 @@ UNITSDIR=units/$(CPU)-$(OS)
 
 MUIMapp: $(UNITSDIR) MUIMapparium.pas
 	@echo Create units in $<
-	@fpc -FU$< MUIMapparium.pas
+	@fpc -g- -FU$< MUIMapparium.pas
 
 $(UNITSDIR):
 	@echo Create units dir $@
