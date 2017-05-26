@@ -8,6 +8,10 @@ uses
   cybergraphics, waypointunit, muiwrap;
 
 type
+  TMapButton = record
+    Area: TRect;
+    Pressed: Boolean;
+  end;
 
   TMapPanel = class(TMUIPaintBox)
   private
@@ -20,10 +24,20 @@ type
     MiddleMarkerColor: LongWord;
     MiddleMarkerSize: LongWord;
     FOnUpdateLocationLabel: TProcedure;
+    FOnSidePanelOpen: TProcedure;
+    //
+    SidePanelBtn: TMapButton;
+    ZoomPanelBtn: TMapButton;
+    FShowZoomPanel: Boolean;
+    FShowSidePanelBtn: Boolean;
+    ZoomInBtn: TMapButton;
+    ZoomOutBtn: TMapButton;
   protected
     procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
     procedure DrawMarker(RP: PRastPort; DrawRange: TRect);
     procedure DrawTracks(RP: PRastPort; DrawRange: TRect);
+    procedure DrawGUI(RP: PRastPort; DrawRange: TRect);
+    procedure SetShowSidePanelBtn(AValue: Boolean);
   public
     constructor Create(const Args: array of PtrUInt); override;
     procedure DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect);
@@ -43,7 +57,9 @@ type
     function PosToPixel(C: TCoord): TPoint;
 
     property OnUpdateLocationLabel: TProcedure read FOnUpdateLocationLabel write FOnUpdateLocationLabel;
+    property OnSidePanelOpen: TProcedure read FOnSidePanelOpen write FOnSidePanelOpen;
     property LastMouse: TPoint read FLastMouse;
+    property ShowSidePanelBtn: Boolean read FShowSidePanelBtn write SetShowSidePanelBtn;
   end;
 
 implementation
@@ -54,6 +70,8 @@ implementation
 constructor TMapPanel.Create(const Args: array of PtrUInt);
 begin
   inherited;
+  FShowZoomPanel := False;
+  FShowSidePanelBtn := True;
   // Middle Marker Settings
   MiddleMarker := Prefs.MiddleMarker;
   MiddleMarkerColor := Prefs.MiddleMarkerColor;
@@ -107,6 +125,38 @@ end;
 // Key Down Event
 procedure TMapPanel.MouseDownEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
 begin
+  if FShowSidePanelBtn then
+  begin
+    if PtInRect(SidePanelBtn.Area, Point(X,Y)) then
+    begin
+      if Assigned(FOnSidePanelOpen) then
+        FOnSidePanelOpen();
+      ResetDblClickTime;
+      Exit;
+    end;
+  end;
+  if PtInRect(ZoomPanelBtn.Area, Point(X,Y)) then
+  begin
+    FShowZoomPanel := not FShowZoomPanel;
+    RedrawObject;
+    ResetDblClickTime;
+    Exit;
+  end;
+  if FShowZoomPanel then
+  begin
+    if PtInRect(ZoomInBtn.Area, Point(X,Y)) then
+    begin
+      ZoomIn(False);
+      ResetDblClickTime;
+      Exit;
+    end;
+    if PtInRect(ZoomOutBtn.Area, Point(X,Y)) then
+    begin
+      ZoomOut;
+      ResetDblClickTime;
+      Exit;
+    end;
+  end;
   LeftDown := True;
   DownPos := Point(X, Y);
   FLastMouse := DownPos;
@@ -200,6 +250,8 @@ begin
   DrawMarker(LocalRP, DrawRect);
   // Draw Middle Marker
   DrawMiddleMarker(LocalRP, DrawRect);
+  // Draw Zoom and Position GUI
+  DrawGUI(LocalRP, DrawRect);
   // blit the temp rastport to the real one, one step so no flickering
   ClipBlit(LocalRP, 0,0, rp, DrawRect.Left, DrawRect.Top, DrawRect.Width, DrawRect.Height, $00C0);
   // delete the layer
@@ -387,6 +439,82 @@ begin
   //RP^.AreaInfo := nil;
   //FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
   UnSetColor(Pen);
+end;
+
+procedure TMapPanel.DrawGUI(RP: PRastPort; DrawRange: TRect);
+var
+  ButtonSize: TPoint;
+  Pen: LongWord;
+begin
+  ButtonSize.X := Round(TW(RP, 'W') * 1.2);
+  ButtonSize.Y := Round(TH(RP, '|') * 1.2);
+  //
+  SidePanelBtn.Area := Rect(0, ButtonSize.Y, ButtonSize.X, ButtonSize.Y * 2);
+  //
+  ZoomPanelBtn.Area := Rect(DrawRange.Width - ButtonSize.X - 1, DrawRange.Height - 2 * ButtonSize.Y, DrawRange.Width - 1, DrawRange.Height - ButtonSize.Y);
+  ZoomOutBtn.Area := ZoomPanelBtn.Area;
+  ZoomOutBtn.Area.Offset(0, -(ButtonSize.Y + 5));
+  ZoomInBtn.Area := ZoomOutBtn.Area;
+  ZoomInBtn.Area.Offset(0, -(ButtonSize.Y + 5));
+
+  Pen := SetColor(RP, clWhite);
+  //
+  if FShowSidePanelBtn then
+    RectFill(RP, SidePanelBtn.Area.Left, SidePanelBtn.Area.Top, SidePanelBtn.Area.Right, SidePanelBtn.Area.Bottom);
+  if FShowZoomPanel then
+  begin
+    RectFill(RP, ZoomOutBtn.Area.Left, ZoomOutBtn.Area.Top, ZoomOutBtn.Area.Right, ZoomOutBtn.Area.Bottom);
+    RectFill(RP, ZoomInBtn.Area.Left, ZoomInBtn.Area.Top, ZoomInBtn.Area.Right, ZoomInBtn.Area.Bottom);
+  end;
+  RectFill(RP, ZoomPanelBtn.Area.Left, ZoomPanelBtn.Area.Top, ZoomPanelBtn.Area.Right, ZoomPanelBtn.Area.Bottom);
+  //
+  UnSetColor(Pen);
+
+  Pen := SetColor(RP, clBlack);
+  //
+  if FShowSidePanelBtn then
+  begin
+    DrawRect(RP, SidePanelBtn.Area);
+    GfxMove(RP, SidePanelBtn.Area.Left + 3, SidePanelBtn.Area.Top + ButtonSize.Y div 2 + 3);
+    GfxText(RP, '<', 1);
+  end;
+  //
+  DrawRect(RP, ZoomPanelBtn.Area);
+  GfxMove(RP, ZoomPanelBtn.Area.Left + 3, ZoomPanelBtn.Area.Top + ButtonSize.Y div 2 + 3);
+  //
+  if FShowZoomPanel then
+  begin
+    GfxText(RP, '>', 1);
+    //
+    DrawRect(RP, ZoomOutBtn.Area);
+    GfxMove(RP, ZoomOutBtn.Area.Left + 3, ZoomOutBtn.Area.Top + ButtonSize.Y div 2 + 3);
+    GfxText(RP, '-', 1);
+    //
+    DrawRect(RP, ZoomInBtn.Area);
+    GfxMove(RP, ZoomInBtn.Area.Left + 3, ZoomInBtn.Area.Top + ButtonSize.Y div 2 + 3);
+    GfxText(RP, '+', 1);
+  end
+  else
+    GfxText(RP, '<', 1);
+  //
+  //
+  UnSetColor(Pen);
+{
+
+    ZoomPanelBtn: TRect;
+    ShowZoomPanel: Boolean;
+    ZoomInBtn: TRect;
+    ZoomOutBtn: TRect;
+
+}
+end;
+
+procedure TMapPanel.SetShowSidePanelBtn(AValue: Boolean);
+begin
+  if FShowSidePanelBtn = AValue then
+    Exit;
+  FShowSidePanelBtn := AValue;
+  RedrawObject;
 end;
 
 // Refresh the FullBitmap

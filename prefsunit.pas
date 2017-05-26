@@ -17,6 +17,8 @@ const
   clGreen = $00aa00;
   clFuchsia = $ff00ff;
   clBlack = 0;
+  clWhite = $ffffff;
+
   SECTION_GENERAL = 'General';
   SECTION_STATISTICS = 'Statistics';
 type

@@ -6,7 +6,7 @@ uses
   {$if defined(MorphOS) or defined(Amiga68k)}
   amigalib,
   {$endif}
-  Math, Classes, SysUtils, MUIPaintBoxUnit, mui, agraphics, intuition,
+  Math, Classes, SysUtils, MUIPaintBoxUnit, mui, exec, agraphics, intuition,
   utility, prefsunit, types, layers, MuiHelper,
   cybergraphics, muiwrap;
 
@@ -156,8 +156,6 @@ type
     property MouseModuse: TMouseMode read FMouseModus;
   end;
 
-function TH(RP: PRastPort; Text: string): Integer;
-function TW(RP: PRastPort; Text: string): Integer; inline;
 function ValueToStr(Value: Double; Precision: Integer): string;
 
 var
@@ -175,19 +173,6 @@ var
 
 implementation
 
-
-function TH(RP: PRastPort; Text: string): Integer;
-var
-  TE: TTextExtent;
-begin
-  TextExtent(RP, PChar(text), Length(Text), @TE);
-  Result := TE.te_Height;
-end;
-
-function TW(RP: PRastPort; Text: string): Integer;
-begin
-  Result := TextLength(RP, PChar(text), Length(Text));
-end;
 
 function ValueToStr(Value: Double; Precision: Integer): string;
 begin

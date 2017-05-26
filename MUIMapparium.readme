@@ -10,10 +10,21 @@ MUI (no LCL wrapper used as the common Mapparium).
 It only contains the basic map showing functions.
 
 Much things still missing.
-Zoom with Mouse wheel or double click, if you don't have 
+Zoom with Mouse wheel or double click, if you don't have
 a mouse wheel you must use the menu entry.
 
 History:
+
+0.4
+
+* Basic Plot module for Trackcurves (Height, slope, speed)
+* Plot popupmenu, Zoom, Data Readout
+* Support for imperial units
+* in-map GUI (Zoom In/Out, Side Panel)
+* OS4 mouse wheel
+* Keybinding for map (+,-, cursor keys)
+* Bugfix: AROS disabled Edit
+* BugFix: Amiga redrawing error
 
 0.3
 

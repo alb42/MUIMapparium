@@ -6,7 +6,7 @@ uses
   {$if defined(Amiga68k) or defined(MorphOS)}
     amigalib,
   {$endif}
-  asl, Exec, Utility, Intuition, AGraphics, timer, mui, muihelper;
+  classes, asl, Exec, Utility, Intuition, AGraphics, timer, mui, muihelper;
 
 type
   TRexxMsg = record
@@ -46,7 +46,33 @@ function GetMUITime: Int64;
 function SetColor(RP:PRastPort; Col: LongWord; BGColor: Boolean = False): LongWord; // Color as RGB
 procedure UnSetColor(Pen: LongWord);  //
 
+function TH(RP: PRastPort; Text: string): Integer;
+function TW(RP: PRastPort; Text: string): Integer; inline;
+procedure DrawRect(RP: PRastPort; r: TRect); inline;
+
 implementation
+
+function TH(RP: PRastPort; Text: string): Integer;
+var
+  TE: TTextExtent;
+begin
+  TextExtent(RP, PChar(text), Length(Text), @TE);
+  Result := TE.te_Height;
+end;
+
+function TW(RP: PRastPort; Text: string): Integer;
+begin
+  Result := TextLength(RP, PChar(text), Length(Text));
+end;
+
+procedure DrawRect(RP: PRastPort; r: TRect);
+begin
+  GfxMove(RP, R.Left, R.Top);
+  Draw(RP, R.Right, R.Top);
+  Draw(RP, R.Right, R.Bottom);
+  Draw(RP, R.Left, R.Bottom);
+  Draw(RP, R.Left, R.Top);
+end;
 
 function SetColor(RP: PRastPort; Col: LongWord; BGColor: Boolean = False): LongWord;
 begin

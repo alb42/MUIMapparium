@@ -58,6 +58,7 @@ var
   WM1: PObject_;
 
 procedure UpdateLocationLabel; forward;
+procedure SidePanelOpenEvent; forward;
 function BoundingBoxToZoom(BoundString: string): Integer; forward;
 procedure ShowSidePanel(ShowIt: Boolean); forward;
 
@@ -131,6 +132,11 @@ begin
   StrCoord := FloatToStrF(Coord.Lat, ffFixed, 8,6) + ' ; ' + FloatToStrF(Coord.Lon, ffFixed, 8,6) + ' ; ' + IntToStr(CurZoom) + '  ';
   StrCoord := Format('%25s', [StrCoord]);
   MH_Set(CoordsLabel, MUIA_Text_Contents, AsTag(PChar(StrCoord)));
+end;
+
+procedure SidePanelOpenEvent;
+begin
+  ShowSidePanel(True);
 end;
 
 // Update WayPoints;
@@ -808,6 +814,7 @@ begin
     MH_Set(MenuSidePanel, MUIA_Menuitem_Checked, AsTag(ShowIt));
   MH_Set(SidePanel, MUIA_ShowMe, AsTag(ShowIt));
   MH_Set(MainBalance, MUIA_Disabled, AsTag(not ShowIt));
+  MUIMapPanel.ShowSidePanelBtn := not ShowIt;
   //MH_Set(MainBalance, MUIA_ShowMe, AsTag(ShowIt));
 end;
 // event for the close button
@@ -1031,6 +1038,7 @@ begin
 
     MUIMapPanel := TMapPanel.Create([MUIA_Weight, 200, TAG_DONE]);
     MUIMapPanel.OnUpdateLocationLabel := @UpdateLocationLabel;
+    MUIMapPanel.OnSidePanelOpen := @SidePanelOpenEvent;
     // writeln(GetLocString(MSG_ERROR_CUSTOM_CLASS)); // 'Could not create custom class.'
 
     // Application +++++++++++++++++++++++++++++++++++++++++++++++++++++

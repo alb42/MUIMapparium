@@ -59,6 +59,8 @@ type
     function DoAskMinMax(cl: PIClass; Obj: PObject_; Msg: PMUIP_AskMinMax): PtrUInt; virtual;
     function DoDraw(cl: PIClass; Obj: PObject_; Msg: PMUIP_Draw): PtrUInt; virtual;
     function DoHandleEvent(cl: PIClass; Obj: PObject_; Msg: PMUIP_HandleEvent): PtrUInt; virtual;
+
+    procedure ResetDblClickTime;
   public
     constructor Create(const Args: array of PtrUInt); virtual;
 
@@ -156,6 +158,9 @@ begin
   EHNode.ehn_Object := obj;
   EHNode.ehn_Class := cl;
   EHNode.ehn_Events := IDCMP_MOUSEBUTTONS or IDCMP_MOUSEMOVE or IDCMP_RAWKEY;
+  {$ifdef AmigaOS4}
+  EHNode.ehn_Events := EHNode.ehn_Events or IDCMP_EXTENDEDMOUSE;
+  {$endif}
   DoMethod(OBJ_win(obj), [MUIM_Window_AddEventHandler, PtrUInt(@EHNode)]);
 end;
 
@@ -217,6 +222,16 @@ begin
   MUI_RemoveClipRegion(Ri, Clip);
 end;
 
+procedure TMUIPaintBox.ResetDblClickTime;
+begin
+  FMouseClickTime.LSecs := 0;
+  FMouseClickTime.LMicros := 0;
+  FMouseClickTime.MSecs := 0;
+  FMouseClickTime.MMicros := 0;
+  FMouseClickTime.RSecs := 0;
+  FMouseClickTime.RMicros := 0;
+end;
+
 // MUIM_HANDLEEVENT
 function TMUIPaintBox.DoHandleEvent(cl: PIClass; Obj: PObject_; Msg: PMUIP_HandleEvent): PtrUInt;
 var
@@ -230,6 +245,9 @@ var
   Mss: TMUIShiftState;
   Buff: array[0..10] of char;
   ie: TInputEvent;
+  {$ifdef AmigaOS4}
+  WheelData: PIntuiWheelData;
+  {$endif}
 begin
   Result := DoSuperMethodA(cl,obj,msg);
   EatMe := False;
@@ -300,6 +318,20 @@ begin
         end;
       end;
     end;
+    {$ifdef AmigaOS4}
+    IDCMP_EXTENDEDMOUSE:
+    begin
+      if Msg^.imsg^.Code = IMSGCODE_INTUIWHEELDATA then
+      begin
+        RelX := Msg^.imsg^.MouseX - obj_Left(obj);
+        RelY := Msg^.imsg^.MouseY - obj_Top(obj);
+        WheelData := PIntuiWheelData(Msg^.imsg^.IAddress);
+        // Mouse wheel with Value 120 (from the other interfaces)
+        if Assigned(FOnMUIMouseWheel) then
+          FOnMUIMouseWheel(Self, WheelData^.WheelY > 0, EatMe);
+      end;
+    end;
+    {$endif}
     // Mouse Move
     IDCMP_MOUSEMOVE:
     begin
