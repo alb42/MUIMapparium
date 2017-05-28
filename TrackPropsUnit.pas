@@ -76,7 +76,7 @@ begin
   else
   begin
     LengthUnits[0] := 'ft';
-    LengthFactors[0] := 0.3048;
+    LengthFactors[0] := 3.28084;
     LengthUnits[1] := 'ml';
     LengthFactors[1] := 1.609344;
   end;
@@ -272,9 +272,9 @@ begin
       PlotPanel.AxisLeft.AxUnit := '';
       case YIdx1 of
         YAXIS_HEIGHT_METER,
-        YAXIS_SLOPE_METER:  PlotPanel.AxisLeft.AxUnit := 'm';
-        YAXIS_SPEED_METERS: PlotPanel.AxisLeft.AxUnit := 'm/s';
-        YAXIS_SPEED_KMS: PlotPanel.AxisLeft.AxUnit := 'km/h';
+        YAXIS_SLOPE_METER:  PlotPanel.AxisLeft.AxUnit := LengthUnits[0];
+        YAXIS_SPEED_METERS: PlotPanel.AxisLeft.AxUnit := LengthUnits[0] + '/s';
+        YAXIS_SPEED_KMS: PlotPanel.AxisLeft.AxUnit := LengthUnits[1] + '/h';
       end;
       PlotPanel.AddCurve(XAxis, YAxis1, Valid, apBottom, apLeft, clBlue, YAxisStrings[YIdx1]);
       PlotPanel.AxisLeft.Options := PlotPanel.AxisLeft.Options + [aoShowTics, aoShowLabels, aoMajorGrid];
@@ -290,9 +290,9 @@ begin
       PlotPanel.AxisRight.AxUnit := '';
       case YIdx2 of
         YAXIS_HEIGHT_METER,
-        YAXIS_SLOPE_METER:  PlotPanel.AxisRight.AxUnit := 'm';
-        YAXIS_SPEED_METERS: PlotPanel.AxisRight.AxUnit := 'm/s';
-        YAXIS_SPEED_KMS: PlotPanel.AxisRight.AxUnit := 'km/h';
+        YAXIS_SLOPE_METER:  PlotPanel.AxisRight.AxUnit := LengthUnits[0];
+        YAXIS_SPEED_METERS: PlotPanel.AxisRight.AxUnit := LengthUnits[0] + '/s';
+        YAXIS_SPEED_KMS: PlotPanel.AxisRight.AxUnit := LengthUnits[1] + '/h';
       end;
       PlotPanel.AddCurve(XAxis, YAxis2, Valid, apBottom, apRight, clRed, YAxisStrings[YIdx2]);
       PlotPanel.AxisRight.Options := PlotPanel.AxisRight.Options + [aoShowTics, aoShowLabels, aoMajorGrid];
@@ -312,9 +312,18 @@ end;
 procedure CheckLocale;
 var
   Loc: PLocale;
+  p: PByte;
+  i: Integer;
 begin
   IsISO := True;
   Loc := OpenLocale(nil);
+  //writeln('Loc^.loc_MeasuringSystem: ', Loc^.loc_MeasuringSystem);
+  {P := @(Loc^.loc_GMTOffset);
+  for i := 0 to 10 do
+  begin
+    //Writeln(i, ' -> ', P^);
+    Inc(p);
+  end;}
   if Assigned(Loc) then
   begin
     IsISO := Loc^.loc_MeasuringSystem = MS_ISO;

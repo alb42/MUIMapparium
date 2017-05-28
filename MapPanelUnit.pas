@@ -370,6 +370,7 @@ const
 var
   PT: TPoint;
   i, j: Integer;
+  LastWasDrawn: Boolean;
   {Points: packed array of packed record
     x,y: SmallInt;
   end;
@@ -405,17 +406,21 @@ begin
     end;
     ShowActivePt := (TrackList[i] = CurTrack);}
     //SetLength(Points, 3);
+    LastWasDrawn := False;
     for j := 0 to High(TrackList[i].Pts) do
     begin
       Pt := PosToPixel(TrackList[i].Pts[j].Position);
       if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
       begin
         RectFill(RP, Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
-        if j = 0 then
+        if not LastWasDrawn then
           GfxMove(RP, PT.X, PT.Y)
         else
           Draw(RP, Pt.X, PT.Y);
-      end;
+        LastWasDrawn := True;
+      end
+      else
+        LastWasDrawn := False;
     end;
     {if ShowActivePt and (ActiveTrackPt >=0) and (ActiveTrackPt <= High(TrackList[i].Pts)) then
     begin

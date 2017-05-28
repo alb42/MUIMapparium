@@ -491,4 +491,3 @@ finalization
   Mutex.Free;
   ITFMutex.Free;
 end.
-
