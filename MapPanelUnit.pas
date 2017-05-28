@@ -95,6 +95,12 @@ end;
 // Key Down Event
 procedure TMapPanel.KeyDownEvent(Sender: TObject; Shift: TMUIShiftState; Code: Word; Key: Char; var EatEvent: Boolean);
 begin
+  // Tweak the code as we like
+  if Key = '+' then
+    Code := 94;
+  if Key = '-' then
+    Code := 93;
+  //
   case Code of
     94: ZoomIn(False); // mouse wheel up and + on numpad
     93: ZoomOut;       // mouse wheel down and - on numpad
