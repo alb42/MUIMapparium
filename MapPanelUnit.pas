@@ -398,7 +398,6 @@ begin
   TrackPtSize := Max(2, CurZoom - 10);
   Pen := SetColor(RP, TrackColor);
   SetDrMd(RP, JAM1);
-  writeln;
   // Draw Tracks
   for i := 0 to TrackList.Count - 1 do
   begin
@@ -516,14 +515,6 @@ begin
   //
   //
   UnSetColor(Pen);
-{
-
-    ZoomPanelBtn: TRect;
-    ShowZoomPanel: Boolean;
-    ZoomInBtn: TRect;
-    ZoomOutBtn: TRect;
-
-}
 end;
 
 procedure TMapPanel.SetShowSidePanelBtn(AValue: Boolean);
@@ -616,22 +607,15 @@ end;
 procedure TMapPanel.ZoomIn(ToPos: Boolean);
 var
   Dist, OldPosi, NewPosi: TCoord;
-  LMiddleCoord: Classes.TPoint;
   TileRect: TRectCoord;
 begin
   if (LastMouse.X = -1) and (LastMouse.Y = -1) then
     Exit;
   OldPosi := PixelToPos(LastMouse);
   CurZoom := Min(19, CurZoom + 1);
-  //if CurZoom = 19 then
-  //  ZoomInEnabled := False;
-  //
   if ToPos then
   begin
-    LMiddleCoord := GetTileCoord(CurZoom, MiddlePos);
-    TileRect := GetTileRect(CurZoom, LMiddleCoord);
-    GResX := (TileRect.MaxLon - TileRect.MinLon) / 256;
-    GResY := (TileRect.MaxLat - TileRect.MinLat) / 256;
+    MiddleCoord := CoordToTile(CurZoom, MiddlePos);
     //
     NewPosi := PixelToPos(LastMouse);
     //

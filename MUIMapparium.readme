@@ -17,8 +17,10 @@ History:
 
 0.5
 
-* Bugfix imperial units
-* Bugfix key mapping
+* Bugfix: imperial units
+* Bugfix: key mapping
+* Level of Detail for Tracks
+* Precalculation of Trackpositions (Speed optimization for NonFPU systems)
 
 0.4
 
