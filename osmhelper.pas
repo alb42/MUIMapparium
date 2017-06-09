@@ -39,6 +39,7 @@ type
 function GradToDistance(const P1, P2: TCoord): double;
 
 function CoordToTile(Zoom: Integer; Deg: TCoord): TTileCoord;
+function TileToCoord(Zoom: Integer; T: TTileCoord): TCoord;
 
 function GetTileCoord(Zoom: Integer; Deg: TCoord): TPoint;
 function GetMapPosition(Zoom: Integer; MPos: TPoint): TCoord;
@@ -99,10 +100,24 @@ begin
   n := Power(2, Zoom);
   x1 := ((Deg.Lon + 180) / 360) * n;
   y1 := (1 - (ln(Tan(LatRad) + (1 / Cos(LatRad))) / Pi)) / 2 * n;
-  Result.Tile.X := Floor(x1);
-  Result.Tile.Y := Floor(y1);
+  Result.Tile.X := Max(0, Floor(x1));
+  Result.Tile.Y := Max(0, Floor(y1));
   Result.Pixel.X := Floor(Frac(x1) * 256);
   Result.Pixel.Y := Floor(Frac(y1) * 256);
+end;
+
+function TileToCoord(Zoom: Integer; T: TTileCoord): TCoord;
+var
+  x1, y1, n, LatRad: Double;
+begin
+  n := Power(2, Zoom);
+  //
+  x1 := T.Tile.X + (T.Pixel.X / 256);
+  y1 := T.Tile.Y + (T.Pixel.Y / 256);
+
+  LatRad := Arctan(Sinh(Pi * (1 - 2 * y1 / n)));
+  Result.Lat := RadtoDeg(LatRad);
+  Result.Lon := x1 / n * 360.0 - 180.0;
 end;
 
 function GetYResolution(Zoom: Integer; Deg: TCoord): Double;

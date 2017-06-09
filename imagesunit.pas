@@ -48,13 +48,18 @@ type
   { TTrack }
 
   TTrack = class
+  private
+    FZoom: Integer;
+  public
     Name: string;
     FullName: string;
     Desc: string;
     Pts: array of TTrackPoint;
+    Coords: array of TTileCoord;
     Visible: Boolean;
     AddFields: array of string;
     constructor Create; virtual;
+    procedure CalcCoords(NewZoom: Integer);
   end;
 
   TTrackList = specialize TFPGObjectList<TTrack>;
@@ -239,6 +244,36 @@ end;
 constructor TTrack.Create;
 begin
   Visible := True;
+  FZoom := -1;
+end;
+
+procedure TTrack.CalcCoords(NewZoom: Integer);
+var
+  i: Integer;
+  LastPt: TTileCoord;
+  LastPos: TPoint;
+  ThisPos: TPoint;
+begin
+  // if Zoom is the same just skip it
+  if FZoom = NewZoom then
+    Exit;
+  FZoom := NewZoom;
+  // get the Coords for every Point
+  SetLength(Coords, Length(Pts));
+  for i := 0 to High(Pts) do
+  begin
+    Coords[i] := CoordToTile(FZoom, Pts[i].Position);
+    ThisPos.X := (Coords[i].Tile.X * 256) + Coords[i].Pixel.X;
+    ThisPos.Y := (Coords[i].Tile.Y * 256) + Coords[i].Pixel.Y;
+    // min Distance 4 pixel!
+    if (i = 0) or (Abs(ThisPos.X - LastPos.X) + Abs(ThisPos.Y - LastPos.Y) >= 4) then
+      LastPos := ThisPos
+    else
+    begin
+      Coords[i].Tile.X := -1; // just an illegal position
+      Coords[i].Tile.Y := -1;
+    end;
+  end;
 end;
 
 { TRoute }
@@ -312,6 +347,9 @@ begin
                   IsOnline := False;
                   OfflineMsg := True;
                   OfflineErrText := E.Message;
+                  writeln(OfflineErrText);
+                  writeln('Unable to load File from WEB: osm_' + IntToStr(Img.Zoom) + '_' + IntToStr(Img.Posi.X) + '_' + IntToStr(Img.Posi.Y) + '.png');
+                  writeln('Going offline!');
                 end;
               end;
             end;
@@ -406,11 +444,11 @@ begin
   end;
   if MPos.X < 0 then
   begin
-    MPos.X := P + MPos.X;
+    MPos.X := Max(0, P + MPos.X);
   end;
   if MPos.X >= P then
   begin
-    MPos.X := P - MPos.X;
+    MPos.X := Max(0, P - MPos.X);
   end;
   //
   Mutex.Enter;

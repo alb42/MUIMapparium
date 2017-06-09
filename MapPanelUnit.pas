@@ -55,6 +55,7 @@ type
     procedure RefreshImage;
     function PixelToPos(T: TPoint): TCoord;
     function PosToPixel(C: TCoord): TPoint;
+    function CoordToPixel(NCoord: TTileCoord): TPoint;
 
     property OnUpdateLocationLabel: TProcedure read FOnUpdateLocationLabel write FOnUpdateLocationLabel;
     property OnSidePanelOpen: TProcedure read FOnSidePanelOpen write FOnSidePanelOpen;
@@ -185,12 +186,25 @@ end;
 
 // Mouse Move
 procedure TMapPanel.MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
+var
+  down, cur: TCoord;
+  NPos: TTileCoord;
+  Coord: TTileCoord;
 begin
   FLastMouse := Point(X, Y);
   if LeftDown then
   begin
-    MiddlePos.Lon := StartCoord.Lon - (X - DownPos.X) * GResX;
-    MiddlePos.Lat := StartCoord.Lat - (Y - DownPos.Y) * GResY;
+    MoveOffset.X := 0;
+    MoveOffset.Y := 0;
+    NPos.Pixel.X :=  MiddleCoord.Pixel.X - (X - DownPos.X);
+    NPos.Pixel.Y :=  MiddleCoord.Pixel.Y - (Y - DownPos.Y);
+    NPos.Tile.X := MiddleCoord.Tile.X;
+    NPos.Tile.Y := MiddleCoord.Tile.Y;
+    MiddlePos := TileToCoord(CurZoom, NPos);
+
+
+    //MiddlePos.Lon := StartCoord.Lon - (X - DownPos.X) * GResX;
+    //MiddlePos.Lat := StartCoord.Lat - (Y - DownPos.Y) * GResY;
     MoveOffset.X := X - DownPos.X;
     MoveOffset.Y := Y - DownPos.Y;
     RedrawImage := True;
@@ -377,24 +391,14 @@ var
   PT: TPoint;
   i, j: Integer;
   LastWasDrawn: Boolean;
-  {Points: packed array of packed record
-    x,y: SmallInt;
-  end;
-  Ras: TPlanePtr;
-  TRas: TTmpRas;
-  WarBuff: array[0..AREA_BYTES] of Word;
-  ari: TAreaInfo;}
   TrackPtSize: Integer;
   Pen: LongWord;
+  Drawn: Integer;
 begin
   TrackPtSize := Max(2, CurZoom - 10);
   Pen := SetColor(RP, TrackColor);
   SetDrMd(RP, JAM1);
-  // make tmprast
-  {
-  Ras := AllocRaster(DrawRange.Width, DrawRange.Height);
-  InitTmpRas(@TRas, ras, DrawRange.Width * DrawRange.Height * 3);
-  }
+  writeln;
   // Draw Tracks
   for i := 0 to TrackList.Count - 1 do
   begin
@@ -412,12 +416,17 @@ begin
     end;
     ShowActivePt := (TrackList[i] = CurTrack);}
     //SetLength(Points, 3);
+    Drawn := 0;
     LastWasDrawn := False;
+    TrackList[i].CalcCoords(CurZoom);
     for j := 0 to High(TrackList[i].Pts) do
     begin
-      Pt := PosToPixel(TrackList[i].Pts[j].Position);
-      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
+      if (TrackList[i].Coords[j].Tile.X < 0) and (TrackList[i].Coords[j].Tile.Y < 0) then
+        Continue;
+      Pt := CoordToPixel(TrackList[i].Coords[j]);
+      if (Pt.X >= -10) and (Pt.Y >= -10) and (Pt.X <= DrawRange.Width + 10) and (Pt.Y <= DrawRange.Height + 10) then
       begin
+        Inc(Drawn);
         RectFill(RP, Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
         if not LastWasDrawn then
           GfxMove(RP, PT.X, PT.Y)
@@ -446,9 +455,6 @@ begin
       end;
     end;}
   end;
-  //RP^.TmpRas := nil;
-  //RP^.AreaInfo := nil;
-  //FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
   UnSetColor(Pen);
 end;
 
@@ -537,14 +543,28 @@ begin
   //MH_Set(app, MUIA_Application_Sleep, AsTag(False));
 end;
 
+
 // Calculate Pixel to real coordinate
 function TMapPanel.PixelToPos(T: TPoint): TCoord;
 var
-  PTMid: TPoint;
+  PTMid, MidDist: TPoint;
+  NCoord: TTileCoord;
 begin
   PTMid := Point((Width div 2), (Height div 2));
-  Result.Lon := MiddlePos.Lon - ((PTMid.X - T.X) * GResX);
-  Result.Lat := MiddlePos.Lat - ((PTMid.Y - T.Y) * GResY);
+
+  T.X := T.X - MoveOffset.X;
+  T.Y := T.Y - MoveOffset.Y;
+
+  MidDist.X := PTMid.X - MiddleCoord.Pixel.X;
+  MidDist.Y := PTMid.Y - MiddleCoord.Pixel.Y;
+
+  NCoord.Tile.X := MiddleCoord.Tile.X;
+  NCoord.Tile.Y := MiddleCoord.Tile.Y;
+
+  NCoord.Pixel.X := T.X - MidDist.X;
+  NCoord.Pixel.Y := T.Y - MidDist.Y;
+
+  Result := TileToCoord(CurZoom, NCoord);
 end;
 
 function TMapPanel.PosToPixel(C: TCoord): TPoint;
@@ -569,6 +589,28 @@ begin
   Result.X := TileDist.X + NCoord.Pixel.X + MidDist.X + MoveOffset.X;
   Result.Y := TileDist.Y + NCoord.Pixel.Y + MidDist.Y + MoveOffset.Y;
 end;
+
+function TMapPanel.CoordToPixel(NCoord: TTileCoord): TPoint;
+var
+  PTMid: TPoint;
+  TileDist: TPoint;
+  MidDist: TPoint;
+begin
+  Result.X := 0;
+  Result.Y := 0;
+
+  PTMid := Point((Width div 2), (Height div 2));
+  //
+  MidDist.X := PTMid.X - MiddleCoord.Pixel.X;
+  MidDist.Y := PTMid.Y - MiddleCoord.Pixel.Y;
+  //
+  TileDist.X := (NCoord.Tile.X - MiddleCoord.Tile.X) * 256;
+  TileDist.Y := (NCoord.Tile.Y - MiddleCoord.Tile.Y) * 256;
+  //
+  Result.X := TileDist.X + NCoord.Pixel.X + MidDist.X + MoveOffset.X;
+  Result.Y := TileDist.Y + NCoord.Pixel.Y + MidDist.Y + MoveOffset.Y;
+end;
+
 
 // do a Zoom in (ToPos = using Mouse position to zoom to)
 procedure TMapPanel.ZoomIn(ToPos: Boolean);
