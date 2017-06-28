@@ -18,6 +18,8 @@ const
   clFuchsia = $ff00ff;
   clBlack = 0;
   clWhite = $ffffff;
+  clGray = $cccccc;
+  clYellow = $ffff00;
 
   SECTION_GENERAL = 'General';
   SECTION_STATISTICS = 'Statistics';

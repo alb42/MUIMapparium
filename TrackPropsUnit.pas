@@ -46,11 +46,15 @@ var
   TC: TTrackCurve;
   TrackPropsWin: PObject_;
   OnTrackChanged: TProcedure = nil;
+  OnTrackRedraw: TProcedure = nil;
   PlotPanel: TPlotPanel;
   ChooseXAxis, ChooseYLeft, ChooseYRight, DrawButton: PObject_;
   IsISO: Boolean;
   LengthUnits: array[0..1] of string;
   LengthFactors: array[0..1] of Single;
+  CurTrack: TTrack = nil; // current showed track
+  ActiveTrackPt: Integer = -1;
+  CloseHook: THook;
 
 procedure ShowTrackProps(NewTrack: TTrack);
 
@@ -61,7 +65,6 @@ uses
 
 var
   TrackName, SaveButton, CloseButton: PObject_;
-  CurTrack: TTrack = nil;
   SaveHook, DrawButtonHook: THook;
 
 procedure GetLengthUnit;
@@ -81,8 +84,6 @@ begin
     LengthFactors[1] := 1.609344;
   end;
 end;
-
-
 
 // Open Properties Window
 procedure ShowTrackProps(NewTrack: TTrack);
@@ -312,18 +313,9 @@ end;
 procedure CheckLocale;
 var
   Loc: PLocale;
-  p: PByte;
-  i: Integer;
 begin
   IsISO := True;
   Loc := OpenLocale(nil);
-  //writeln('Loc^.loc_MeasuringSystem: ', Loc^.loc_MeasuringSystem);
-  {P := @(Loc^.loc_GMTOffset);
-  for i := 0 to 10 do
-  begin
-    //Writeln(i, ' -> ', P^);
-    Inc(p);
-  end;}
   if Assigned(Loc) then
   begin
     IsISO := Loc^.loc_MeasuringSystem = MS_ISO;
@@ -332,6 +324,23 @@ begin
   GetLengthUnit;
 end;
 
+function CloseEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+begin
+  Result := 0;
+  CurTrack := nil;
+  if Assigned(OnTrackRedraw) then
+    OnTrackRedraw();
+end;
+
+procedure MarkerChangeEvent(MarkerID: Integer);
+begin
+  if PlotPanel.ShowMarker and (PlotPanel.MouseModus = mmMarker) then
+    ActiveTrackPt := PlotPanel.XMarkerValueIdx
+  else
+    ActiveTrackPt := -1;
+  if Assigned(OnTrackRedraw) then
+    OnTrackRedraw();
+end;
 
 procedure CreateTrackPropsWin;
 var
@@ -429,11 +438,17 @@ begin
   // save the changes if any
   ConnectHookFunction(MUIA_Pressed, AsTag(False), SaveButton, nil, @SaveHook, @SaveEvent);
   ConnectHookFunction(MUIA_Pressed, AsTag(False), DrawButton, nil, @DrawButtonHook, @DrawButtonEvent);
+
+  ConnectHookFunction(MUIA_Pressed, AsTag(False), CloseButton, nil, @CloseHook, @CloseEvent);
+  ConnectHookFunction(MUIA_Window_CloseRequest, AsTag(True), TrackPropsWin, nil, @CloseHook, @CloseEvent);
+
   // just close it
   DoMethod(CloseButton, [MUIM_Notify, MUIA_Pressed, AsTag(False),
       AsTag(TrackPropsWin), 3, MUIM_SET, MUIA_Window_Open, AsTag(False)]);
   DoMethod(TrackPropsWin, [MUIM_Notify, MUIA_Window_CloseRequest, AsTag(True),
       AsTag(TrackPropsWin), 3, MUIM_SET, MUIA_Window_Open, AsTag(False)]);
+
+  PlotPanel.OnMarkerChange := @MarkerChangeEvent;
 end;
 
 

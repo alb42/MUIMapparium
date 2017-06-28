@@ -8,6 +8,9 @@ uses
   Classes, SysUtils, dos, fgl, osmhelper, syncobjs, Math,
   fpreadpng, fpimage, FPImgCanv, fpcanvas;
 
+const
+  MINPLOTDIST = 5;
+
 type
   TFPAMemImage = class(TFPCompactImgRGBA8Bit)
   public
@@ -250,7 +253,6 @@ end;
 procedure TTrack.CalcCoords(NewZoom: Integer);
 var
   i: Integer;
-  LastPt: TTileCoord;
   LastPos: TPoint;
   ThisPos: TPoint;
 begin
@@ -258,6 +260,7 @@ begin
   if FZoom = NewZoom then
     Exit;
   FZoom := NewZoom;
+  LastPos := Point(0, 0);
   // get the Coords for every Point
   SetLength(Coords, Length(Pts));
   for i := 0 to High(Pts) do
@@ -266,7 +269,7 @@ begin
     ThisPos.X := (Coords[i].Tile.X * 256) + Coords[i].Pixel.X;
     ThisPos.Y := (Coords[i].Tile.Y * 256) + Coords[i].Pixel.Y;
     // min Distance 4 pixel!
-    if (i = 0) or (Abs(ThisPos.X - LastPos.X) + Abs(ThisPos.Y - LastPos.Y) >= 4) then
+    if (i = 0) or (Abs(ThisPos.X - LastPos.X) + Abs(ThisPos.Y - LastPos.Y) >= MINPLOTDIST) then
       LastPos := ThisPos
     else
     begin

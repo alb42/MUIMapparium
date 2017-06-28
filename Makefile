@@ -23,3 +23,7 @@ source:
 	@flexcat locale/MUIMapparium.cd MUIMappariumlocale.pas=locale/FPCUnit.sd
 
 all: ctfile locale MUIMapp
+
+clean:
+	@delete $(UNITSDIR)/#?.ppu
+	@delete $(UNITSDIR)/#?.o  

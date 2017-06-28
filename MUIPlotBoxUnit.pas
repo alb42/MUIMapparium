@@ -15,8 +15,9 @@ const
   PID_Zoom     = 1;
   PID_Position = 2;
   PID_Data     = 3;
+  PID_Marker   = 4;
 
-  PID_Last  = 3;
+  PID_Last = 4;
 
 
   ln10=2.30258509299404568401799145468436;
@@ -30,6 +31,7 @@ const
      '10{^3}','10{^6}','10{^9}','10{^12}','10{^15}','10{^18}','10{^21}','10{^24}');
 
 type
+  TMarkerChangeEvent = procedure(MarkerID: Integer);
   TDoubleArray = array of Double;
   TAxis = class;
   TAxisScale = (atLin,atLog);
@@ -51,7 +53,7 @@ type
     Name:string;
   end;
 
-  TMouseMode = (mmZoom, mmPosition, mmData);
+  TMouseMode = (mmZoom, mmPosition, mmData, mmMarker);
 
   TAxis = class
   private
@@ -116,8 +118,16 @@ type
     PopupHook: THook;
     FMouseModus: TMouseMode;
     PM: array[0..PID_Last] of PObject_; //
+    //
+    FXMarker: Double; // x Position Marker
+    FXMarkerValueIdx: Integer;
+    FMarkerLoc: TPoint;
+    FShowMarker: Boolean; //
+    FOnMarkerChange: TMarkerChangeEvent;
   protected
     procedure DrawCurves(RP: PRastPort; ClipRect: TRect);
+    procedure DrawMarker(RP: PRastPort; ClipRect: TRect);
+    function FindNearestCurve(X, Y: Integer; var MinLoc: TPoint; var CurveIdx, PointIdx: Integer): Boolean;
   public
     constructor Create(const Args: array of PtrUInt); override;
     destructor Destroy; override;
@@ -153,7 +163,10 @@ type
     property AxisLeft: TAxis read FAxisLeft write FAxisLeft;
     property AxisBottom: TAxis read FAxisBottom write FAxisBottom;
     property AxisRight: TAxis read FAxisRight write FAxisRight;
-    property MouseModuse: TMouseMode read FMouseModus;
+    property MouseModus: TMouseMode read FMouseModus;
+    property OnMarkerChange: TMarkerChangeEvent read FOnMarkerChange write FOnMarkerChange;
+    property XMarkerValueIdx: Integer read FXMarkerValueIdx;
+    property ShowMarker: Boolean read FShowMarker;
   end;
 
 function ValueToStr(Value: Double; Precision: Integer): string;
@@ -164,6 +177,7 @@ var
   Menutitle_Zoom: string = 'Zoom';
   Menutitle_Position: string = 'Position Data';
   Menutitle_Data: string = 'Curve Data';
+  Menutitle_Marker: string = 'Set Marker';
 
   HintText_XAxis1: string = 'X Axis';
   HintText_XAxis2: string = 'X Axis';
@@ -945,6 +959,9 @@ begin
   CrossPos := Point(-1,-1);
   CrossText := TStringList.Create;
 
+  FShowMarker := False;
+  FXMarker := 0;
+
   MinWidth := 300;
   MinHeight := 200;
 
@@ -1014,22 +1031,29 @@ begin
         MUIA_Menuitem_Checked, AsTag(True),
         MUIA_Menuitem_Toggle, AsTag(False),
         MUIA_Menuitem_Checkit, AsTag(True),
-        MUIA_Menuitem_Exclude, AsTag((1 shl 3) or (1 shl 4)),
+        MUIA_Menuitem_Exclude, AsTag((1 shl 3) or (1 shl 4) or (1 shl 5)),
         MUIA_UserData, PID_Zoom,
         TAG_DONE])),
       Child, AsTag(MH_MenuItem(PM[2], [
         MUIA_Menuitem_Title, AsTag(PChar(Menutitle_Position)),   // 'Show Position'
         MUIA_Menuitem_Toggle, AsTag(False),
         MUIA_Menuitem_Checkit, AsTag(True),
-        MUIA_Menuitem_Exclude, AsTag((1 shl 2) or (1 shl 4)),
+        MUIA_Menuitem_Exclude, AsTag((1 shl 2) or (1 shl 4) or (1 shl 5)),
         MUIA_UserData, PID_Position,
         TAG_DONE])),
       Child, AsTag(MH_MenuItem(PM[3], [
         MUIA_Menuitem_Title, AsTag(PChar(Menutitle_Data)),   // 'Show Curve Data'
         MUIA_Menuitem_Toggle, AsTag(False),
         MUIA_Menuitem_Checkit, AsTag(True),
-        MUIA_Menuitem_Exclude, AsTag((1 shl 2) or (1 shl 3)),
+        MUIA_Menuitem_Exclude, AsTag((1 shl 2) or (1 shl 3) or (1 shl 5)),
         MUIA_UserData, PID_Data,
+        TAG_DONE])),
+      Child, AsTag(MH_MenuItem(PM[4], [
+        MUIA_Menuitem_Title, AsTag(PChar(Menutitle_Marker)),   // 'Set Marker'
+        MUIA_Menuitem_Toggle, AsTag(False),
+        MUIA_Menuitem_Checkit, AsTag(True),
+        MUIA_Menuitem_Exclude, AsTag((1 shl 2) or (1 shl 3) or (1 shl 4)),
+        MUIA_UserData, PID_Marker,
         TAG_DONE])),
       TAG_DONE])),
     TAG_DONE]);
@@ -1040,6 +1064,8 @@ begin
     ConnectHookFunction(MUIA_Menuitem_Trigger, MUIV_EveryTime, PM[i], Self, @PopupHook, @PopupCurEvent);
 end;
 
+//#######################################
+// Destroy
 destructor TPlotPanel.Destroy;
 begin
   CrossText.Free;
@@ -1062,8 +1088,13 @@ begin
   inherited;
 end;
 
+//#################################################
+//  PupUpEvent
 procedure TPlotPanel.PopupEvent(EventID: Integer);
+var
+  OldModus: TMouseMode;
 begin
+  OldModus := FMouseModus;
   case EventID of
     PID_Rescale:
     begin
@@ -1087,16 +1118,30 @@ begin
       FMouseModus := mmData;
       MouseDown := False;
     end;
+    PID_Marker:
+    begin
+      FMouseModus := mmMarker;
+      MouseDown := False;
+    end;
+  end;
+  if OldModus = mmMarker then
+  begin
+    RedrawObject;
+    CrossPos := Point(-1, -1);
+    if Assigned(FOnMarkerChange) then
+      FOnMarkerChange(0);
   end;
 end;
 
+//##########################################
+// DrawEvent
 procedure TPlotPanel.DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect);
 begin
   DoPlotDraw(RP, DrawRect);
 end;
 
-
-
+// ##########################################
+// DoPlotDraw
 procedure TPlotPanel.DoPlotDraw(RP: PRastPort; DrawRect: TRect; ScaleOnly: Boolean = False);
 var
   lf,tp,rg,bt,i,fsze: Integer;
@@ -1186,7 +1231,7 @@ begin
     AxisBottom.DrawGrid(FRastPort,rect(lf,tp,rg,bt));
 
     DrawCurves(FRastPort, Rect(lf,tp,rg,bt));
-    //DrawMarkers(Canvas,rect(lf,tp,rg,bt));
+    DrawMarker(FRastPort, Rect(lf,tp,rg,bt));
     //
     Pen := SetColor(FRastPort, $000000);
     SetDrMd(FRastPort, JAM1);
@@ -1226,12 +1271,15 @@ begin
   begin
     Pen := SetColor(RP, $0000FF);
     SetDrMd(RP, COMPLEMENT);
-    GfxMove(RP, DrawRect.Left + CrossPos.X - 5, DrawRect.Top + CrossPos.Y);
-    Draw(RP, DrawRect.Left + CrossPos.X + 5, DrawRect.Top + CrossPos.Y);
-    GfxMove(RP, DrawRect.Left + CrossPos.X, DrawRect.Top + CrossPos.Y - 5);
-    Draw(RP, DrawRect.Left + CrossPos.X, DrawRect.Top + CrossPos.Y + 5);
-    UnSetColor(Pen);
-    GfxMove(RP, DrawRect.Left + CrossPos.X, DrawRect.Top + CrossPos.Y - 20);
+    if FMouseModus <> mmMarker then
+    begin
+      GfxMove(RP, DrawRect.Left + CrossPos.X - 5, DrawRect.Top + CrossPos.Y);
+      Draw(RP, DrawRect.Left + CrossPos.X + 5, DrawRect.Top + CrossPos.Y);
+      GfxMove(RP, DrawRect.Left + CrossPos.X, DrawRect.Top + CrossPos.Y - 5);
+      Draw(RP, DrawRect.Left + CrossPos.X, DrawRect.Top + CrossPos.Y + 5);
+      UnSetColor(Pen);
+      GfxMove(RP, DrawRect.Left + CrossPos.X, DrawRect.Top + CrossPos.Y - 20);
+    end;
 
     TextH := Round((TH(RP, '|') * 1.2));
     TextW := 0;
@@ -1271,11 +1319,32 @@ begin
 
 end;
 
+//###############################
+// DrawMarker
+procedure TPlotPanel.DrawMarker(RP: PRastPort; ClipRect: TRect);
+var
+  loc: TPoint;
+  DoMove: Boolean;
+  Pen: LongWord;
+begin
+  if (FShowMarker) and (FMouseModus = mmMarker) then
+  begin
+    Pen := SetColor(Rp, clBlue);
+    loc := Curves[0].XAxis.Place(FXMarker);
+    DoMove := True;
+    ClippedLine(Rp, Loc.X, ClipRect.Top, Loc.X, ClipRect.Bottom, ClipRect, DoMove);
+    UnSetColor(Pen);
+    if (FMouseModus = mmMarker) then
+      CrossPos.X := Loc.X;
+  end;
+end;
 
+//##################################
+// DrawCurves
 procedure TPlotPanel.DrawCurves(RP: PRastPort; ClipRect: TRect);
 var
   i,j:integer;
-  loc:TPoint;
+  loc: TPoint;
   ox,oy{,bx,by}:integer;
   //wd,wi:integer;
   //dx,dy:integer;
@@ -1317,6 +1386,8 @@ begin
   end;
 end;
 
+//###############################
+// AddCurve
 procedure TPlotPanel.AddCurve(var x,y:array of double; var valid:array of boolean;
       XAxis,YAxis:TAxisPosition; Color:TColor=$000000; Name:string=''; Index: Integer = -1);
 var
@@ -1369,6 +1440,8 @@ begin
   //Curves[si].LinesOn:=LinesOn;
 end;
 
+//#######################################
+// Rescale By Curves
 procedure TPlotPanel.RescaleByCurves;
 var i,j:integer;
 begin
@@ -1447,20 +1520,41 @@ begin
   AxisRight.ValidateMinMax;
 end;
 
+// ##############################
+// Mouse Down
 procedure TPlotPanel.MouseDownEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
+var
+  FoundCurve: Integer;
 begin
-  if (MouseBtn = mmbLeft)  and (FMouseModus = mmZoom) then
+  if MouseBtn = mmbLeft then
   begin
-    MouseDown := True;
-    ZoomBox.Left := X;
-    ZoomBox.Top := Y;
-    ZoomBox.Width := 1;
-    ZoomBox.Height := 1;
-    RedrawObject;
-    EatEvent := True;
+    if FMouseModus = mmZoom then
+    begin
+      MouseDown := True;
+      ZoomBox.Left := X;
+      ZoomBox.Top := Y;
+      ZoomBox.Width := 1;
+      ZoomBox.Height := 1;
+      RedrawObject;
+      EatEvent := True;
+    end;
+    if FMouseModus = mmMarker then
+    begin
+      if FindNearestCurve(x, y, FMarkerLoc, FoundCurve, FXMarkerValueIdx) then
+      begin
+        FXMarker := Curves[FoundCurve].x[FXMarkerValueIdx];
+        FShowMarker := True;
+        FForceRedraw := True;
+        RedrawObject;
+        if Assigned(FOnMarkerChange) then
+          FOnMarkerChange(0);
+      end;
+    end;
   end;
 end;
 
+//#####################################
+// Mouse up Event
 procedure TPlotPanel.MouseUpEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
 var
   a, b: Double;
@@ -1512,12 +1606,47 @@ begin
   end;
 end;
 
-procedure TPlotPanel.MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
+// #######################
+// Find Nearest
+function TPlotPanel.FindNearestCurve(X, Y: Integer; var MinLoc: TPoint; var CurveIdx, PointIdx: Integer): Boolean;
 var
   i, j: Integer;
   MinDist, Dist: Double;
+  Loc: TPoint;
+begin
+  Result := False;
+  MinDist := 1e100;
+  CurveIdx := -1;
+  for i := 0 to High(Curves) do
+  begin
+    for j:=0 to High(Curves[i].X) do
+    begin
+      if (Curves[i].x[j] >= Curves[i].xaxis.MinValue) and (Curves[i].x[j] <= Curves[i].xaxis.MaxValue) and
+        (Curves[i].y[j] >= Curves[i].yaxis.MinValue) and (Curves[i].y[j] <= Curves[i].yaxis.MaxValue) then
+      begin
+        loc := Curves[i].XAxis.Place(Curves[i].x[j]);
+        loc := Curves[i].YAxis.Shift(loc,Curves[i].y[j]);
+        Dist := Sqr(loc.X - x) + sqr(loc.y - y);
+        if Dist < MinDist then
+        begin
+          MinDist := Dist;
+          CurveIdx := i;
+          PointIdx := j;
+          MinLoc := Loc;
+        end;
+      end;
+    end;
+  end;
+  Result := CurveIdx >= 0;
+end;
+
+//#############################
+// Mouse Move
+procedure TPlotPanel.MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
+var
+  Dist: Double;
   FoundCurve, FoundPos: Integer;
-  Loc, MinLoc: TPoint;
+  MinLoc: TPoint;
 begin
   if MouseDown then
   begin
@@ -1528,31 +1657,9 @@ begin
   end
   else
   begin
-    if FMouseModus = mmData then
+    if (FMouseModus = mmData) or (FMouseModus = mmMarker) then
     begin
-      MinDist := 1e100;
-      FoundCurve := -1;
-      for i := 0 to High(Curves) do
-      begin
-        for j:=0 to High(Curves[i].X) do
-        begin
-          if (Curves[i].x[j] >= Curves[i].xaxis.MinValue) and (Curves[i].x[j] <= Curves[i].xaxis.MaxValue) and
-            (Curves[i].y[j] >= Curves[i].yaxis.MinValue) and (Curves[i].y[j] <= Curves[i].yaxis.MaxValue) then
-          begin
-            loc := Curves[i].XAxis.Place(Curves[i].x[j]);
-            loc := Curves[i].YAxis.Shift(loc,Curves[i].y[j]);
-            Dist := Sqr(loc.X - x) + sqr(loc.y - y);
-            if Dist < MinDist then
-            begin
-              MinDist := Dist;
-              FoundCurve := i;
-              FoundPos := j;
-              MinLoc := Loc;
-            end;
-          end;
-        end;
-      end;
-      if FoundCurve >= 0 then
+      if FindNearestCurve(x, y, MinLoc, FoundCurve, FoundPos) then
       begin
         CrossText.Clear;
         CrossText.Add(Curves[FoundCurve].Name);
@@ -1594,21 +1701,35 @@ begin
     end;
     EatEvent := True;
   end;
-  //SysDebugln('Pos: ' + IntToStr(x) + ', '  + IntToStr(y) +  ' -> ' + FloatToStr(AxisBottom.PosToValue(X)) +  ', ' + FloatToStr(AxisLeft.PosToValue(Y)));
 end;
 
+//#########################
+// Mouse Leave
 procedure TPlotPanel.MouseLeaveEvent(Sender: TObject);
+var
+  i: Integer;
 begin
-  CrossPos := Point(-1, -1);
+  if FMouseModus = mmMarker then
+  begin
+    CrossText.Clear;
+    CrossText.Add('Marker 1');
+    CrossText.Add('X: ' + ValueToStr(FXMarker, Curves[0].XAxis.AfterDot + 1) + ' ' + Curves[0].XAxis.AxUnit);
+    for i := 0 to High(Curves) do
+    begin
+      CrossText.Add('Y: ' + ValueToStr(Curves[i].y[FXMarkerValueIdx], Curves[i].YAxis.AfterDot + 1) + ' ' + Curves[i].YAxis.AxUnit);
+    end;
+    CrossPos := Point(FMarkerLoc.X, 0);
+  end
+  else
+    CrossPos := Point(-1, -1);
   RedrawObject;
 end;
-
-
 
 procedure TPlotPanel.Clear;
 begin
   SetLength(Curves, 0);
   FForceRedraw := True;
+  FShowMarker := True;
 end;
 
 procedure TPlotPanel.PlotData;

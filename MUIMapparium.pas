@@ -136,7 +136,7 @@ end;
 
 procedure SidePanelOpenEvent;
 begin
-  ShowSidePanel(True);
+  ShowSidePanel(not Boolean(MH_Get(SidePanel, MUIA_ShowMe)));
 end;
 
 // Update WayPoints;
@@ -594,6 +594,7 @@ begin
   begin
     Tr := TrackList[Active];
     ShowTrackProps(Tr);
+    MUIMapPanel.RedrawObject;
   end;
 end;
 
@@ -817,12 +818,6 @@ begin
   MUIMapPanel.ShowSidePanelBtn := not ShowIt;
   //MH_Set(MainBalance, MUIA_ShowMe, AsTag(ShowIt));
 end;
-// event for the close button
-function CloseSideEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
-begin
-  Result := 0;
-  ShowSidePanel(False);
-end;
 
 //##################################
 // Open Prefs
@@ -857,6 +852,13 @@ begin
   MUIMapPanel.RedrawObject;
 end;
 
+// track wants us to redraw (show active point or so)
+procedure TrackRedrawEvent;
+begin
+  MUIMapPanel.RedrawObject;
+end;
+
+
 
 // *********************************************************************
 // ####################################
@@ -866,12 +868,11 @@ procedure StartMe;
 var
   Sigs: LongInt;
   StrCoord: string;
-  MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook, CloseSideHook: THook;
+  MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook: THook;
   RemTrack: PObject_;
   RemTrackHook, DblTrackHook: Thook;
   AddWay, RemWay, EditWay, EditTrack: PObject_;
   AddWayHook, RemWayHook, EditWayHook, EditTrackHook: Thook;
-  SideCloseButton: PObject_;
   StartTime: Int64;
   WayMenuHooks: array[0..0] of THook;
   RexxHook: THook;
@@ -893,6 +894,7 @@ begin
   //
   OnWPChanged := @WPChangedEvent;
   OnTrackChanged := @TrackChangedEvent;
+  OnTrackRedraw := @TrackRedrawEvent;
   try
     SearchTitleStr :=  GetLocString(MSG_SEARCH_RESULTS_TITLE); // 'Search Results';
     //
@@ -914,15 +916,6 @@ begin
     // Side Panel
     SidePanel := MH_VGroup([
       MUIA_ShowMe, AsTag(False),
-      Child, AsTag(MH_HGroup([
-        // Header with close button
-        Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Image(SideCloseButton, [
-          MUIA_Image_Spec, MUII_ArrowRight,
-          MUIA_InputMode, MUIV_InputMode_RelVerify,
-          MUIA_ShowSelState, AsTag(True),
-          TAG_DONE])),
-        TAG_DONE])),
       Child, AsTag(MH_Register([
         MUIA_Register_Titles, AsTag(@TabTitles),
         // Search list
@@ -1113,8 +1106,6 @@ begin
     // Remove Track
     ConnectHookFunction(MUIA_Pressed, AsTag(False), RemTrack, nil, @RemTrackHook, @RemTrackEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), EditTrack, nil, @EditTrackHook, @EditTrackEvent);
-    // close side panel
-    ConnectHookFunction(MUIA_Pressed, AsTag(False), SideCloseButton, nil, @CloseSideHook, @CloseSideEvent);
 
 
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,

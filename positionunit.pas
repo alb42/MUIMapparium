@@ -25,6 +25,13 @@ var
   RecordedSize: TPoint;
   //
   MoveOffset: TPoint;
+  // Pens for drawing something
+  WhitePen,
+  BlackPen,
+  GrayPen,
+  BluePen,
+  YellowPen,
+  RedPen: LongInt;
 
   procedure DrawFullImage(Width, Height: Integer);
 

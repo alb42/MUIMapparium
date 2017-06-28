@@ -40,6 +40,9 @@ procedure FreeRastPort(RP: PRastPort);
 function AllocAslRequestTags(reqType: LongWord; const Param: array of PtrUInt): Pointer;
 {$endif}
 
+function ObtainPen(Color: LongWord): LongInt;
+procedure FreePen(Pen: LongWord);
+
 function GetMUITime: Int64;
 
 // Set color in the RastPort / unset again for Pens (Amiga)
@@ -99,6 +102,16 @@ begin
       TAG_DONE]);
   END;
   {$endif}
+end;
+
+function ObtainPen(Color: LongWord): LongInt;
+begin
+  Result := ObtainBestPenA(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Color shl 8, Color shl 16, Color shl 24, nil);
+end;
+
+procedure FreePen(Pen: LongWord);
+begin
+  ReleasePen(IntuitionBase^.ActiveScreen^.ViewPort.ColorMap, Pen);
 end;
 
 procedure UnSetColor(Pen: LongWord);

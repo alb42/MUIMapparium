@@ -5,7 +5,7 @@ interface
 uses
   Math, Classes, SysUtils, MUIPaintBoxUnit, imagesunit, positionunit,
   osmhelper, mui, agraphics, intuition, utility, prefsunit, types, layers,
-  cybergraphics, waypointunit, muiwrap;
+  cybergraphics, waypointunit, muiwrap, strutils;
 
 type
   TMapButton = record
@@ -38,6 +38,9 @@ type
     procedure DrawTracks(RP: PRastPort; DrawRange: TRect);
     procedure DrawGUI(RP: PRastPort; DrawRange: TRect);
     procedure SetShowSidePanelBtn(AValue: Boolean);
+    //
+    function DoSetup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Setup): PtrUInt; override;
+    function DoCleanup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Cleanup): PtrUInt; override;
   public
     constructor Create(const Args: array of PtrUInt); override;
     procedure DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect);
@@ -64,6 +67,8 @@ type
   end;
 
 implementation
+uses
+  TrackPropsUnit;
 
 
 // #####################################################################
@@ -132,15 +137,12 @@ end;
 // Key Down Event
 procedure TMapPanel.MouseDownEvent(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
 begin
-  if FShowSidePanelBtn then
+  if PtInRect(SidePanelBtn.Area, Point(X,Y)) then
   begin
-    if PtInRect(SidePanelBtn.Area, Point(X,Y)) then
-    begin
-      if Assigned(FOnSidePanelOpen) then
-        FOnSidePanelOpen();
-      ResetDblClickTime;
-      Exit;
-    end;
+    if Assigned(FOnSidePanelOpen) then
+      FOnSidePanelOpen();
+    ResetDblClickTime;
+    Exit;
   end;
   if PtInRect(ZoomPanelBtn.Area, Point(X,Y)) then
   begin
@@ -187,9 +189,7 @@ end;
 // Mouse Move
 procedure TMapPanel.MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
 var
-  down, cur: TCoord;
   NPos: TTileCoord;
-  Coord: TTileCoord;
 begin
   FLastMouse := Point(X, Y);
   if LeftDown then
@@ -201,10 +201,6 @@ begin
     NPos.Tile.X := MiddleCoord.Tile.X;
     NPos.Tile.Y := MiddleCoord.Tile.Y;
     MiddlePos := TileToCoord(CurZoom, NPos);
-
-
-    //MiddlePos.Lon := StartCoord.Lon - (X - DownPos.X) * GResX;
-    //MiddlePos.Lat := StartCoord.Lat - (Y - DownPos.Y) * GResY;
     MoveOffset.X := X - DownPos.X;
     MoveOffset.Y := Y - DownPos.Y;
     RedrawImage := True;
@@ -289,7 +285,7 @@ end;
 procedure TMapPanel.DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
 var
   PTMid: TPoint;
-  Pen: LongWord;
+  //Pen: LongWord;
 begin
   {$ifndef MorphOS}
   PTMid.X := DrawRange.Width div 2;
@@ -298,7 +294,8 @@ begin
   PTMid.X := DrawRange.Width div 2 + 4;
   PTMid.Y := DrawRange.Height div 2 + 4;
   {$endif}
-  Pen := SetColor(RP, MiddleMarkerColor);
+  //Pen := SetColor(RP, MiddleMarkerColor);
+  SetAPen(RP, BlackPen);
   case MiddleMarker of
     1: RectFill(RP, PTMid.X - MiddleMarkerSize, PTMid.Y - MiddleMarkerSize, PTMid.X + MiddleMarkerSize, PTMid.Y + MiddleMarkerSize);
     2: begin
@@ -314,7 +311,7 @@ begin
       Draw(RP, PTMid.X, DrawRange.Height);
     end;
   end;
-  UnSetColor(Pen);
+  //UnSetColor(Pen);
 end;
 
 // Draw the Waypoints
@@ -322,7 +319,7 @@ procedure TMapPanel.DrawMarker(RP: PRastPort; DrawRange: TRect);
 const
   AREA_BYTES = 4000;
 var
-  WPColor: LongWord = $0000FF;
+  //WPColor: LongWord = $0000FF;
   i,j: Integer;
   Points: packed array of packed record
     x,y: SmallInt;
@@ -332,11 +329,12 @@ var
   TRas: TTmpRas;
   WarBuff: array[0..AREA_BYTES] of Word;
   ari: TAreaInfo;
-  Pen: LongWord;
+  //Pen: LongWord;
   TE: TTextExtent;
   MarkerText: string;
 begin
-  Pen := SetColor(RP, WPColor);
+  //Pen := SetColor(RP, WPColor);
+  SetAPen(RP, BluePen);
   SetDrMd(RP, JAM1);
   // make tmprast
   Ras := AllocRaster(DrawRange.Width, DrawRange.Height);
@@ -379,42 +377,45 @@ begin
   RP^.TmpRas := nil;
   RP^.AreaInfo := nil;
   FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
-  UnSetColor(Pen);
+  //UnSetColor(Pen);
 end;
 
 // Draw the tracks
 procedure TMapPanel.DrawTracks(RP: PRastPort; DrawRange: TRect);
 const
   AREA_BYTES = 4000;
-  TrackColor: LongWord = $FF0000;
+  //TrackColor: LongWord = $FF0000;
 var
   PT: TPoint;
   i, j: Integer;
   LastWasDrawn: Boolean;
   TrackPtSize: Integer;
-  Pen: LongWord;
+  //Pen: LongWord;
   Drawn: Integer;
+  ShowActivePt: Boolean;
+  Points: array[0..3] of record
+    X: SmallInt;
+    Y: SmallInt;
+  end;
 begin
   TrackPtSize := Max(2, CurZoom - 10);
-  Pen := SetColor(RP, TrackColor);
+  //Pen := SetColor(RP, TrackColor);
+  SetAPen(RP, RedPen);
   SetDrMd(RP, JAM1);
   // Draw Tracks
   for i := 0 to TrackList.Count - 1 do
   begin
     if not TrackList[i].Visible then
       Continue;
-    {if TrackList[i] = CurTrack then
+    if TrackList[i] = CurTrack then
     begin
-      Ca.Brush.Color := ActiveTrackColor;
-      Ca.Pen.Color := ActiveTrackColor;
+      SetAPen(RP, YellowPen);
     end
     else
     begin
-      Ca.Brush.Color := TrackColor;
-      Ca.Pen.Color := TrackColor;
+      SetAPen(RP, RedPen);
     end;
-    ShowActivePt := (TrackList[i] = CurTrack);}
-    //SetLength(Points, 3);
+    ShowActivePt := (TrackList[i] = CurTrack);
     Drawn := 0;
     LastWasDrawn := False;
     TrackList[i].CalcCoords(CurZoom);
@@ -423,7 +424,7 @@ begin
       if (TrackList[i].Coords[j].Tile.X < 0) and (TrackList[i].Coords[j].Tile.Y < 0) then
         Continue;
       Pt := CoordToPixel(TrackList[i].Coords[j]);
-      if (Pt.X >= -10) and (Pt.Y >= -10) and (Pt.X <= DrawRange.Width + 10) and (Pt.Y <= DrawRange.Height + 10) then
+      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
       begin
         Inc(Drawn);
         RectFill(RP, Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
@@ -436,31 +437,32 @@ begin
       else
         LastWasDrawn := False;
     end;
-    {if ShowActivePt and (ActiveTrackPt >=0) and (ActiveTrackPt <= High(TrackList[i].Pts)) then
+    if ShowActivePt and (ActiveTrackPt >=0) and (ActiveTrackPt <= High(TrackList[i].Pts)) then
     begin
-      Ca.Brush.Color := clBlue;
-      Ca.Brush.Style := bsSolid;
-      Ca.Pen.Color := clBlack;
-      Ca.Pen.Style := psSolid;
+      SetAPen(Rp, RedPen);
       Pt := PosToPixel(TrackList[i].Pts[ActiveTrackPt].Position);
-      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= PB.Width + 100) and (Pt.Y <= PB.Height + 100) then
+      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
       begin
-        Points[0] := Pt;
-        Points[1].X := Max(0, Points[0].X - 5);
-        Points[1].Y := Max(0, Points[0].Y - 20);
-        Points[2].X := Max(0, Points[0].X + 5);
-        Points[2].Y := Max(0, Points[0].Y - 20);
-        Ca.Polygon(Points);
+        Points[0].X := Pt.X;
+        Points[0].Y := Pt.Y;
+        Points[1].X := Points[0].X - 5;
+        Points[1].Y := Points[0].Y - 20;
+        Points[2].X := Points[0].X + 5;
+        Points[2].Y := Points[0].Y - 20;
+        Points[3].X := Pt.X;
+        Points[3].Y := Pt.Y;
+        GfxMove(Rp, Pt.X, Pt.Y);
+        PolyDraw(RP, 4, @Points[0]);
       end;
-    end;}
+    end;
   end;
-  UnSetColor(Pen);
+  //UnSetColor(Pen);
 end;
 
 procedure TMapPanel.DrawGUI(RP: PRastPort; DrawRange: TRect);
 var
   ButtonSize: TPoint;
-  Pen: LongWord;
+  //Pen: LongWord;
 begin
   ButtonSize.X := Round(TW(RP, 'W') * 1.2);
   ButtonSize.Y := Round(TH(RP, '|') * 1.2);
@@ -473,27 +475,34 @@ begin
   ZoomInBtn.Area := ZoomOutBtn.Area;
   ZoomInBtn.Area.Offset(0, -(ButtonSize.Y + 5));
 
-  Pen := SetColor(RP, clWhite);
+  //Pen := SetColor(RP, clWhite);
+  SetAPen(RP, WhitePen);
   //
-  if FShowSidePanelBtn then
-    RectFill(RP, SidePanelBtn.Area.Left, SidePanelBtn.Area.Top, SidePanelBtn.Area.Right, SidePanelBtn.Area.Bottom);
+  RectFill(RP, SidePanelBtn.Area.Left, SidePanelBtn.Area.Top, SidePanelBtn.Area.Right, SidePanelBtn.Area.Bottom);
   if FShowZoomPanel then
   begin
+    if CurZoom <= 2 then
+      SetAPen(RP, GrayPen)
+    else
+      SetAPen(RP, WhitePen);
     RectFill(RP, ZoomOutBtn.Area.Left, ZoomOutBtn.Area.Top, ZoomOutBtn.Area.Right, ZoomOutBtn.Area.Bottom);
+    if CurZoom >= 19 then
+      SetAPen(RP, GrayPen)
+    else
+      SetAPen(RP, WhitePen);
     RectFill(RP, ZoomInBtn.Area.Left, ZoomInBtn.Area.Top, ZoomInBtn.Area.Right, ZoomInBtn.Area.Bottom);
   end;
+  SetAPen(RP, WhitePen);
   RectFill(RP, ZoomPanelBtn.Area.Left, ZoomPanelBtn.Area.Top, ZoomPanelBtn.Area.Right, ZoomPanelBtn.Area.Bottom);
   //
-  UnSetColor(Pen);
+  //UnSetColor(Pen);
 
-  Pen := SetColor(RP, clBlack);
+  //Pen := SetColor(RP, clBlack);
+  SetAPen(RP, BlackPen);
   //
-  if FShowSidePanelBtn then
-  begin
-    DrawRect(RP, SidePanelBtn.Area);
-    GfxMove(RP, SidePanelBtn.Area.Left + 3, SidePanelBtn.Area.Top + ButtonSize.Y div 2 + 3);
-    GfxText(RP, '<', 1);
-  end;
+  DrawRect(RP, SidePanelBtn.Area);
+  GfxMove(RP, SidePanelBtn.Area.Left + 3, SidePanelBtn.Area.Top + ButtonSize.Y div 2 + 3);
+  GfxText(RP, PChar(IfThen(FShowSidePanelBtn, '>', '<')), 1);
   //
   DrawRect(RP, ZoomPanelBtn.Area);
   GfxMove(RP, ZoomPanelBtn.Area.Left + 3, ZoomPanelBtn.Area.Top + ButtonSize.Y div 2 + 3);
@@ -513,8 +522,7 @@ begin
   else
     GfxText(RP, '<', 1);
   //
-  //
-  UnSetColor(Pen);
+  //UnSetColor(Pen);
 end;
 
 procedure TMapPanel.SetShowSidePanelBtn(AValue: Boolean);
@@ -607,7 +615,6 @@ end;
 procedure TMapPanel.ZoomIn(ToPos: Boolean);
 var
   Dist, OldPosi, NewPosi: TCoord;
-  TileRect: TRectCoord;
 begin
   if (LastMouse.X = -1) and (LastMouse.Y = -1) then
     Exit;
@@ -627,6 +634,28 @@ begin
     //
   end;
   RefreshImage;
+end;
+
+function TMapPanel.DoSetup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Setup): PtrUInt;
+begin
+  Result := inherited;
+  WhitePen := ObtainPen(clWhite);
+  BlackPen := ObtainPen(clBlack);
+  GrayPen := ObtainPen(clGray);
+  BluePen := ObtainPen(clBlue);
+  RedPen := ObtainPen(clRed);
+  YellowPen := ObtainPen(clYellow);
+end;
+
+function TMapPanel.DoCleanup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Cleanup): PtrUInt;
+begin
+  Result := inherited;
+  FreePen(WhitePen);
+  FreePen(BlackPen);
+  FreePen(GrayPen);
+  FreePen(BluePen);
+  FreePen(RedPen);
+  FreePen(YellowPen);
 end;
 
 // Do a Zoom Out
