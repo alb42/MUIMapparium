@@ -31,6 +31,7 @@ var
   GrayPen,
   BluePen,
   YellowPen,
+  GreenPen,
   RedPen: LongInt;
 
   procedure DrawFullImage(Width, Height: Integer);

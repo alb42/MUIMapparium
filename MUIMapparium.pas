@@ -10,7 +10,7 @@ uses
   imagesunit, positionunit, osmhelper, networkingunit, prefsunit,
   Exec, Utility, intuition, agraphics, Layers, AmigaDos, icon,
   cybergraphics, mui, muihelper, MUIWrap, PrefsWinUnit,
-  Statisticsunit, waypointunit, WPPropsUnit, TrackPropsUnit,
+  Statisticsunit, waypointunit, WPPropsUnit, TrackPropsUnit, RoutePropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math, versionunit,
   MapPanelUnit;
@@ -26,12 +26,15 @@ const
   MID_Statistics = 7;
   MID_Load       = 8;
   MID_Save       = 9;
+  MID_DrawMarker = 10;
+  MID_DrawTracks = 11;
+  MID_DrawRoutes = 12;
   // WayMenu
   WID_Toggle = 1;
 
 var
-  TabStrings: array[0..2] of string = ('Search', 'WayPoints', 'Tracks');
-  TabTitles: array[0..3] of PChar = ('Search'#0, 'WayPoints'#0, 'Tracks'#0, nil);
+  TabStrings: array[0..4] of string = ('Search', 'WayPoints', 'Tracks', 'Routes', 'Images');
+  TabTitles: array[0..5] of PChar = ('Search'#0, 'WayPoints'#0, 'Tracks'#0, 'Routes'#0, 'Images'#0, nil);
 
 var
   Running: Boolean = False;
@@ -43,12 +46,14 @@ var
   WayPointList, WaypointListEntry, WayPointMenu,
   // Tracks
   TracksList, TracksListEntry,
+  //Routes
+  RoutesList, RoutesListEntry,
   // Basic
   App, Window: PObject_;
   // MainWindow
   SidePanel, MainBalance, MainMenu: PObject_;
   // Menu
-  MenuSidePanel: PObject_;
+  MenuSidePanel, MenuDrawMarker, MenuDrawTracks, MenuDrawRoutes: PObject_;
   //
   SRes: TSearchResults;
   SearchTitleStr: string;
@@ -167,6 +172,22 @@ begin
     if not TrackList[i].Visible then
       TrackList[i].FullName := '(' + TrackList[i].FullName + ')';
     DoMethod(TracksListEntry, [MUIM_List_InsertSingle, AsTag(PChar(TrackList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
+  end;
+  RedrawImage := True;
+end;
+
+// Update Routes
+procedure UpdateRoutes;
+var
+  i: Integer;
+begin
+  DoMethod(RoutesListEntry, [MUIM_List_Clear]);
+  for i := 0 to RouteList.Count - 1 do
+  begin
+    RouteList[i].FullName := RouteList[i].Name + ' (' + IntToStr(Length(RouteList[i].Pts)) + ') ' + RouteList[i].Desc;
+    if not RouteList[i].Visible then
+      RouteList[i].FullName := '(' + RouteList[i].FullName + ')';
+    DoMethod(RoutesListEntry, [MUIM_List_InsertSingle, AsTag(PChar(RouteList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
   RedrawImage := True;
 end;
@@ -425,6 +446,9 @@ begin
     MID_SidePanel: ShowSidePanel(Boolean(MH_Get(MenuSidePanel, MUIA_Menuitem_Checked)));
     MID_ZOOMIN: MUIMapPanel.ZoomIn(False);
     MID_ZOOMOUT: MUIMapPanel.ZoomOut;
+    MID_DrawMarker: MUIMapPanel.ShowMarker := Boolean(MH_Get(MenuDrawMarker, MUIA_Menuitem_Checked));
+    MID_DrawTracks: MUIMapPanel.ShowTracks := Boolean(MH_Get(MenuDrawTracks, MUIA_Menuitem_Checked));
+    MID_DrawRoutes: MUIMapPanel.ShowRoutes := Boolean(MH_Get(MenuDrawRoutes, MUIA_Menuitem_Checked));
     MID_FINDME: SearchIP('');
     MID_PREFS: OpenPrefs();
     MID_Statistics: MH_Set(StatWin, MUIA_Window_Open, AsTag(True));
@@ -594,6 +618,55 @@ begin
   begin
     Tr := TrackList[Active];
     ShowTrackProps(Tr);
+    MUIMapPanel.RedrawObject;
+  end;
+end;
+
+// Add Route
+function AddRouteEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Ro: TRoute;
+  Active: Integer;
+begin
+  Result := 0;
+  NewRouteProps;
+  {Active := MH_Get(RoutesListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < RouteList.Count) then
+  begin
+    Ro := RouteList[Active];
+    //ShowTrackProps(Tr);
+    MUIMapPanel.RedrawObject;
+  end;}
+end;
+
+
+// Remove Route Button
+function RemRouteEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Active: LongInt;
+begin
+  Result := 0;
+  Active := MH_Get(RoutesListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < RouteList.Count) then
+  begin
+    RouteList.Delete(Active);
+    DoMethod(RoutesListEntry, [MUIM_List_Remove, Active]);
+    MUIMapPanel.RedrawObject;
+  end;
+end;
+
+// Edit Route
+function EditRouteEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Ro: TRoute;
+  Active: Integer;
+begin
+  Result := 0;
+  Active := MH_Get(RoutesListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < RouteList.Count) then
+  begin
+    Ro := RouteList[Active];
+    //ShowTrackProps(Tr);
     MUIMapPanel.RedrawObject;
   end;
 end;
@@ -869,22 +942,27 @@ var
   Sigs: LongInt;
   StrCoord: string;
   MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook: THook;
-  RemTrack: PObject_;
-  RemTrackHook, DblTrackHook: Thook;
-  AddWay, RemWay, EditWay, EditTrack: PObject_;
-  AddWayHook, RemWayHook, EditWayHook, EditTrackHook: Thook;
+  RemTrack, EditTrack: PObject_;
+  RemTrackHook, DblTrackHook, EditTrackHook: Thook;
+  RemRoute, EditRoute, AddRoute: PObject_;
+  AddRouteHook, RemRouteHook, DblRouteHook, EditRouteHook: Thook;
+  AddWay, RemWay, EditWay: PObject_;
+  AddWayHook, RemWayHook, EditWayHook: Thook;
   StartTime: Int64;
   WayMenuHooks: array[0..0] of THook;
   RexxHook: THook;
   ThisAppDiskIcon: Pointer;
+  i: Integer;
 begin
   //Initialize Frame titles 'Search', 'WayPoints', 'Tracks'
   TabStrings[0] := string(GetLocString(MSG_FRAME_SEARCH));
   TabStrings[1] := string(GetLocString(MSG_FRAME_WAYPOINTS));
   TabStrings[2] := string(GetLocString(MSG_FRAME_TRACKS));
-  TabTitles[0] := PChar(TabStrings[0]);
-  TabTitles[1] := PChar(TabStrings[1]);
-  TabTitles[2] := PChar(TabStrings[2]);
+  TabStrings[3] := string(GetLocString(MSG_FRAME_ROUTES));
+  TabStrings[4] := string(GetLocString(MSG_FRAME_IMAGES));
+  //
+  for i := 0 to High(TabStrings) do
+    TabTitles[i] := PChar(TabStrings[i]);
 
 
   SRes := TSearchResults.Create;
@@ -918,7 +996,7 @@ begin
       MUIA_ShowMe, AsTag(False),
       Child, AsTag(MH_Register([
         MUIA_Register_Titles, AsTag(@TabTitles),
-        // Search list
+        //#### Search list
         Child, AsTag(MH_ListView(SearchList, [
           MUIA_Weight, 100,
           MUIA_Listview_Input, MUI_TRUE,
@@ -929,7 +1007,7 @@ begin
             MUIA_List_Title, AsTag(PChar(SearchTitleStr)),
             TAG_DONE])),
           TAG_DONE])),
-        // WayPoints
+        //#### WayPoints
         Child, AsTag(MH_VGroup([
           Child, AsTag(MH_ListView(WaypointList, [
             MUIA_Weight, 100,
@@ -947,6 +1025,7 @@ begin
               Child, AsTag(MH_Button(EditWay, GetLocString(MSG_BUTTON_WAYPOINT_EDIT))),  // 'Edit'
             TAG_DONE])),
           TAG_DONE])),
+        //#### Tracks
         Child, AsTag(MH_VGroup([
           Child, AsTag(MH_ListView(TracksList, [
             MUIA_Weight, 100,
@@ -962,6 +1041,27 @@ begin
               Child, AsTag(MH_Button(RemTrack, GetLocString(MSG_BUTTON_TRACK_REMOVE))),    // 'Remove'
               Child, AsTag(MH_Button(EditTrack, GetLocString(MSG_BUTTON_WAYPOINT_EDIT))),  //  'Edit'
             TAG_DONE])),
+          TAG_DONE])),
+        //#### Routes
+        Child, AsTag(MH_VGroup([
+          Child, AsTag(MH_ListView(RoutesList, [
+            MUIA_Weight, 100,
+            MUIA_Listview_Input, MUI_TRUE,
+            MUIA_Listview_List, AsTag(MH_List(RoutesListEntry, [
+              MUIA_Frame, MUIV_Frame_ReadList,
+              MUIA_Background, MUII_ReadListBack,
+              //MUIA_ContextMenu, AsTag(WayPointMenu),
+              MUIA_List_PoolThreshSize, 256,
+              TAG_DONE])),
+            TAG_DONE])),
+          Child, AsTag(MH_HGroup([
+              Child, AsTag(MH_Button(AddRoute, GetLocString(MSG_BUTTON_WAYPOINT_ADD))),    // 'Add'
+              Child, AsTag(MH_Button(RemRoute, GetLocString(MSG_BUTTON_WAYPOINT_REMOVE))),    // 'Remove'
+              Child, AsTag(MH_Button(EditRoute, GetLocString(MSG_BUTTON_WAYPOINT_EDIT))),  //  'Edit'
+            TAG_DONE])),
+          TAG_DONE])),
+        //#### Images
+        Child, AsTag(MH_VGroup([
           TAG_DONE])),
         TAG_DONE])),
       TAG_DONE]);
@@ -1004,6 +1104,30 @@ begin
         Child, AsTag(MH_MenuItem([
           MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAP_ZOOMOUT)),  //  'Zoom out'
           MUIA_UserData, MID_ZOOMOUT,
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem([
+          MUIA_Menuitem_Title, AsTag(-1),
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem(MenuDrawMarker, [
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAP_DRAWMARKER)),  //  'Draw Marker'
+          MUIA_UserData, MID_DrawMarker,
+          MUIA_Menuitem_Checkit, AsTag(True),
+          MUIA_Menuitem_Toggle, AsTag(True),
+          MUIA_Menuitem_Checked, AsTag(True),
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem(MenuDrawTracks, [
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAP_DRAWTRACKS)),  //  'Draw Tracks'
+          MUIA_UserData, MID_DrawTracks,
+          MUIA_Menuitem_Checkit, AsTag(True),
+          MUIA_Menuitem_Toggle, AsTag(True),
+          MUIA_Menuitem_Checked, AsTag(True),
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem(MenuDrawRoutes, [
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAP_DRAWROUTES)),  //  'Draw Routes'
+          MUIA_UserData, MID_DrawRoutes,
+          MUIA_Menuitem_Checkit, AsTag(True),
+          MUIA_Menuitem_Toggle, AsTag(True),
+          MUIA_Menuitem_Checked, AsTag(True),
           TAG_DONE])),
         TAG_DONE])),
       // Window Menu ------------------------------------
@@ -1076,6 +1200,7 @@ begin
       SubWindow, AsTag(StatWin),
       SubWindow, AsTag(WPPropsWin),
       SubWindow, AsTag(TrackPropsWin),
+      SubWindow, AsTag(RoutePropsWin),
       TAG_DONE]);
     if not Assigned(app) then
     begin
@@ -1103,9 +1228,14 @@ begin
     ConnectHookFunction(MUIA_Pressed, AsTag(False), EditWay, nil, @EditWayHook, @EditWayEvent);
     // double click to a Track Entry
     ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, TracksList, nil, @DblTrackHook, @DblTrackEvent);
-    // Remove Track
+    // Track Actions
     ConnectHookFunction(MUIA_Pressed, AsTag(False), RemTrack, nil, @RemTrackHook, @RemTrackEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), EditTrack, nil, @EditTrackHook, @EditTrackEvent);
+    // Route Actions
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), AddRoute, nil, @AddRouteHook, @AddRouteEvent);
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), RemRoute, nil, @RemRouteHook, @RemRouteEvent);
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), EditRoute, nil, @EditRouteHook, @EditRouteEvent);
+
 
 
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,
@@ -1117,6 +1247,7 @@ begin
     // Update waypoints before open the window first time
     UpdateWayPoints;
     UpdateTracks;
+    UpdateRoutes;
     //
     // open the window
     MH_Set(Window, MUIA_Window_Open, AsTag(True));

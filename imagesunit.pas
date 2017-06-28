@@ -25,16 +25,20 @@ type
     procedure FastDraw(x,y: Integer; AImage: TFPAMemImage);
   end;
 
+
+  TMapFeature = class
+    Name: string;
+    Visible: Boolean;
+    FullName: string;
+  end;
+
   { TMarker }
 
-  TMarker = class
+  TMarker = class(TMapFeature)
     Position: TCoord;
-    Name: string;
-    FullName: string;
     Time: TDateTime;
     symbol: string;
     Elevation: Double;
-    Visible: Boolean;
     constructor Create; virtual;
   end;
 
@@ -50,16 +54,13 @@ type
 
   { TTrack }
 
-  TTrack = class
+  TTrack = class(TMapFeature)
   private
     FZoom: Integer;
   public
-    Name: string;
-    FullName: string;
     Desc: string;
     Pts: array of TTrackPoint;
     Coords: array of TTileCoord;
-    Visible: Boolean;
     AddFields: array of string;
     constructor Create; virtual;
     procedure CalcCoords(NewZoom: Integer);
@@ -80,16 +81,19 @@ type
 
   { TRoute }
 
-  TRoute = class
-    Name: string;
+  TRoute = class(TMapFeature)
+  private
+    FZoom: Integer;
+  public
     Desc: string;
     TravelTime: Integer;
     Distance: Double;
     Pts: array of TRoutePoint;
+    Coords: array of TTileCoord;
     Orders: TOrderList;
-    Visible: Boolean;
     constructor Create; virtual;
     destructor Destroy; override;
+    procedure CalcCoords(NewZoom: Integer);
   end;
 
   TRouteList = specialize TFPGObjectList<TRoute>;
@@ -291,6 +295,35 @@ destructor TRoute.Destroy;
 begin
   Orders.Free;
   inherited Destroy;
+end;
+
+procedure TRoute.CalcCoords(NewZoom: Integer);
+var
+  i: Integer;
+  LastPos: TPoint;
+  ThisPos: TPoint;
+begin
+  // if Zoom is the same just skip it
+  if FZoom = NewZoom then
+    Exit;
+  FZoom := NewZoom;
+  LastPos := Point(0, 0);
+  // get the Coords for every Point
+  SetLength(Coords, Length(Pts));
+  for i := 0 to High(Pts) do
+  begin
+    Coords[i] := CoordToTile(FZoom, Pts[i].Position);
+    ThisPos.X := (Coords[i].Tile.X * 256) + Coords[i].Pixel.X;
+    ThisPos.Y := (Coords[i].Tile.Y * 256) + Coords[i].Pixel.Y;
+    // min Distance 4 pixel!
+    if (i = 0) or (Abs(ThisPos.X - LastPos.X) + Abs(ThisPos.Y - LastPos.Y) >= MINPLOTDIST) then
+      LastPos := ThisPos
+    else
+    begin
+      Coords[i].Tile.X := -1; // just an illegal position
+      Coords[i].Tile.Y := -1;
+    end;
+  end;
 end;
 
 { TMarker }

@@ -74,6 +74,14 @@ MSG_SEARCH_RESULTS
 %d Ergebnisse für "%s"
 ; %d Results for "%s"
 ;
+MSG_FRAME_ROUTES
+Routen
+; Routes
+;
+MSG_FRAME_IMAGES
+Fotos
+; Images
+;
 ;#### Prefs
 MSG_PREFS_TITLE
 Einstellungen
@@ -258,6 +266,19 @@ MSG_PLOT_DATA
 Kurvendaten
 ; Curve Data
 ;
+; #### Route properties
+MSG_ROUTEPROP_TITLE
+Routeneigenschaften
+; Route Properties
+;
+MSG_ROUTEPROP_NAME
+Routenname
+; Route Title
+;
+MSG_ROUTEPROP_NEW_NAME
+Neue Route
+; New Route
+;
 ;
 ;#### Menus
 MSG_POPUP_WAYPOINT
@@ -312,6 +333,18 @@ Hineinzoomen
 MSG_MENU_MAP_ZOOMOUT
 Herauszoomen
 ; Zoom out
+;
+MSG_MENU_MAP_DRAWMARKER
+Zeige Wegpunkte
+; Draw Marker
+;
+MSG_MENU_MAP_DRAWTRACKS
+Zeige Tracks
+; Draw Tracks
+;
+MSG_MENU_MAP_DRAWROUTES
+Zeige Routen
+; Draw Routes
 ;
 MSG_MENU_WINDOW
 Fenster

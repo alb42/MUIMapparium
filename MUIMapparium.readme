@@ -21,6 +21,9 @@ History:
 * Bugfix: key mapping
 * Level of Detail for Tracks
 * Precalculation of Trackpositions (Speed optimization for NonFPU systems)
+* Route drawing
+* Marker in Plot, shows also a marker in the Track
+* Turn off Marker, Track and Route drawing via Menu
 
 0.4
 

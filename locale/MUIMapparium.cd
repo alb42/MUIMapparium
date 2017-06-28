@@ -56,6 +56,12 @@ Tracks
 MSG_SEARCH_RESULTS (2004//)
 %d Results for "%s"
 ;
+MSG_FRAME_ROUTES (2005//)
+Routes
+;
+MSG_FRAME_IMAGES (2006//)
+Images
+;
 ;#### Prefs
 MSG_PREFS_TITLE (2101//)
 Preferences
@@ -195,6 +201,16 @@ Position Data
 MSG_PLOT_DATA (2504//)
 Curve Data
 ;
+; #### Route properties
+MSG_ROUTEPROP_TITLE (2600//)
+Route Properties
+;
+MSG_ROUTEPROP_NAME (2601//)
+Route Title
+;
+MSG_ROUTEPROP_NEW_NAME (2602//)
+New Route
+;
 ;
 ;#### Menus
 MSG_POPUP_WAYPOINT (3000//)
@@ -236,6 +252,15 @@ Zoom in
 ;
 MSG_MENU_MAP_ZOOMOUT (3203//)
 Zoom out
+;
+MSG_MENU_MAP_DRAWMARKER (3204//)
+Draw Marker
+;
+MSG_MENU_MAP_DRAWTRACKS (3205//)
+Draw Tracks
+;
+MSG_MENU_MAP_DRAWROUTES (3206//)
+Draw Routes
 ;
 MSG_MENU_WINDOW (3300//)
 Window

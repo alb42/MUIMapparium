@@ -26,16 +26,25 @@ type
     FOnUpdateLocationLabel: TProcedure;
     FOnSidePanelOpen: TProcedure;
     //
+    FShowMarker: Boolean;
+    FShowTracks: Boolean;
+    FShowRoutes: Boolean;
+    //
     SidePanelBtn: TMapButton;
     ZoomPanelBtn: TMapButton;
     FShowZoomPanel: Boolean;
     FShowSidePanelBtn: Boolean;
     ZoomInBtn: TMapButton;
     ZoomOutBtn: TMapButton;
+  private
+    procedure SetShowMarker(AValue: Boolean);
+    procedure SetShowTracks(AValue: Boolean);
+    procedure SetShowRoutes(AValue: Boolean);
   protected
     procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
     procedure DrawMarker(RP: PRastPort; DrawRange: TRect);
     procedure DrawTracks(RP: PRastPort; DrawRange: TRect);
+    procedure DrawRoutes(RP: PRastPort; DrawRange: TRect);
     procedure DrawGUI(RP: PRastPort; DrawRange: TRect);
     procedure SetShowSidePanelBtn(AValue: Boolean);
     //
@@ -64,11 +73,15 @@ type
     property OnSidePanelOpen: TProcedure read FOnSidePanelOpen write FOnSidePanelOpen;
     property LastMouse: TPoint read FLastMouse;
     property ShowSidePanelBtn: Boolean read FShowSidePanelBtn write SetShowSidePanelBtn;
+
+    property ShowMarker: Boolean read FShowMarker write SetShowMarker;
+    property ShowTracks: Boolean read FShowTracks write SetShowTracks;
+    property ShowRoutes: Boolean read FShowRoutes write SetShowRoutes;
   end;
 
 implementation
 uses
-  TrackPropsUnit;
+  TrackPropsUnit, RoutePropsUnit;
 
 
 // #####################################################################
@@ -87,6 +100,10 @@ begin
   DefWidth := 256;
   MinHeight := 100;
   DefHeight := 256;
+  // visiblity
+  FShowMarker:= True;
+  FShowTracks := True;
+  FShowRoutes := True;
   // connect the events
   OnDrawObject := @DrawEvent;
   OnMUIDblClick := @MouseDblClick;
@@ -261,9 +278,14 @@ begin
   WritePixelArray(FullBitmap.Data, 0, 0, FullBitmap.Width * SizeOf(LongWord), LocalRP, PTMid.X + ((0 + GPixOff.X)*256) - LOffset.X, PTMid.Y + ((0 + GPixOff.Y)*256) - LOffset.Y, FullBitmap.Width, FullBitmap.Height, RECTFMT_RGBA);
   RedrawImage := False;
   // Draw Tracks
-  DrawTracks(LocalRP, DrawRect);
+  if FShowMarker then
+    DrawTracks(LocalRP, DrawRect);
+  // Draw Routes
+  if FShowRoutes then
+    DrawRoutes(LocalRP, DrawRect);
   // Draw Marker
-  DrawMarker(LocalRP, DrawRect);
+  if FShowMarker then
+    DrawMarker(LocalRP, DrawRect);
   // Draw Middle Marker
   DrawMiddleMarker(LocalRP, DrawRect);
   // Draw Zoom and Position GUI
@@ -459,6 +481,159 @@ begin
   //UnSetColor(Pen);
 end;
 
+// Route
+// Draw the tracks
+procedure TMapPanel.DrawRoutes(RP: PRastPort; DrawRange: TRect);
+const
+  AREA_BYTES = 4000;
+  //TrackColor: LongWord = $FF0000;
+var
+  PT: TPoint;
+  i, j: Integer;
+  LastWasDrawn: Boolean;
+  RoutePtSize: Integer;
+  //Pen: LongWord;
+  Drawn: Integer;
+  ShowActivePt: Boolean;
+  Points: array[0..3] of record
+    X: SmallInt;
+    Y: SmallInt;
+  end;
+begin
+  RoutePtSize := Max(2, CurZoom - 10);
+  //Pen := SetColor(RP, TrackColor);
+  SetAPen(RP, RedPen);
+  SetDrMd(RP, JAM1);
+  // Draw Tracks
+  for i := 0 to RouteList.Count - 1 do
+  begin
+    if not RouteList[i].Visible then
+      Continue;
+    if RouteList[i] = CurRoute then
+    begin
+      SetAPen(RP, YellowPen);
+    end
+    else
+    begin
+      SetAPen(RP, GreenPen);
+    end;
+    ShowActivePt := (RouteList[i] = CurRoute);
+    Drawn := 0;
+    LastWasDrawn := False;
+    RouteList[i].CalcCoords(CurZoom);
+    for j := 0 to High(RouteList[i].Pts) do
+    begin
+      if (RouteList[i].Coords[j].Tile.X < 0) and (RouteList[i].Coords[j].Tile.Y < 0) then
+        Continue;
+      Pt := CoordToPixel(RouteList[i].Coords[j]);
+      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
+      begin
+        Inc(Drawn);
+        RectFill(RP, Pt.X - RoutePtSize, Pt.Y - RoutePtSize, Pt.X + RoutePtSize, Pt.Y + RoutePtSize);
+        if not LastWasDrawn then
+          GfxMove(RP, PT.X, PT.Y)
+        else
+          Draw(RP, Pt.X, PT.Y);
+        LastWasDrawn := True;
+      end
+      else
+        LastWasDrawn := False;
+    end;
+    {if ShowActivePt and (ActiveRoutePt >=0) and (ActiveRoutePt <= High(RouteList[i].Pts)) then
+    begin
+      SetAPen(Rp, RedPen);
+      Pt := PosToPixel(RouteList[i].Pts[ActiveRoutePt].Position);
+      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
+      begin
+        Points[0].X := Pt.X;
+        Points[0].Y := Pt.Y;
+        Points[1].X := Points[0].X - 5;
+        Points[1].Y := Points[0].Y - 20;
+        Points[2].X := Points[0].X + 5;
+        Points[2].Y := Points[0].Y - 20;
+        Points[3].X := Pt.X;
+        Points[3].Y := Pt.Y;
+        GfxMove(Rp, Pt.X, Pt.Y);
+        PolyDraw(RP, 4, @Points[0]);
+      end;
+    end;}
+  end;
+
+
+
+
+
+  {if Assigned(RouteWindow.Route) and (RouteWindow.FreeRoute) and (Length(RouteWindow.Route.Pts) > 0) then
+  begin
+    Ca.Brush.Color := ActiveRouteColor;
+    Ca.Pen.Color := ActiveRouteColor;
+    for j := 0 to High(RouteWindow.Route.Pts) do
+    begin
+      Pt := PosToPixel(RouteWindow.Route.Pts[j].Position);
+      // Check if point should be visible ;-)
+      PtIsVisible := (Pt.X >= 0) and (Pt.Y >= 0) and (Pt.X <= PB.Width) and (Pt.Y <= PB.Height);
+      if not PtIsVisible and (j > 0) then
+      begin
+        NPT := PosToPixel(RouteWindow.Route.Pts[j + 1].Position);
+        PtIsVisible := (NPt.X >= 0) and (NPt.Y >= 0) and (NPt.X <= PB.Width) and (NPt.Y <= PB.Height);
+      end;
+      if not PtIsVisible and (j < High(RouteWindow.Route.Pts)) then
+      begin
+        NPT := PosToPixel(RouteWindow.Route.Pts[j - 1].Position);
+        PtIsVisible := (NPt.X >= 0) and (NPt.Y >= 0) and (NPt.X <= PB.Width) and (NPt.Y <= PB.Height);
+      end;
+      if PtIsVisible then
+      begin
+        Ca.FillRect(Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
+        if j > 0 then
+        begin
+          Ca.Line(LastPt, Pt);
+        end;
+      end;
+      LastPt := Pt;
+    end;
+  end;}
+
+  SetAPen(RP, RedPen);
+  SetDrMd(RP, JAM1);
+
+  (*for i := 0 to RouteList.Count -1 do
+  begin
+    if not RouteList[i].Visible then
+      Continue;
+    for j := 0 to High(RouteList[i].Pts) do
+    begin
+      Pt := PosToPixel(RouteList[i].Pts[j].Position);
+      // Check if point should be visible ;-)
+      PtIsVisible := (Pt.X >= 0) and (Pt.Y >= 0) and (Pt.X <= PB.Width) and (Pt.Y <= PB.Height);
+      if not PtIsVisible and (j > 0) then
+      begin
+        NPT := PosToPixel(RouteList[i].Pts[j + 1].Position);
+        PtIsVisible := (NPt.X >= 0) and (NPt.Y >= 0) and (NPt.X <= PB.Width) and (NPt.Y <= PB.Height);
+      end;
+      if not PtIsVisible and (j < High(RouteList[i].Pts)) then
+      begin
+        NPT := PosToPixel(RouteList[i].Pts[j - 1].Position);
+        PtIsVisible := (NPt.X >= 0) and (NPt.Y >= 0) and (NPt.X <= PB.Width) and (NPt.Y <= PB.Height);
+      end;
+      if PtIsVisible then
+      begin
+        Ca.FillRect(Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
+        if j > 0 then
+        begin
+          Ca.Line(LastPt, Pt);
+        end;
+      end;
+      LastPt := Pt;
+    end;
+  end;
+*)
+end;
+
+
+
+
+
 procedure TMapPanel.DrawGUI(RP: PRastPort; DrawRange: TRect);
 var
   ButtonSize: TPoint;
@@ -636,6 +811,31 @@ begin
   RefreshImage;
 end;
 
+
+procedure TMapPanel.SetShowMarker(AValue: Boolean);
+begin
+  if AValue = FShowMarker then
+    Exit;
+  FShowMarker := AValue;
+  RedrawObject;
+end;
+
+procedure TMapPanel.SetShowTracks(AValue: Boolean);
+begin
+  if AValue = FShowTracks then
+    Exit;
+  FShowTracks := AValue;
+  RedrawObject;
+end;
+
+procedure TMapPanel.SetShowRoutes(AValue: Boolean);
+begin
+  if AValue = FShowRoutes then
+    Exit;
+  FShowRoutes := AValue;
+  RedrawObject;
+end;
+
 function TMapPanel.DoSetup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Setup): PtrUInt;
 begin
   Result := inherited;
@@ -644,6 +844,7 @@ begin
   GrayPen := ObtainPen(clGray);
   BluePen := ObtainPen(clBlue);
   RedPen := ObtainPen(clRed);
+  GreenPen := ObtainPen(clGreen);
   YellowPen := ObtainPen(clYellow);
 end;
 
