@@ -62,6 +62,8 @@ var
 
   WM1: PObject_;
 
+  SidePanelOpen: Boolean = FALSE;
+
 procedure UpdateLocationLabel; forward;
 procedure SidePanelOpenEvent; forward;
 function BoundingBoxToZoom(BoundString: string): Integer; forward;
@@ -141,7 +143,7 @@ end;
 
 procedure SidePanelOpenEvent;
 begin
-  ShowSidePanel(not Boolean(MH_Get(SidePanel, MUIA_ShowMe)));
+  ShowSidePanel(not SidePanelOpen);
 end;
 
 // Update WayPoints;
@@ -306,25 +308,29 @@ var
   jObject: TJSONObject;
   c, r: TJSONStringType;
 begin
-  //Url := 'http://ipinfo.io';
-  URL:='http://ip-api.com/json';
+  //URL:='http://ip-api.com/json';
+  URL:='http://freegeoip.net/json/';
   if ip <> '' then
-    Url := URL + '/' + ip;
+    Url := URL + ip;
   St := TStringStream.Create('');
   try
     if GetCurlFile(Url, St) then
     begin
-      St.Position := 0;
+      //St.Position := 0;
+      //writeln(ST.DataString);
+      ST.Position := 0;
       jData := GetJSON(St);
       jObject := TJSONObject(jData);
-      SLat := jObject.Get('lat'); //Copy(Location, 1, P1 - 1);
-      SLon := jObject.Get('lon');//Copy(Location, P1 + 1, Length(Location));
+      //SLat := jObject.Get('lat'); //Copy(Location, 1, P1 - 1);
+      //SLon := jObject.Get('lon');//Copy(Location, P1 + 1, Length(Location));
+      SLat := jObject.Get('latitude'); //Copy(Location, 1, P1 - 1);
+      SLon := jObject.Get('longitude');//Copy(Location, P1 + 1, Length(Location));
       Lat := StrToFloatDef(SLat, Nan);
       Lon := StrToFloatDef(SLon, Nan);
       if not IsNan(Lat) and not IsNan(Lon) then
       begin
         c := jObject.Get('city', '');
-        r := jObject.Get('regionName', '');
+        r := jObject.Get('region_name', '');
         //l := jObject.Get('country', '');
         if c <> '' then
           CurZoom := 11
@@ -340,9 +346,11 @@ begin
         //LocationPanel.Caption := AnsiToUtf8(c + ' ' + r + ' ' + l);
       end;
     end;
-  finally
-    St.Free;
+  except
+    on E: Exception do
+      writeln('Error Getting IP Position: ', E.Message);
   end;
+  St.Free;
 end;
 
 //###################################
@@ -943,6 +951,7 @@ begin
   MH_Set(SidePanel, MUIA_ShowMe, AsTag(ShowIt));
   MH_Set(MainBalance, MUIA_Disabled, AsTag(not ShowIt));
   MUIMapPanel.ShowSidePanelBtn := not ShowIt;
+  SidePanelOpen := ShowIt;
   //MH_Set(MainBalance, MUIA_ShowMe, AsTag(ShowIt));
 end;
 
