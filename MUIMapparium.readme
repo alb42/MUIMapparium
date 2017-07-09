@@ -26,6 +26,7 @@ History:
 * Route drawing
 * Marker in Plot, shows also a marker in the Track
 * Turn off Marker, Track and Route drawing via Menu
+* Define Directory for Images via ToolTypes: e.g. DATADIR=DH1:TmpDir
 
 0.4
 

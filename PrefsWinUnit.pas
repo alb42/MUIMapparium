@@ -82,7 +82,7 @@ begin
   Bytes := 0;
   Counter := 0;
   StartTime := GetTickCount64;
-  if FindFirst(ExtractFileDir(ParamStr(0)) + DirectorySeparator + BASEFILE + '*.png', faAnyFile, Info) = 0 then
+  if FindFirst(IncludeTrailingPathDelimiter(DataDir) + BASEFILE + '*.png', faAnyFile, Info) = 0 then
   begin
     repeat
       Inc(Counter);
@@ -114,7 +114,7 @@ begin
   IgnoredFiles := 0;
   Limit := MH_Get(ToLevel, MUIA_String_Integer);
   //
-  if FindFirst(ExtractFileDir(ParamStr(0)) + DirectorySeparator + BASEFILE + '*.png', faAnyFile, Info) = 0 then
+  if FindFirst(IncludeTrailingPathDelimiter(DataDir) + BASEFILE + '*.png', faAnyFile, Info) = 0 then
   begin
     repeat
       FileName := Info.Name;
@@ -123,7 +123,7 @@ begin
       ZoomLevel := StrToIntDef(Copy(Filename, 1, P1 - 1), -1);
       if ZoomLevel >= Limit then
       begin
-        DeleteFile(ExtractFileDir(ParamStr(0)) + DirectorySeparator + 'data' + DirectorySeparator + Info.Name);
+        DeleteFile(IncludeTrailingPathDelimiter(DataDir) + DirectorySeparator + Info.Name);
         Inc(DeletedFiles);
       end else
       begin

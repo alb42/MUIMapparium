@@ -146,12 +146,14 @@ var
   MaxImages: Integer = 1000;
 
   AppDir: string;
+  DataDir: string;
 
 
 implementation
 
 uses
-  networkingunit, positionunit, defimageunit;
+  networkingunit, positionunit, defimageunit,
+  icon, workbench;
 
 procedure TFPACanvas.DoCopyRect (x,y:integer; canvas:TFPCustomCanvas; Const SourceRect:TRect);
 begin
@@ -528,10 +530,71 @@ begin
   end;
 end;
 
+type
+  TToolTypeArray= array of AnsiString;
+
+function GetToolTypes(Filename: AnsiString): TToolTypeArray;
+var
+  DObj: PDiskObject;
+  Tooltype: PPChar;
+  Idx: Integer;
+begin
+  SetLength(GetToolTypes, 0);
+  DObj := GetDiskObject(PChar(FileName));
+  if not Assigned(Dobj) then
+    Exit;
+  Tooltype := DObj^.do_Tooltypes;
+  while Assigned(ToolType^) do
+  begin
+    Idx := Length(GetToolTypes);
+    SetLength(GetToolTypes, Idx + 1);
+    GetToolTypes[Idx] := ToolType^;
+    Inc(ToolType);
+  end;
+  FreeDiskObject(DObj);
+end;
+
+procedure GetDirectories;
+var
+  TT: TToolTypeArray;
+  i: Integer;
+  str: string;
+begin
+  AppDir := ExtractFileDir(ParamStr(0));
+  DataDir := IncludeTrailingPathDelimiter(AppDir) + 'data';
+
+  TT := GetToolTypes(ParamStr(0));
+  for i := 0 to High(TT) do
+  begin
+    Str := Trim(TT[i]);
+    if Pos('DATAPATH=', UpperCase(Str)) = 1 then
+    begin
+      DataDir := Trim(Copy(Str, 10, Length(Str)));
+      if DataDir[Length(DataDir)] = DirectorySeparator then
+        Delete(DataDir, Length(DataDir), 1);
+    end;
+  end;
+
+  if not DirectoryExists(DataDir) then
+  begin
+    try
+      CreateDir(DataDir);
+    except
+      On E:Exception do
+      begin
+        writeln('Cannot create directory for image data: ', DataDir, ' Message: ', E.Message);
+        halt(5);
+      end;
+    end;
+  end;
+end;
+
+
 var
   ic: TFPACanvas;
+
 initialization
-  AppDir := ExtractFileDir(ParamStr(0));
+  GetDirectories;
 
   ITFMutex := TCriticalSection.Create;
   Mutex := TCriticalSection.Create;
@@ -544,10 +607,6 @@ initialization
   ic.Brush.FPColor := colBlue;
   ic.FillRect(0,0,255,255);
   ic.Free;
-
-
-  if not DirectoryExists(AppDir + DirectorySeparator + 'data') then
-    CreateDir(AppDir + DirectorySeparator + 'data');
 
   ImageLoadThread := TImageLoadThread.Create(True);
   ImageLoadThread.Start;

@@ -9,7 +9,7 @@ uses
 
 const
   BASEURL = 'http://tile.openstreetmap.org/';
-  BASEFILE = 'data' + DirectorySeparator + 'osm_';
+  BASEFILE = 'osm_';
 
   SEARCHURL = 'http://nominatim.openstreetmap.org/search/';
   REVERSEURL = 'http://nominatim.openstreetmap.org/reverse';
@@ -195,7 +195,7 @@ end;
 
 function BuildFilename(Zoom: Integer; MPos: TPoint): string;
 begin
-  Result := AppDir + DirectorySeparator + BASEFILE + IntToStr(Zoom) + '_' + IntToStr(MPos.X) + '_' + intToStr(MPos.Y) + '.png';
+  Result := IncludeTrailingPathDelimiter(DataDir) + BASEFILE + IntToStr(Zoom) + '_' + IntToStr(MPos.X) + '_' + intToStr(MPos.Y) + '.png';
 end;
 
 function GetPosbyString(PosStr: string; var Coord: TCoord; var Zoom: Integer): Boolean;
