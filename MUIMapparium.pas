@@ -1017,7 +1017,8 @@ begin
   //
   for i := 0 to High(TabStrings) do
     TabTitles[i] := PChar(TabStrings[i]);
-
+  // remove Fotos for now
+  TabTitles[High(TabStrings)] := nil;
 
   SRes := TSearchResults.Create;
   // Prefs
@@ -1115,8 +1116,8 @@ begin
             TAG_DONE])),
           TAG_DONE])),
         //#### Images
-        Child, AsTag(MH_VGroup([
-          TAG_DONE])),
+        //Child, AsTag(MH_VGroup([
+        //  TAG_DONE])),
         TAG_DONE])),
       TAG_DONE]);
     if not Assigned(SidePanel) then
