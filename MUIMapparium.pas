@@ -553,6 +553,60 @@ begin
   end;
 end;
 
+//###################################
+// Double Click to Route
+function DblRouteEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Active: LongInt;
+  Ro: TRoute;
+  MinC, MaxC: TCoord;
+  DiffLat, DiffLon: ValReal;
+  Pt: Classes.TPoint;
+  Rec: TRectCoord;
+  i: Integer;
+begin
+  Result := 0;
+  Active := MH_Get(RoutesListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < RouteList.Count) then
+  begin
+    Ro := RouteList[Active];
+    if Assigned(Ro) then
+    begin
+      for i := 0 to High(Ro.Pts) do
+      begin
+        if i = 0 then
+        begin
+          MinC := Ro.Pts[0].Position;
+          MaxC := Ro.Pts[0].Position;
+        end else
+        begin
+          MinC.Lat := Min(MinC.Lat, Ro.Pts[i].Position.Lat);
+          MinC.Lon := Min(MinC.Lon, Ro.Pts[i].Position.Lon);
+          MaxC.Lat := Max(MaxC.Lat, Ro.Pts[i].Position.Lat);
+          MaxC.Lon := Max(MaxC.Lon, Ro.Pts[i].Position.Lon);
+        end;
+      end;
+      if Length(Ro.Pts) > 0 then
+      begin
+        DiffLat := Abs(MaxC.Lat - MinC.Lat);
+        DiffLon := Abs(MaxC.Lon - MinC.Lon);
+        MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+        MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
+
+        for i := 0 to 18 do
+        begin
+          Pt := GetTileCoord(i, MiddlePos);
+          Rec := GetTileRect(i, Pt);
+          if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+            CurZoom := i;
+        end;
+        CurZoom := CurZoom + 1;
+        MUIMapPanel.RefreshImage;
+      end;
+    end;
+  end;
+end;
+
 // AddWayPoint Button
 function AddWayEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 begin
@@ -666,7 +720,7 @@ begin
   if (Active >= 0) and (Active < RouteList.Count) then
   begin
     Ro := RouteList[Active];
-    //ShowTrackProps(Tr);
+    ShowRouteProps(Ro);
     MUIMapPanel.RedrawObject;
   end;
 end;
@@ -1226,15 +1280,15 @@ begin
     ConnectHookFunction(MUIA_Pressed, AsTag(False), AddWay, nil, @AddWayHook, @AddWayEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), RemWay, nil, @RemWayHook, @RemWayEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), EditWay, nil, @EditWayHook, @EditWayEvent);
-    // double click to a Track Entry
-    ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, TracksList, nil, @DblTrackHook, @DblTrackEvent);
     // Track Actions
     ConnectHookFunction(MUIA_Pressed, AsTag(False), RemTrack, nil, @RemTrackHook, @RemTrackEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), EditTrack, nil, @EditTrackHook, @EditTrackEvent);
+    ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, TracksList, nil, @DblTrackHook, @DblTrackEvent);
     // Route Actions
     ConnectHookFunction(MUIA_Pressed, AsTag(False), AddRoute, nil, @AddRouteHook, @AddRouteEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), RemRoute, nil, @RemRouteHook, @RemRouteEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), EditRoute, nil, @EditRouteHook, @EditRouteEvent);
+    ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, RoutesList, nil, @DblRouteHook, @DblRouteEvent);
 
 
 
