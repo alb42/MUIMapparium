@@ -4,7 +4,7 @@ interface
 
 uses
   imagesunit, gpxunit,
-  DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson, zipper,
+  DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson, zipper, dateutils,
   SysUtils, StrUtils, Types, Classes, Math, utility, exec, dos, asl,
   MUIWrap;
 
@@ -123,7 +123,7 @@ function XMLTimeToDateTime(StrTime: string): TDateTime;
 var
   Year, Month, Day, Hour, Minu, Sec: LongInt;
 begin
-  Result := now;
+  Result := Now;
   if Length(StrTime) = 20 then
   begin
     Year := StrToIntDef(Copy(StrTime, 1, 4), 0);
@@ -132,7 +132,11 @@ begin
     Hour := StrToIntDef(Copy(StrTime, 12, 2), 0);
     Minu := StrToIntDef(Copy(StrTime, 15, 2), 0);
     Sec := StrToIntDef(Copy(StrTime, 18, 2), 0);
-    Result := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minu, Sec, 0);
+    try
+      Result := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minu, Sec, 0);
+    except
+      Result := Now;
+    end;
   end;
 end;
 
@@ -513,6 +517,9 @@ begin
   end;
 end;
 
+
+
+
 //########################################
 //  GPX
 
@@ -551,12 +558,7 @@ begin
           Marker.Elevation := StrToFloatDef(GetTextNode(SubNode, 'ele'), Nan);
           Marker.symbol := GetTextNode(SubNode, 'sym');
           str := GetTextNode(SubNode, 'time');
-          if Length(str) = 20 then
-          begin
-            str[11] := ' ';
-            str[20] := ' ';
-            Marker.Time := StrToDateTimeDef(str, now());
-          end;
+          Marker.Time := XMLTimeToDateTime(str);
           MarkerList.Add(Marker);
         end;
       //##### Route

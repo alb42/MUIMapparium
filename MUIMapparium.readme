@@ -20,6 +20,7 @@ History:
 * Bugfix: imperial units
 * Bugfix: key mapping
 * Bugfix: 2nd track curve drawing
+* Bugfix: Date/Time loading from GPX,KML,KMZ files 
 * Level of Detail for Tracks
 * Precalculation of Trackpositions (Speed optimization for NonFPU systems)
 * Route drawing
