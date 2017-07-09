@@ -57,6 +57,7 @@ var
   CloseHook: THook;
 
 procedure ShowTrackProps(NewTrack: TTrack);
+function DrawButtonEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 
 implementation
 
@@ -94,6 +95,8 @@ begin
     MH_Set(TrackPropsWin, MUIA_Window_Open, AsTag(True));
     // Set Name
     MH_Set(TrackName, MUIA_String_Contents, AsTag(PChar(NewTrack.Name)));
+    SetLength(TC.Data, 0);
+    DrawButtonEvent(nil, nil, nil);
   end;
 end;
 
