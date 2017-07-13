@@ -1,0 +1,62 @@
+MUI Mapparium 0.5
+
+by Marcus "ALB42" Sackrow
+
+OpenStreetMap Viewer for all Amiga systems
+written with FreePascal for Amiga Systems.
+
+This is a speed optimized version implemented with native
+MUI (no LCL wrapper used as the common Mapparium).
+It only contains the basic map showing functions.
+
+Much things still missing.
+Zoom with Mouse wheel or double click, if you don't have
+a mouse wheel you must use the menu entry.
+
+History:
+
+0.5
+
+* Bugfix: imperial units
+* Bugfix: key mapping
+* Bugfix: 2nd track curve drawing
+* Bugfix: Date/Time loading from GPX,KML,KMZ files
+* Level of Detail for Tracks
+* Precalculation of Trackpositions (Speed optimization for NonFPU systems)
+* Route drawing
+* Marker in Plot, shows also a marker in the Track
+* Turn off Marker, Track and Route drawing via Menu
+* Define Directory for Images via ToolTypes: e.g. DATAPATH=DH1:TmpDir
+* Change find IP to freegeoip.net (old one is too slow currently)
+* FPU Version for 68k
+
+0.4
+
+* Basic Plot module for Trackcurves (Height, slope, speed)
+* Plot popupmenu, Zoom, Data Readout
+* Support for imperial units
+* in-map GUI (Zoom In/Out, Side Panel)
+* OS4 mouse wheel
+* Keybinding for map (+,-, cursor keys)
+* Bugfix: AROS disabled Edit
+* BugFix: Amiga redrawing error
+
+0.3
+
+* AROS64
+* Localization
+* more precise position calculation
+* AREXX Port
+
+0.2
+
+* WayPoints
+* Tracks
+* Load Tracks/WayPoints GPX, TCX, KML, KMZ, FIT
+* Save Tracks/WayPoints GPX
+
+0.1
+
+* Complete new implementation with native MUI GUI
+* small as possible GUI
+* much faster own drawing routines
