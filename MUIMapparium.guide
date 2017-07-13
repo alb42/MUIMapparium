@@ -1,0 +1,126 @@
+@DATABASE MUIMapparium.guide
+@$VER: MUIMapparium.guide 0.1 (10.07.2017)
+@(c) 2017 Marcus "ALB42" Sackrow
+@author Marcus "ALB42" Sackrow
+@width 80
+@TOC MAIN
+
+@NODE MAIN "MUIMapparium Table of Contents"
+@TITLE "MUIMapparium - Table of Contents"
+  @{b}
+  MUIMapparium
+   Contents@{ub}
+
+  1)@{" Introduction " LINK Intro}
+  2)@{" GUI " LINK GUI}
+
+@ENDNODE
+
+
+@NODE Intro "Intoduction"
+
+  @{b}Introduction@{ub}
+
+MUIMapparium is a OpenStreetMap Viewer for all Amiga Systems. It's
+completly written in FreePascal and uses MUI/Zune as GUI toolkit.
+
+Requirements for all Systems:
+- RTG Graphics card (Picasso 96 or CGFX) 15/16/24/32 bit Screen
+- TCP/IP Stack (Internet connection)
+- 8+ MB RAM
+
+Supported Amiga-systems and requirements (Version 0.5):
+ - Amiga 68k, 68020+, (68881 FPU recommended) AmigaOS 3.0+
+ - Amiga OS4, OS 4.0+
+ - AROS i386, ABIv0
+ - AROS ARM, ABIv0 ARMV6+ VFPV2+ HardFloat (e.g. RasPi 1-3)
+ - AROS x86_64, ABIv1 (non SMP-Version)
+ - MorphOS 3.8+
+
+The map tiles are downloaded from OpenStreetMap as PNG files and cached
+onto the Harddisk. By default the images are saved to the "Data" folder
+in the MUIMapparium directory. This behavior can be changed by setting a
+DATADIR Tooltype to the MUIMapparium Icon e.g. DATAPATH=DH1:tmpdir.
+
+MUIMapparium can show Waypoints, Tracks and Routes which can be loaded
+from various GPS Formats: GPX, KML, KMZ, FIT. The Data can be saved to
+GPX Format.
+
+@ENDNODE
+
+@NODE GUI "GUI description"
+
+  @{b}GUI description@{ub}
+  1)@{" Main Window " LINK MainWin}
+  2)@{" Statistics " LINK StatWin}
+  3)@{" Preferences " LINK PrefsWin}
+  4)@{" Waypoint Properties " LINK WayWin}
+  5)@{" Track Properties " LINK TrackWin}
+  6)@{" Route Properties " LINK RouteWin}
+
+
+@ENDNODE
+
+
+@NODE MainWin "Main window"
+
+  @{b}Main Window@{ub}
+
+The main window consists of three big parts.
+
+ @{u}Map view@{uu}
+Shows the actual map, Waypoints as triangles, Tracks and Routes as lines.
+Click and hold left mouse button to move the map around. Missing tiles
+are loaded after you release the mouse. Tiles are going to load are
+have a written @{i}Loading Tile@{ui} on it. On Error the tiles will show
+@{i}ERROR@{ui} the either means the internet connection is disturbed
+or you found a bug. When a tile is not able to load from internet
+MUIMapparium will change to offline mode and not try to load any more
+tiles.
+A double click on the map zoom into this position. Zooming can be also
+done with the mousewheel, but here the center of the currently showed
+map is used to zoom. The current coordinates of the mouse is written
+in the panel below the map as latitude; longitude; zoom level.
+
+On the map are some one screen gui elements on the upper left side is
+an arrow to open/close the side panel next to it.
+On the lower right side is an arrow to open the on screen zoom menu
+with buttons to zoom in (+) and zoom out (-)
+
+ @{u}Search bar@{uu}
+At top of window is the search bar to search for map features. Type your
+text to search for into the edit and press Enter to start the search.
+The search results are shown in the @{i}Search@{ui} Tab of the
+@{i}Side Panel@{ui} see there. If there is only one search result the
+map will automatically jump to that position.
+The search bar also supports some other inputs.
+
+IP Location:
+You can search for a location of an IP (geo ip localization). Currently
+this function uses the freegeoip.net API. You can type IPs or hostnames
+to search for location e.g.
+@{i}IP:8.8.8.8@{ui}
+@{i}IP:amiga.org@{ui}
+
+Direct position:
+To jump directly to a position, type the latitude and longitude as text
+separated by a space to the search bar e.g.
+@{i}52.322 16.444@{ui}
+
+GEO URI:
+The Search input takes valid geo URIs to jump directly to a position on
+the map. A valid geo uri looks like geo:<latitude>,<longitude> e.g.
+@{i}geo: 52.322,16.444@{ui}
+You can also add the zoom level (2-19) at the end
+@{i}geo: 52.322,16.444,z=8@{ui}
+
+ @{u}Side Panel@{uu}
+The side panel show list of map features like the search results,
+waypoints, tracks and routes. Every list has an own Page.
+
+Search Page:
+Search results are shown here. Check
+
+
+
+@ENDNODE

@@ -20,13 +20,13 @@ History:
 * Bugfix: imperial units
 * Bugfix: key mapping
 * Bugfix: 2nd track curve drawing
-* Bugfix: Date/Time loading from GPX,KML,KMZ files 
+* Bugfix: Date/Time loading from GPX,KML,KMZ files
 * Level of Detail for Tracks
 * Precalculation of Trackpositions (Speed optimization for NonFPU systems)
 * Route drawing
 * Marker in Plot, shows also a marker in the Track
 * Turn off Marker, Track and Route drawing via Menu
-* Define Directory for Images via ToolTypes: e.g. DATADIR=DH1:TmpDir
+* Define Directory for Images via ToolTypes: e.g. DATAPATH=DH1:TmpDir
 * Change find IP to freegeoip.net (old one is too slow currently)
 * FPU Version for 68k
 
