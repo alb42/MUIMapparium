@@ -9,7 +9,7 @@ uses
   {$ifdef HASAMIGA}
   sockets,
   {$endif}
-  Dos;
+  Dos, versionunit;
 
 function GetFile(address: string; AStream: TStream): Boolean; overload;
 function GetFile(address, filename: string): Boolean; overload;
@@ -35,7 +35,7 @@ begin
     Exit;
   hp := TFPHTTPClient.Create(nil);
   try
-    hp.AddHeader('User-Agent', 'MUIMapparium');
+    hp.AddHeader('User-Agent', WindowTitleTemplate);
     t1 := GetMsCount;
     hp.Get(address, AStream);
     t1 := GetMsCount - t1;
@@ -57,7 +57,7 @@ begin
     Exit;
   hp := TFPHTTPClient.Create(nil);
   try
-    hp.AddHeader('User-Agent', 'MUIMapparium');
+    hp.AddHeader('User-Agent', WindowTitleTemplate);
     hp.AddHeader('X-Yours-client', 'MUIMapparium');
     t1 := GetMsCount;
     hp.Get(address, AStream);
@@ -102,7 +102,7 @@ begin
     Exit;
   hp := TFPHTTPClient.Create(nil);
   try
-    hp.AddHeader('User-Agent', 'MUIMapparium');
+    hp.AddHeader('User-Agent', WindowTitleTemplate);
     t1 := GetMsCount;
     hp.Get(address, filename);
     t1 := GetMsCount - t1;

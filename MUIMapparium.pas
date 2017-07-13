@@ -13,7 +13,7 @@ uses
   Statisticsunit, waypointunit, WPPropsUnit, TrackPropsUnit, RoutePropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math, versionunit,
-  MapPanelUnit;
+  MapPanelUnit, UpdateUnit;
 
 const
   // MainMenu
@@ -29,6 +29,7 @@ const
   MID_DrawMarker = 10;
   MID_DrawTracks = 11;
   MID_DrawRoutes = 12;
+  MID_UpdateCheck= 13;
   // WayMenu
   WID_Toggle = 1;
 
@@ -460,6 +461,7 @@ begin
     MID_FINDME: SearchIP('');
     MID_PREFS: OpenPrefs();
     MID_Statistics: MH_Set(StatWin, MUIA_Window_Open, AsTag(True));
+    MID_UpdateCheck: CheckForUpdate;
   end;
   Result := 0;
 end;
@@ -1212,8 +1214,12 @@ begin
           TAG_DONE])),
         TAG_DONE])),
       // About Menu -----------------
-      //Child, AsTag(MH_Menu('About',[
-      //  TAG_DONE])),
+      Child, AsTag(MH_Menu('About',[
+        Child, AsTag(MH_MenuItem([
+          MUIA_Menuitem_Title, AsTag('Check for Update'),     // 'Check for Update'
+          MUIA_UserData, MID_UpdateCheck,
+          TAG_DONE])),
+        TAG_DONE])),
       TAG_DONE]);
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1271,6 +1277,9 @@ begin
       writeln(GetLocString(MSG_ERROR_APPLICATION));           // 'Failed to create Application'
       Exit;
     end;
+    // version app set
+    WrapApp := App;
+    WrapWin := Window;
     //
     MH_Set(CoordsLabel, MUIA_Text_PreParse, AsTag(PChar(MUIX_R)));
     // Close main window

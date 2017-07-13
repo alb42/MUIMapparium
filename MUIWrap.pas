@@ -53,6 +53,11 @@ function TH(RP: PRastPort; Text: string): Integer;
 function TW(RP: PRastPort; Text: string): Integer; inline;
 procedure DrawRect(RP: PRastPort; r: TRect); inline;
 
+procedure ShowMessage(Title, Button, Text: string);
+
+var
+  WrapApp, WrapWin: PObject_;
+
 implementation
 
 function TH(RP: PRastPort; Text: string): Integer;
@@ -298,6 +303,11 @@ begin
   Result := AllocAslRequest(reqType, Param);
 end;
 {$endif}
+
+procedure ShowMessage(Title, Button, Text: string);
+begin
+  MUI_RequestA(WrapApp, WrapWin, 0, PChar(Title), PChar(Button), PChar(Text), nil);
+end;
 
 initialization
   if not Assigned(Tr) then
