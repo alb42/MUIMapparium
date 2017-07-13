@@ -17,7 +17,7 @@ function copyit {
   rm -f *.lha
   echo "  create archive ${base}${plat}.lha"
   lha ao5 ${base}${plat}.lha MUIMapparium MUIMapparium.info >>errmsg.log
-  md5sum ${base}${plat}.lha >>md5.txt
+  md5sum ${base}${plat}.lha >>../md5.txt
   cd ..
 }
 
