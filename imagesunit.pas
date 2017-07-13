@@ -530,49 +530,31 @@ begin
   end;
 end;
 
-type
-  TToolTypeArray= array of AnsiString;
-
-function GetToolTypes(Filename: AnsiString): TToolTypeArray;
+function GetStrToolType(DObj: PDiskObject; Entry: string; Default: string): string;
 var
-  DObj: PDiskObject;
-  Tooltype: PPChar;
-  Idx: Integer;
+  Res: PChar;
 begin
-  SetLength(GetToolTypes, 0);
-  DObj := GetDiskObject(PChar(FileName));
-  if not Assigned(Dobj) then
+  Result := Default;
+  if not assigned(Dobj) then
     Exit;
-  Tooltype := DObj^.do_Tooltypes;
-  while Assigned(ToolType^) do
-  begin
-    Idx := Length(GetToolTypes);
-    SetLength(GetToolTypes, Idx + 1);
-    GetToolTypes[Idx] := ToolType^;
-    Inc(ToolType);
-  end;
-  FreeDiskObject(DObj);
+  if not Assigned(Dobj^.do_Tooltypes) then
+    Exit;
+  Res := FindToolType(Dobj^.do_Tooltypes, PChar(Entry));
+  if Assigned(Res) then
+    Result := Res;
 end;
 
 procedure GetDirectories;
 var
-  TT: TToolTypeArray;
-  i: Integer;
-  str: string;
+  DObj: PDiskObject;
 begin
   AppDir := ExtractFileDir(ParamStr(0));
   DataDir := IncludeTrailingPathDelimiter(AppDir) + 'data';
-
-  TT := GetToolTypes(ParamStr(0));
-  for i := 0 to High(TT) do
+  DObj := GetDiskObject(PChar(ParamStr(0)));
+  if Assigned(DObj) then
   begin
-    Str := Trim(TT[i]);
-    if Pos('DATAPATH=', UpperCase(Str)) = 1 then
-    begin
-      DataDir := Trim(Copy(Str, 10, Length(Str)));
-      if DataDir[Length(DataDir)] = DirectorySeparator then
-        Delete(DataDir, Length(DataDir), 1);
-    end;
+    DataDir := GetStrToolType(DObj, 'DATAPATH', DataDir);
+    FreeDiskObject(DObj);
   end;
 
   if not DirectoryExists(DataDir) then
