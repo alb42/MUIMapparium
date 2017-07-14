@@ -1214,9 +1214,9 @@ begin
           TAG_DONE])),
         TAG_DONE])),
       // About Menu -----------------
-      Child, AsTag(MH_Menu('About',[
+      Child, AsTag(MH_Menu(GetLocString(MSG_MENU_ABOUT),[
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag('Check for Update'),     // 'Check for Update'
+          MUIA_Menuitem_Title, AsTag(PChar(GetLocString(MSG_MENU_ABOUT_UPDATE))),     // 'Check for Update'
           MUIA_UserData, MID_UpdateCheck,
           TAG_DONE])),
         TAG_DONE])),

@@ -362,6 +362,14 @@ MSG_MENU_WINDOW_STATISTICS
 Statistiken
 ; Statistics
 ;
+MSG_MENU_ABOUT
+Über
+; About
+;
+MSG_MENU_ABOUT_UPDATE
+Überprüfe auf Updates
+; Check for Updates
+;
 ;
 ;#### Buttons
 MSG_BUTTON_WAYPOINT_ADD
@@ -404,8 +412,27 @@ MSG_GENERAL_CANCEL
 Abbrechen
 ; Cancel
 ;
+MSG_GENERAL_OK
+OK
+; OK
+;
 ;#### Defaults
 MSG_DEFAULT_WAYPOINT
 Marker %d
 ; Waypoint %d
 ;
+;#### Update Checker
+MSG_UPDATE_CHECK
+Update prüfen
+; Update Check
+;
+MSG_UPDATE_ERROR
+Fehler beim holen der Updateinformationen
+; Error to get update information
+;
+MSG_UPDATE_INFO
+\033bUpdate verfügbar\033n\n  Online Version: \033t$OLDVER$\n  Deine Version:  \033t$NEWVER$\nGehe zu \033b$URL$\033n um das Update herunterzuladen.
+; \033bUpdate available\033n\n  Online available: \033t$OLDVER$\n  Your Version:     \033t$NEWVER$\nCheck \033b$URL$\033n for downloading updates.
+MSG_UPDATE_NONE
+Kein Update verfügbar.
+; No Update available.
