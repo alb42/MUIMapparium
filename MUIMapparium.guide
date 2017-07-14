@@ -119,7 +119,18 @@ The side panel show list of map features like the search results,
 waypoints, tracks and routes. Every list has an own Page.
 
 Search Page:
-Search results are shown here. Check
+Search results are shown here. A double click to an entry sets the map
+center to this search result.
+
+Waypoints:
+List of waypoints. Waypoints are single point marker on the map. They can
+be loaded from GPX, KML or KMZ files via menu entry @{i}Load@{ui} or
+added via AREXX command @{i}addwaypoint@{ui}. To add a waypoint at the
+current position press @{i}Add@{ui} button. The @{i}Edit@{ui}
+button opens the @{"waypoint properties" LINK WayWin} window where you
+can change the name and position of a waypoint. The @{i}Remove@{ui}
+button deletes a waypoint.
+Waypoints can be saved to GPX files via menu entry @{i}Save@{ui}.
 
 
 

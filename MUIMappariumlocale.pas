@@ -273,6 +273,9 @@ const
   MSG_MENU_ABOUT_UPDATE = 30401 ;
   MSG_MENU_ABOUT_UPDATE_STR = 'Check for Updates'#0;
 
+  MSG_MENU_ABOUT_HELP = 30402 ;
+  MSG_MENU_ABOUT_HELP_STR = 'Help'#0;
+
   MSG_BUTTON_WAYPOINT_ADD = 40000 ;
   MSG_BUTTON_WAYPOINT_ADD_STR = 'Add'#0;
 
@@ -340,7 +343,7 @@ type
      str: string;
   end;
 
-  TAppStringArray = array[0..102] of TAppString;
+  TAppStringArray = array[0..103] of TAppString;
 
 const
   AppStrings: TAppStringArray = (
@@ -430,6 +433,7 @@ const
     (id: MSG_MENU_WINDOW_STATISTICS ; str: MSG_MENU_WINDOW_STATISTICS_STR ),
     (id: MSG_MENU_ABOUT ; str: MSG_MENU_ABOUT_STR ),
     (id: MSG_MENU_ABOUT_UPDATE ; str: MSG_MENU_ABOUT_UPDATE_STR ),
+    (id: MSG_MENU_ABOUT_HELP ; str: MSG_MENU_ABOUT_HELP_STR ),
     (id: MSG_BUTTON_WAYPOINT_ADD ; str: MSG_BUTTON_WAYPOINT_ADD_STR ),
     (id: MSG_BUTTON_WAYPOINT_REMOVE ; str: MSG_BUTTON_WAYPOINT_REMOVE_STR ),
     (id: MSG_BUTTON_WAYPOINT_EDIT ; str: MSG_BUTTON_WAYPOINT_EDIT_STR ),

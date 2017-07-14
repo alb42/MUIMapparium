@@ -167,6 +167,7 @@ begin
   PrefsWin := MH_Window([
     MUIA_Window_Title,     AsTag(GetLocString(MSG_PREFS_TITLE)),  // 'Preferences'
     MUIA_Window_ID,        AsTag(MAKE_ID('M','P','R','E')),
+    MUIA_HelpNode,         AsTag('PrefsWin'),
     WindowContents, AsTag(MH_VGroup([
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,

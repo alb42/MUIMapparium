@@ -370,6 +370,10 @@ MSG_MENU_ABOUT_UPDATE
 Überprüfe auf Updates
 ; Check for Updates
 ;
+MSG_MENU_ABOUT_HELP
+Hilfe
+; Help
+;
 ;
 ;#### Buttons
 MSG_BUTTON_WAYPOINT_ADD

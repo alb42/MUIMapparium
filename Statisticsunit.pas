@@ -170,6 +170,7 @@ begin
   StatWin := MH_Window([
     MUIA_Window_Title,     AsTag(GetLocString(MSG_STAT_WINTITLE)), // 'Statistics'
     MUIA_Window_ID,        AsTag(MAKE_ID('M','S','T','A')),
+    MUIA_HelpNode,         AsTag('StatWin'),
     WindowContents, AsTag(MH_VGroup([
       Child, AsTag(MH_Text(PChar(GetLocString(MSG_STAT_TITLE) + '                                                                                '))),
       Child, AsTag(MH_List(StatListEntry, [

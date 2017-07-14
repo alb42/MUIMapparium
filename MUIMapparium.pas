@@ -17,19 +17,20 @@ uses
 
 const
   // MainMenu
-  MID_QUIT       = 1;
-  MID_SIDEPANEL  = 2;
-  MID_ZOOMIN     = 3;
-  MID_ZOOMOUT    = 4;
-  MID_FINDME     = 5;
-  MID_Prefs      = 6;
-  MID_Statistics = 7;
-  MID_Load       = 8;
-  MID_Save       = 9;
-  MID_DrawMarker = 10;
-  MID_DrawTracks = 11;
-  MID_DrawRoutes = 12;
-  MID_UpdateCheck= 13;
+  MID_QUIT        = 1;
+  MID_SIDEPANEL   = 2;
+  MID_ZOOMIN      = 3;
+  MID_ZOOMOUT     = 4;
+  MID_FINDME      = 5;
+  MID_Prefs       = 6;
+  MID_Statistics  = 7;
+  MID_Load        = 8;
+  MID_Save        = 9;
+  MID_DrawMarker  = 10;
+  MID_DrawTracks  = 11;
+  MID_DrawRoutes  = 12;
+  MID_UpdateCheck = 13;
+  MID_Help        = 14;
   // WayMenu
   WID_Toggle = 1;
 
@@ -439,6 +440,18 @@ begin
   Result := 0;
 end;
 
+procedure StartHelp;
+begin
+  {$ifdef AROS}
+    try
+      ExecuteProcess('c:run', 'Sys:Utilities/Multiview ' + IncludeTrailingPathdelimiter(AppDir) + 'MuiMapparium.guide');
+    except
+    end;
+  {$else}
+    DoMethod(app, [MUIM_Application_ShowHelp, AsTag(Window), 0, 0, 0]);
+  {$endif}
+end;
+
 //###################################
 // Menu Event
 function MenuEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
@@ -462,6 +475,7 @@ begin
     MID_PREFS: OpenPrefs();
     MID_Statistics: MH_Set(StatWin, MUIA_Window_Open, AsTag(True));
     MID_UpdateCheck: CheckForUpdate;
+    MID_Help: StartHelp;
   end;
   Result := 0;
 end;
@@ -1216,6 +1230,10 @@ begin
       // About Menu -----------------
       Child, AsTag(MH_Menu(GetLocString(MSG_MENU_ABOUT),[
         Child, AsTag(MH_MenuItem([
+          MUIA_Menuitem_Title, AsTag(PChar(GetLocString(MSG_MENU_ABOUT_HELP))),     // 'Help'
+          MUIA_UserData, MID_Help,
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem([
           MUIA_Menuitem_Title, AsTag(PChar(GetLocString(MSG_MENU_ABOUT_UPDATE))),     // 'Check for Update'
           MUIA_UserData, MID_UpdateCheck,
           TAG_DONE])),
@@ -1241,12 +1259,14 @@ begin
       MUIA_Application_Description, AsTag('Open Street Map viewer. (MUI)'),
       MUIA_Application_Base,        AsTag('MAPPARIUM'),
       MUIA_Application_DiskObject,  AsTag(ThisAppDiskIcon),
+      MUIA_Application_HelpFile,    AsTag(PChar(IncludeTrailingPathdelimiter(AppDir) + 'MUIMapparium.guide')),
       MUIA_Application_RexxHook,    AsTag(@RexxHook),
 
       SubWindow, AsTag(MH_Window(Window, [
         MUIA_Window_Title,     AsTag(PChar(WindowTitleTemplate)),
         MUIA_Window_ID,        AsTag(MAKE_ID('M','A','P','P')),
         MUIA_Window_MenuStrip, AsTag(MainMenu),
+        MUIA_HelpNode,         AsTag('MainWin'),
         WindowContents, AsTag(MH_VGroup([
 
 

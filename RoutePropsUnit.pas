@@ -78,6 +78,7 @@ begin
   RoutePropsWin := MH_Window([
     MUIA_Window_Title,     AsTag(GetLocString(MSG_ROUTEPROP_TITLE)), // 'Route Properties'
     MUIA_Window_ID,        AsTag(MAKE_ID('R','O','U','P')),
+    MUIA_HelpNode,         AsTag('RouteWin'),
     WindowContents, AsTag(MH_VGroup([
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,

@@ -280,6 +280,9 @@ About
 MSG_MENU_ABOUT_UPDATE (30401//)
 Check for Updates
 ;
+MSG_MENU_ABOUT_HELP (30402//)
+Help
+;
 ;
 ;#### Buttons
 MSG_BUTTON_WAYPOINT_ADD (40000//)

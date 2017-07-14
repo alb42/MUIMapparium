@@ -69,6 +69,7 @@ begin
   WPPropsWin := MH_Window([
     MUIA_Window_Title,     AsTag(GetLocString(MSG_WAYPROP_TITLE)), // 'WayPoint Properties'
     MUIA_Window_ID,        AsTag(MAKE_ID('W','A','Y','P')),
+    MUIA_HelpNode,         AsTag('WayWin'),
     WindowContents, AsTag(MH_VGroup([
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,

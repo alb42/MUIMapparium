@@ -395,6 +395,7 @@ begin
   TrackPropsWin := MH_Window([
     MUIA_Window_Title,     AsTag(GetLocString(MSG_TRACKPROP_TITLE)), // 'Track Properties'
     MUIA_Window_ID,        AsTag(MAKE_ID('T','R','A','P')),
+    MUIA_HelpNode,         AsTag('TrackWin'),
     WindowContents, AsTag(MH_VGroup([
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
