@@ -265,7 +265,7 @@ begin
   li := NewLayerInfo(); // Layerinfo we also need
   // Bitmap and layer for the temp rastport
   LocalRP^.Bitmap := AllocBitMap(DrawRect.Width, DrawRect.Height, rp^.Bitmap^.Depth, BMF_MINPLANES or BMF_DISPLAYABLE, rp^.Bitmap);
-  LocalRP^.Layer := CreateUpFrontHookLayer(li, LocalRP^.Bitmap, 0, 0, DrawRect.Width - 1, DrawRect.Height - 1, LAYERSIMPLE, nil, nil);
+  LocalRP^.Layer := CreateUpFrontLayer(li, LocalRP^.Bitmap, 0, 0, DrawRect.Width - 1, DrawRect.Height - 1, LAYERSIMPLE, nil);
   SetFont(LocalRP, rp^.Font);
   // initialize to background color
   SetAPen(LocalRP, 0);

@@ -293,7 +293,7 @@ end;
 
 function CreateRastPort: PRastPort;
 begin
-  Result := AllocMem(SizeOf(TRastPort));
+  Result := AllocMem(SizeOf(TRastPort) * 2);
   InitRastPort(Result);
 end;
 {$endif}

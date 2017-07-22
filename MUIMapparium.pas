@@ -13,7 +13,7 @@ uses
   Statisticsunit, waypointunit, WPPropsUnit, TrackPropsUnit, RoutePropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math, versionunit,
-  MapPanelUnit, UpdateUnit;
+  MapPanelUnit, UpdateUnit, aboutwinunit;
 
 const
   // MainMenu
@@ -31,6 +31,8 @@ const
   MID_DrawRoutes  = 12;
   MID_UpdateCheck = 13;
   MID_Help        = 14;
+  MID_About       = 15;
+  MID_AboutMUI    = 16;
   // WayMenu
   WID_Toggle = 1;
 
@@ -476,6 +478,8 @@ begin
     MID_Statistics: MH_Set(StatWin, MUIA_Window_Open, AsTag(True));
     MID_UpdateCheck: CheckForUpdate;
     MID_Help: StartHelp;
+    MID_About: OpenAboutWindow;
+    MID_AboutMUI: DoMethod(App, [MUIM_Application_AboutMUI, AsTag(Window)]);
   end;
   Result := 0;
 end;
@@ -1219,7 +1223,7 @@ begin
           MUIA_UserData, MID_SIDEPANEL,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_WINDOW_PREFS)),     // 'Prefs'
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_WINDOW_PREFS)),     // 'Prefs ...'
           MUIA_UserData, MID_Prefs,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
@@ -1230,11 +1234,19 @@ begin
       // About Menu -----------------
       Child, AsTag(MH_Menu(GetLocString(MSG_MENU_ABOUT),[
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(PChar(GetLocString(MSG_MENU_ABOUT_HELP))),     // 'Help'
+          MUIA_Menuitem_Title, AsTag(PChar(GetLocString(MSG_MENU_ABOUT_ABOUT))),     // 'About ...'
+          MUIA_UserData, MID_About,
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem([
+          MUIA_Menuitem_Title, AsTag(PChar(GetLocString(MSG_MENU_ABOUT_ABOUTMUI))),     // 'About MUI ...'
+          MUIA_UserData, MID_AboutMUI,
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem([
+          MUIA_Menuitem_Title, AsTag(PChar(GetLocString(MSG_MENU_ABOUT_HELP))),     // 'Help ...'
           MUIA_UserData, MID_Help,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
-          MUIA_Menuitem_Title, AsTag(PChar(GetLocString(MSG_MENU_ABOUT_UPDATE))),     // 'Check for Update'
+          MUIA_Menuitem_Title, AsTag(PChar(GetLocString(MSG_MENU_ABOUT_UPDATE))),     // 'Check for Update ...'
           MUIA_UserData, MID_UpdateCheck,
           TAG_DONE])),
         TAG_DONE])),
@@ -1291,6 +1303,7 @@ begin
       SubWindow, AsTag(WPPropsWin),
       SubWindow, AsTag(TrackPropsWin),
       SubWindow, AsTag(RoutePropsWin),
+      SubWindow, AsTag(AboutWin),
       TAG_DONE]);
     if not Assigned(app) then
     begin
@@ -1372,6 +1385,11 @@ begin
           MUIMapPanel.RedrawObject;
           ReDrawImage := False;
           //writeln(8);
+        end;
+        if GetMUITime - StartTime > 20 then
+        begin
+          if LongBool(MH_Get(PlayPanel.MUIObject, MUIA_ShowMe)) then
+            PlayPanel.RedrawObject;
         end;
         // Update Status things
         if GetMUITime - StartTime > 500 then

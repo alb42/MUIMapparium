@@ -277,11 +277,17 @@ Statistics
 MSG_MENU_ABOUT (30400//)
 About
 ;
-MSG_MENU_ABOUT_UPDATE (30401//)
-Check for Updates
+MSG_MENU_ABOUT_ABOUT (30401//)
+About ...
 ;
-MSG_MENU_ABOUT_HELP (30402//)
-Help
+MSG_MENU_ABOUT_ABOUTMUI (30402//)
+About MUI ...
+;
+MSG_MENU_ABOUT_UPDATE (30403//)
+Check for Updates ...
+;
+MSG_MENU_ABOUT_HELP (30404//)
+Help ...
 ;
 ;
 ;#### Buttons
