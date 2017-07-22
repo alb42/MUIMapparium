@@ -2,6 +2,9 @@ unit aboutwinunit;
 {$mode objfpc}{$H+}
 interface
 uses
+  {$if defined(Amiga68k) or defined(MorphOS)}
+    amigalib,
+  {$endif}
   Types, Classes, SysUtils, fgl, Math,
   Exec, Utility, intuition, AGraphics, Layers, MUI, MUIHelper,
   MUIWrap, MUIPaintBoxUnit, versionunit;

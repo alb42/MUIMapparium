@@ -16,7 +16,7 @@ function copyit {
   cd Release.${plat}
   rm -f *.lha
   echo "  create archive ${base}${plat}.lha"
-  lha ao5 ${base}${plat}.lha MUIMapparium MUIMapparium.info >>errmsg.log
+  lha ao5 ${base}${plat}.lha MUIMapparium MUIMapparium.info >>../errmsg.log
   md5sum ${base}${plat}.lha >>../md5.txt
   cd ..
 }
@@ -25,6 +25,8 @@ function copyit {
 # AROS
 echo ""
 echo "################# AROS ##########################"
+echo "" >>errmsg.log
+echo "################# AROS ##########################" >>errmsg.log
 plat="i386-aros"
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
@@ -35,6 +37,8 @@ copyit
 # AROS ARM
 echo ""
 echo "################# ARM AROS ######################"
+echo "" >>errmsg.log
+echo "################# ARM AROS ##########################" >>errmsg.log
 plat="arm-aros"
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
@@ -45,6 +49,8 @@ copyit
 # AROS x64
 echo ""
 echo "################# AROS64 ########################"
+echo "" >>errmsg.log
+echo "################# AROS64 ##########################" >>errmsg.log
 plat="x86_64-aros"
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
@@ -55,6 +61,8 @@ copyit
 # Amiga
 echo ""
 echo "################# Amiga #########################"
+echo "" >>errmsg.log
+echo "################# Amiga #########################" >>errmsg.log
 plat="m68k-amiga"
 mkdir -p units/m68k-amiga
 echo "  Compile ${plat}"
@@ -73,6 +81,8 @@ copyit
 # MorphOS
 echo ""
 echo "################# MorphOS #######################"
+echo "" >>errmsg.log
+echo "################# MorphOS #######################" >>errmsg.log
 plat="powerpc-morphos"
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
@@ -84,6 +94,8 @@ copyit
 # Amiga OS4
 echo ""
 echo "################# AmigaOS4 ######################"
+echo "" >>errmsg.log
+echo "################# AmigaOS4 ######################" >>errmsg.log
 plat="powerpc-amiga"
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
@@ -93,3 +105,4 @@ cp MUIMapparium Release.${plat}/MUIMapparium/
 copyit
 
 echo "############### Finished"
+echo "############### Finished" >>errmsg.log

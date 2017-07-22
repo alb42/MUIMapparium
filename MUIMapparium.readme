@@ -15,6 +15,14 @@ a mouse wheel you must use the menu entry.
 
 History:
 
+0.6
+
+* BugFix: OS4 ToolType reading
+* Update Checking
+* Amiga Guide manual
+* About MUI Menu Entry
+* About Window
+
 0.5
 
 * Bugfix: imperial units
