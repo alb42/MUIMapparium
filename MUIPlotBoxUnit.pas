@@ -3,9 +3,6 @@ unit MUIPlotBoxUnit;
 interface
 
 uses
-  {$if defined(MorphOS) or defined(Amiga68k)}
-  amigalib,
-  {$endif}
   Math, Classes, SysUtils, MUIPaintBoxUnit, mui, exec, agraphics, intuition,
   utility, prefsunit, types, layers, MuiHelper,
   cybergraphics, muiwrap;

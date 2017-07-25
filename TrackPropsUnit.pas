@@ -3,9 +3,6 @@ unit TrackPropsUnit;
 interface
 
 uses
-  {$if defined(Amiga68k) or defined(MorphOS)}
-    amigalib,
-  {$endif}
   SysUtils, exec, utility, intuition, agraphics, locale, mui, muihelper,
   prefsunit, osmhelper, MUIWrap, imagesunit, positionunit, waypointunit,
   MUIPlotBoxUnit;

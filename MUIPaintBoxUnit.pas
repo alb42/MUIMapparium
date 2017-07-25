@@ -3,9 +3,6 @@ unit MUIPaintBoxUnit;
 interface
 
 uses
-  {$if defined(MorphOS) or defined(Amiga68k)}
-  amigalib,
-  {$endif}
   Classes, Math, Sysutils,
   Exec, Utility, Intuition, inputevent, AGraphics, mui, muihelper, keymap;
 type

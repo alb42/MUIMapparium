@@ -2,12 +2,9 @@ unit aboutwinunit;
 {$mode objfpc}{$H+}
 interface
 uses
-  {$if defined(Amiga68k) or defined(MorphOS)}
-    amigalib,
-  {$endif}
   Types, Classes, SysUtils, fgl, Math,
   Exec, Utility, intuition, AGraphics, Layers, MUI, MUIHelper,
-  MUIWrap, MUIPaintBoxUnit, versionunit;
+  MUIWrap, MUIPaintBoxUnit, versionunit, MUIMappariumlocale;
 
 const
   DefText =
@@ -26,9 +23,10 @@ const
 
   MINSHIPDISTANCE = 20;
   PlayWidth = 200;
+  PlayHeight = 300;
 
 type
-  TPlayModus = (pmStopped, pmRunning, pmEnd);
+  TPlayModus = (pmStopped, pmRunning);
   TEnemyModus = (emIdle, emHit);
 
   TSomething = class
@@ -54,32 +52,38 @@ type
 
   TPlayPanel = class(TMUIPaintBox)
   private
-    PlayModus: TPlayModus;
-    EOffset: TPoint;
-    MoveDir: Integer; // - 1 or + 1
-    TextLine: Integer;
-    EnemyList: TEnemyList;
-    BulletList: TBulletList;
-    Ship: TShip;
-    AboutText: TStringList;
-    LastCall: Int64;
-    Points: Integer;
-    MaxTW: Integer;
-    TitleText: TStringList;
-    procedure DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect);
+    PlayModus: TPlayModus; // game runs or not
+    EOffset: TPoint; // Offset of the Enemies (all move together)
+    MoveDir: Integer; // move directioy of the enemies - 1 or + 1 (for EOffset)
+    TextLine: Integer; // Next line to load in About Text to create Enemies
+    AboutText: TStringList; // The AboutText loaded from DefText
+    MaxTW: Integer; // Maximal Line Width in Pixels (to calculate the Start position)
+    //
+    EnemyList: TEnemyList;   // List of enemies create from the About Text
+    BulletList: TBulletList; // List of Bullets shoot by User
+    Ship: TShip; // Ship properties
+    //
+    LastCall: Int64; // TimeTag for the last Movement update to calculate the current movement
+    Points: Integer; // Number of Points earned by User
+
+    TitleText: TStringList; // Text when the Game is not running
+    //
+
     procedure KeyDownEvent(Sender: TObject; Shift: TMUIShiftState; Code: Word; Key: Char; var EatEvent: Boolean);
     procedure NextLines(RP: PRastPort; DrawRect: TRect);
     procedure CalcMovement;
     procedure CheckHits;
     procedure FireBullet;
-    procedure DrawEnemies(Rp: PRastPort; DrawRect: TRect);
-    procedure DrawShip(Rp: PRastPort; DrawRect: TRect);
-    procedure DrawBullets(Rp: PRastPort; DrawRect: TRect);
-    procedure DrawTitle(Rp: PRastPort; DrawRect: TRect);
+    // Draw Events
+    procedure DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect); // Main Drawing event
+    procedure DrawEnemies(Rp: PRastPort; DrawRect: TRect); // Calc movements and draw Enemies to the RastPort
+    procedure DrawShip(Rp: PRastPort; DrawRect: TRect);    // Draw the user ship
+    procedure DrawBullets(Rp: PRastPort; DrawRect: TRect); // Draw the bullets fired by user and
+    procedure DrawTitle(Rp: PRastPort; DrawRect: TRect);   // Draw non-Game Text
   public
-    constructor Create(const Args: array of PtrUInt); override;
-    destructor Destroy; override;
-    procedure DoRedrawing;
+    constructor Create(const Args: array of PtrUInt); override; // Create it
+    destructor Destroy; override; // Destroy it
+    procedure DoRedrawing; // update the Game if running, called by main application
   end;
 
 procedure OpenAboutWindow;
@@ -94,31 +98,32 @@ implementation
 constructor TPlayPanel.Create(const Args: array of PtrUInt);
 begin
   inherited;
-  PlayModus := pmStopped;
-  //
+  PlayModus := pmStopped; // initially the game does not run
+  // Text without Game
+  TitleText := TStringList.Create;
+  TitleText.Text := StarterText;
+  // init the game Text
   TextLine := 0;
   AboutText := TStringList.Create;
   AboutText.Text := DefText;
-  //
+  // Enemies, Bullets and the Ship
   EnemyList := TEnemyList.Create;
   BulletList := TBulletList.Create;
   Ship := TShip.Create;
-  Ship.Pos.X := 100;
+  Ship.Pos.X := PlayWidth div 2;
   Ship.Pos.Y := 280;
-
-  //
+  // Init PlayArea size
   MinWidth := PlayWidth;
   MaxWidth := PlayWidth;
-  MinHeight := 300;
-  MaxHeight := 300;
-
+  MinHeight := PlayHeight;
+  MaxHeight := PlayHeight;
+  // MUI Events
   OnDrawObject := @DrawEvent;
   OnMUIKeyDown := @KeyDownEvent;
-  LastCall := 0;
-  MoveDir := 1;
-  Points := 0;
-  TitleText := TStringList.Create;
-  TitleText.Text := StarterText;
+  // just some inits
+  LastCall := 0; // last time movement was done
+  MoveDir := 1;  // by default move to right first
+  Points := 0;   // 0 Points as start
 end;
 
 // destructor
@@ -135,6 +140,7 @@ end;
 
 procedure TPlayPanel.DoRedrawing;
 begin
+  // only redraw regularly if the Window is visible and Game is running
   if LongBool(MH_Get(MUIObject, MUIA_ShowMe)) and (PlayModus = pmRunning) then
     RedrawObject;
 end;
@@ -144,20 +150,25 @@ procedure TPlayPanel.KeyDownEvent(Sender: TObject; Shift: TMUIShiftState; Code: 
 begin
   if PlayModus = pmRunning then
   begin
+    // we are in the Game
     case Code of
+      // Move Shipt to left
       CURSORLEFT: begin
         Dec(Ship.Pos.X, 5);
         EatEvent := True;
       end;
+      // Move Ship to right
       CURSORRIGHT: begin
         Inc(Ship.Pos.X, 5);
         EatEvent := True;
       end;
     end;
+    // Check if Ship reached Border
     if Ship.Pos.X > (PlayWidth - MINSHIPDISTANCE) then
       Ship.Pos.X := (PlayWidth - MINSHIPDISTANCE);
     if Ship.Pos.X < MINSHIPDISTANCE then
       Ship.Pos.X := MINSHIPDISTANCE;
+    // Fire a bullet with Space
     if Key = ' ' then
     begin
       FireBullet();
@@ -165,12 +176,16 @@ begin
   end
   else
   begin
-    if Key = #13 then
+    // Not in Game
+    if Key = #13 then // Enter Key
     begin
+      // init all the stuff again
       BulletList.Clear;
       EnemyList.Clear;
       Points := 0;
       TextLine := 0;
+      LastCall := 0;
+      // start the game
       PlayModus := pmRunning;
     end;
   end;
@@ -197,42 +212,52 @@ var
   Dist, Dist1: TPoint;
   Aspect: Single;
 begin
+  // get this calls time
   CurCall := GetMUITime;
+  // no last call so we just leave
   if LastCall = 0 then
   begin
     LastCall := CurCall;
     Exit;
   end;
+  // Calculate individual Enemy Movement when they fly towards Points
+  // faster movement
   Delta := (CurCall - LastCall) div 5; // 1 Pixel per 5 ms
   for i := EnemyList.Count - 1 downto 0 do
   begin
     E := EnemyList[i];
+    // Idle means it was not hit and as a aim to fly to
     if E.Modus <> emIdle then
     begin
+      // Calculate the Distance to aim
       Dist.X := E.Aim.X - E.Pos.X;
       Dist.Y := E.Aim.Y - E.Pos.Y;
       Dist1.Y := 0;
       Dist1.X := 0;
+      // maybe it's there already
       if (Dist.Y <> 0) and (Dist.X <> 0) then
       begin
-        Aspect := Dist.X / Dist.Y;
-        Dist1.Y := Round(Delta / (Aspect + 1));
-        Dist1.X := Delta - Dist1.Y;
-        if Abs(Dist1.x) > Abs(Dist.x) then
-          Dist1.x := Dist.x;
-        if Abs(Dist1.y) > Abs(Dist.y) then
-          Dist1.y := Dist.y;
+        Aspect := Dist.X / Dist.Y; // Aspect of movement = direction of movement
+        Dist1.Y := Round(Delta / (Aspect + 1)); // calculate the actual length of movement for Y
+        Dist1.X := Delta - Dist1.Y;             // and X
       end
       else
       begin
+        // if one distance is 0 it's very easy, just go the length
         if Dist.X = 0 then
           Dist1.Y := - Sign(Dist.Y) * Delta;
         if Dist.Y = 0 then
           Dist1.X := - Sign(Dist.X) * Delta;
       end;
+      if Abs(Dist1.x) > Abs(Dist.x) then      // limit movement that it not overshoot it
+        Dist1.x := Dist.x;
+      if Abs(Dist1.y) > Abs(Dist.y) then
+        Dist1.y := Dist.y;
+      // Calculate real movement
       E.Pos.X := E.Pos.X - Dist1.X;
-      E.Pos.Y := E.Pos.Y - Abs(Dist1.Y + 1);
-
+      E.Pos.Y := E.Pos.Y - Abs(Dist1.Y + 1); // always fly up
+      //
+      // already close enough or even out of sight, then remove it and add it's points
       if (E.Modus = emHit) and (((Abs(E.Pos.X - E.Aim.X) < 5) and (Abs(E.Pos.Y - E.Aim.Y) < 5))  or (E.Pos.Y < 0)) then
       begin
         Inc(Points, E.Pts);
@@ -240,7 +265,7 @@ begin
       end;
     end;
   end;
-  //
+  // calcuate the joint movements of the complete text.
   Delta := (CurCall - LastCall) div 20; // 1 Pixel per 20 ms
   if Delta > 0 then
   begin
@@ -461,7 +486,7 @@ var
   TE: TTextExtent;
   x, y, i: Integer;
 begin
-  SetAPen(Rp, 0);
+  SetAPen(Rp, 2);
   // fill with background color
   RectFill(Rp, 0, 0, DrawRect.Right, DrawRect.Bottom);
   //
@@ -520,10 +545,6 @@ begin
       S := Format('%.10d', [Points]);
       GFXText(LocalRP, PChar(S), Length(S));
     end;
-    pmEnd: begin
-      // fill with background color
-      RectFill(LocalRP, 0, 0, DrawRect.Right, DrawRect.Bottom);
-    end;
   end;
   //
   ClipBlit(LocalRP, 0,0, rp, DrawRect.Left, DrawRect.Top, DrawRect.Width, DrawRect.Height, $00C0);
@@ -555,7 +576,7 @@ begin
     TAG_DONE]);
   //
   AboutWin := MH_Window([
-    MUIA_Window_Title,     AsTag('About MUIMapparium'),
+    MUIA_Window_Title,     AsTag(PChar(GetLocString(MSG_MENU_ABOUT) + ' MUIMapparium')),
     MUIA_Window_ID,        AsTag(MAKE_ID('A','B','O','U')),
     MUIA_HelpNode,         AsTag('AboutWin'),
     WindowContents, AsTag(MH_HGroup([

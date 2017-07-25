@@ -4,9 +4,6 @@ unit PrefsWinUnit;
 interface
 
 uses
-  {$if defined(Amiga68k) or defined(MorphOS)}
-    amigalib,
-  {$endif}
   Classes, SysUtils, exec, utility, intuition, agraphics, mui, muihelper,
   prefsunit, osmhelper, MUIWrap, imagesunit;
 

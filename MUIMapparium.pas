@@ -3,9 +3,6 @@ program MUIMapparium;
 
 uses
   athreads,
-  {$if defined(MorphOS) or defined(Amiga68k)}
-  amigalib,
-  {$endif}
   MUIMappariumlocale, MUIPaintBoxUnit,
   imagesunit, positionunit, osmhelper, networkingunit, prefsunit,
   Exec, Utility, intuition, agraphics, Layers, AmigaDos, icon,
@@ -706,9 +703,9 @@ end;
 
 // Add Route
 function AddRouteEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
-var
-  Ro: TRoute;
-  Active: Integer;
+//var
+//  Ro: TRoute;
+//  Active: Integer;
 begin
   Result := 0;
   NewRouteProps;

@@ -2,9 +2,6 @@ unit StatisticsUnit;
 {$mode objfpc}{$H+}
 interface
 uses
-  {$if defined(Amiga68k) or defined(MorphOS)}
-    amigalib,
-  {$endif}
   SysUtils, exec, utility, intuition, agraphics, mui, muihelper,
   prefsunit, osmhelper, MUIWrap, imagesunit,
   MUIMappariumlocale;

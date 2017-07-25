@@ -3,9 +3,6 @@ unit MUIWrap;
 interface
 
 uses
-  {$if defined(Amiga68k) or defined(MorphOS)}
-    amigalib,
-  {$endif}
   classes, asl, Exec, Utility, Intuition, AGraphics, timer, mui, muihelper;
 
 type
