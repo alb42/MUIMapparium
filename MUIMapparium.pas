@@ -1354,6 +1354,9 @@ begin
     //
     // open the window
     MH_Set(Window, MUIA_Window_Open, AsTag(True));
+    // open additionally the stat window if needed
+    if Prefs.StatWinOpen then
+      MH_Set(StatWin, MUIA_Window_Open, AsTag(True));
     //
     // This is the ideal input loop for an object oriented MUI application.
     // Everything is encapsulated in classes, no return ids need to be used,
@@ -1408,7 +1411,9 @@ begin
           Break;
       end;
     end;
-
+    Prefs.StatWinOpen := LongBool(MH_Get(StatWin, MUIA_Window_Open));
+    if Prefs.StatWinOpen then
+      DoMethod(StatWin, [MUIM_Window_Snapshot, 1]);
     // end of main loop, close window if still open
     MH_Set(Window, MUIA_Window_Open, AsTag(False));
 

@@ -23,6 +23,7 @@ const
 
   SECTION_GENERAL = 'General';
   SECTION_STATISTICS = 'Statistics';
+  SECTION_WINDOW = 'Window';
 type
 
   { TPrefs }
@@ -50,6 +51,7 @@ type
     function GetTrackColor: TColor;
     function GetViewProg: string;
     function GetWaypointColor: TColor;
+    function GetStatWinOpen: Boolean;
     procedure SetActiveImageColor(AValue: TColor);
     procedure SetActiveRouteColor(AValue: TColor);
     procedure SetActiveTrackColor(AValue: TColor);
@@ -71,6 +73,7 @@ type
     procedure SetTrackColor(AValue: TColor);
     procedure SetViewProg(AValue: string);
     procedure SetWaypointColor(AValue: TColor);
+    procedure SetStatWinOpen(AValue: Boolean);
   public
     IniFile: TIniFile;
     constructor Create;
@@ -98,6 +101,8 @@ type
     property LoadedFiles: Int64 read GetLoadFiles write SetLoadFiles;
     property DownBytes: Int64 read GetDownBytes write SetDownBytes;
     property DownTime: Int64 read GetDownTime write SetDownTime;
+    // Window Open
+    property StatWinOpen: Boolean read GetStatWinOpen write SetStatWinOpen;
   end;
 
 var
@@ -212,6 +217,11 @@ begin
   Result := IniFile.ReadInteger(SECTION_GENERAL, 'WaypointColor', clBlue);
 end;
 
+function TPrefs.GetStatWinOpen: Boolean;
+begin
+  Result := IniFile.ReadBool(SECTION_WINDOW, 'Statistic', False);
+end;
+
 procedure TPrefs.SetActiveImageColor(AValue: TColor);
 begin
   IniFile.WriteInteger(SECTION_GENERAL, 'ActiveImageColor', AValue);
@@ -315,6 +325,11 @@ end;
 procedure TPrefs.SetWaypointColor(AValue: TColor);
 begin
   IniFile.WriteInteger(SECTION_GENERAL, 'WaypointColor', AValue);
+end;
+
+procedure TPrefs.SetStatWinOpen(AValue: Boolean);
+begin
+  IniFile.WriteBool(SECTION_WINDOW, 'Statistic', AValue);
 end;
 
 constructor TPrefs.Create;
