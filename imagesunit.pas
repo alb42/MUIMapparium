@@ -75,7 +75,10 @@ type
 
   TOrder = class
     Order: string;
+    FOrder: string;
     Positions: array of TCoord;
+  public
+    procedure FormatOrder;
   end;
 
   TOrderList = specialize TFPGObjectList<TOrder>;
@@ -284,6 +287,16 @@ begin
       Coords[i].Tile.X := -1; // just an illegal position
       Coords[i].Tile.Y := -1;
     end;
+  end;
+end;
+
+
+procedure TOrder.FormatOrder;
+begin
+  if FOrder = '' then
+  begin
+    FOrder := StringReplace(Order,'<b>', #27'b', [rfReplaceall, rfIgnoreCase]);
+    FOrder := StringReplace(FOrder,'</b>', #27'n', [rfReplaceall, rfIgnoreCase]);
   end;
 end;
 

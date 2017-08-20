@@ -484,7 +484,7 @@ begin
 end;
 
 // Route
-// Draw the tracks
+// Draw the Routes
 procedure TMapPanel.DrawRoutes(RP: PRastPort; DrawRange: TRect);
 const
   AREA_BYTES = 4000;
@@ -543,96 +543,32 @@ begin
       else
         LastWasDrawn := False;
     end;
-    {if ShowActivePt and (ActiveRoutePt >=0) and (ActiveRoutePt <= High(RouteList[i].Pts)) then
-    begin
-      SetAPen(Rp, RedPen);
-      Pt := PosToPixel(RouteList[i].Pts[ActiveRoutePt].Position);
-      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
-      begin
-        Points[0].X := Pt.X;
-        Points[0].Y := Pt.Y;
-        Points[1].X := Points[0].X - 5;
-        Points[1].Y := Points[0].Y - 20;
-        Points[2].X := Points[0].X + 5;
-        Points[2].Y := Points[0].Y - 20;
-        Points[3].X := Pt.X;
-        Points[3].Y := Pt.Y;
-        GfxMove(Rp, Pt.X, Pt.Y);
-        PolyDraw(RP, 4, @Points[0]);
-      end;
-    end;}
     UnSetColor(RoutePen);
-  end;
-
-
-
-
-
-  {if Assigned(RouteWindow.Route) and (RouteWindow.FreeRoute) and (Length(RouteWindow.Route.Pts) > 0) then
-  begin
-    Ca.Brush.Color := ActiveRouteColor;
-    Ca.Pen.Color := ActiveRouteColor;
-    for j := 0 to High(RouteWindow.Route.Pts) do
+    LastWasDrawn := False;
+    if ShowActivePt and Assigned(CurOrder) then
     begin
-      Pt := PosToPixel(RouteWindow.Route.Pts[j].Position);
-      // Check if point should be visible ;-)
-      PtIsVisible := (Pt.X >= 0) and (Pt.Y >= 0) and (Pt.X <= PB.Width) and (Pt.Y <= PB.Height);
-      if not PtIsVisible and (j > 0) then
+      SetAPen(Rp, GreenPen);
+      for j := 0 to High(CurOrder.Positions) do
       begin
-        NPT := PosToPixel(RouteWindow.Route.Pts[j + 1].Position);
-        PtIsVisible := (NPt.X >= 0) and (NPt.Y >= 0) and (NPt.X <= PB.Width) and (NPt.Y <= PB.Height);
-      end;
-      if not PtIsVisible and (j < High(RouteWindow.Route.Pts)) then
-      begin
-        NPT := PosToPixel(RouteWindow.Route.Pts[j - 1].Position);
-        PtIsVisible := (NPt.X >= 0) and (NPt.Y >= 0) and (NPt.X <= PB.Width) and (NPt.Y <= PB.Height);
-      end;
-      if PtIsVisible then
-      begin
-        Ca.FillRect(Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
-        if j > 0 then
+        Pt := PosToPixel(CurOrder.Positions[j]);
+        if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
         begin
-          Ca.Line(LastPt, Pt);
-        end;
+          Inc(Drawn);
+          RectFill(RP, Pt.X - RoutePtSize, Pt.Y - RoutePtSize, Pt.X + RoutePtSize, Pt.Y + RoutePtSize);
+          if not LastWasDrawn then
+            GfxMove(RP, PT.X, PT.Y)
+          else
+            Draw(RP, Pt.X, PT.Y);
+          LastWasDrawn := True;
+        end
+        else
+          LastWasDrawn := False;
       end;
-      LastPt := Pt;
     end;
-  end;}
+  end;
 
   SetAPen(RP, RedPen);
   SetDrMd(RP, JAM1);
-
-  (*for i := 0 to RouteList.Count -1 do
-  begin
-    if not RouteList[i].Visible then
-      Continue;
-    for j := 0 to High(RouteList[i].Pts) do
-    begin
-      Pt := PosToPixel(RouteList[i].Pts[j].Position);
-      // Check if point should be visible ;-)
-      PtIsVisible := (Pt.X >= 0) and (Pt.Y >= 0) and (Pt.X <= PB.Width) and (Pt.Y <= PB.Height);
-      if not PtIsVisible and (j > 0) then
-      begin
-        NPT := PosToPixel(RouteList[i].Pts[j + 1].Position);
-        PtIsVisible := (NPt.X >= 0) and (NPt.Y >= 0) and (NPt.X <= PB.Width) and (NPt.Y <= PB.Height);
-      end;
-      if not PtIsVisible and (j < High(RouteList[i].Pts)) then
-      begin
-        NPT := PosToPixel(RouteList[i].Pts[j - 1].Position);
-        PtIsVisible := (NPt.X >= 0) and (NPt.Y >= 0) and (NPt.X <= PB.Width) and (NPt.Y <= PB.Height);
-      end;
-      if PtIsVisible then
-      begin
-        Ca.FillRect(Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
-        if j > 0 then
-        begin
-          Ca.Line(LastPt, Pt);
-        end;
-      end;
-      LastPt := Pt;
-    end;
-  end;
-*)
 end;
 
 

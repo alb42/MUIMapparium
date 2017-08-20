@@ -10,6 +10,9 @@ var
   RoutePropsWin: PObject_;
   OnRouteChanged: TProcedure = nil;
   CurRoute: TRoute = nil;
+  CurOrder: TOrder = nil;
+  OnRouteGoToPos: TProcedure = nil;
+
 
 procedure ShowRouteProps(NewRoute: TRoute);
 procedure NewRouteProps();
@@ -20,9 +23,26 @@ uses
   MUIMappariumlocale;
 
 var
-  RouteName, SaveButton, CloseButton, RouteCol//,
+  RouteName, SaveButton, CloseButton, RouteCol, OrderListEntry, OrderList//,
   {WPLat, WPLon, CurPos}: PObject_;
-  SaveHook{, CurPosHook}: THook;
+  SaveHook, DblOrderHook{, CurPosHook}: THook;
+
+procedure UpdateCurRouteOrder;
+var
+  i: Integer;
+begin
+  DoMethod(OrderListEntry, [MUIM_List_Clear]);
+  MH_Set(OrderListEntry, MUIA_List_Quiet, AsTag(True));
+  if Assigned(CurRoute) then
+  begin
+    for i := 0 to CurRoute.Orders.Count - 1 do
+    begin
+      CurRoute.Orders[i].FormatOrder;
+      DoMethod(OrderListEntry, [MUIM_List_InsertSingle, AsTag(PChar(CurRoute.Orders[i].FOrder)), AsTag(MUIV_List_Insert_Bottom)]);
+    end;
+  end;
+  MH_Set(OrderListEntry, MUIA_List_Quiet, AsTag(False));
+end;
 
 procedure NewRouteProps();
 begin
@@ -48,6 +68,8 @@ begin
     MUIRGB.Green := NewRoute.Color shl 16;
     MUIRGB.Blue := NewRoute.Color shl 24;
     MH_Set(RouteCol, MUIA_Pendisplay_RGBcolor, AsTag(@MUIRGB));
+    //
+    UpdateCurRouteOrder;
     // Position
     //MH_Set(WPLat, MUIA_String_Contents, AsTag(PChar(FloatToStrF(NewMarker.Position.Lat, ffFixed, 8,6))));
     //MH_Set(WPLon, MUIA_String_Contents, AsTag(PChar(FloatToStrF(NewMarker.Position.Lon, ffFixed, 8,6))));
@@ -82,6 +104,30 @@ begin
   MH_Set(RoutePropsWin, MUIA_Window_Open, AsTag(False));
 end;
 
+function DblOrderEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Active: LongInt;
+  Order: TOrder;
+begin
+  Result := 0;
+  if Assigned(CurRoute) then
+  begin
+    Active := MH_Get(OrderListEntry, MUIA_List_Active);
+    if (Active >= 0) and (Active < CurRoute.Orders.Count) then
+    begin
+      Order := CurRoute.Orders[Active];
+      if Assigned(Order) then
+      begin
+        CurOrder := Order;
+        OnRouteGoToPos();
+        //MiddlePos.Lat := Ma.Position.Lat;
+        //MiddlePos.Lon := Ma.Position.Lon;
+        //MUIMapPanel.RefreshImage;
+      end;
+    end;
+  end;
+end;
+
 procedure CreateRoutePropsWin;
 begin
   RoutePropsWin := MH_Window([
@@ -100,6 +146,15 @@ begin
           TAG_END])),
         Child, AsTag(MH_Poppen(RouteCol, [MUIA_Weight, 20, TAG_END])),
         TAG_END])),
+        Child, AsTag(MH_ListView(OrderList, [
+          MUIA_Listview_Input, MUI_TRUE,
+          MUIA_Listview_List, AsTag(MH_List(OrderListEntry, [
+            MUIA_Frame, MUIV_Frame_ReadList,
+            MUIA_Background, MUII_ReadListBack,
+            //MUIA_ContextMenu, AsTag(WayPointMenu),
+            MUIA_List_PoolThreshSize, 256,
+            TAG_DONE])),
+          TAG_DONE])),
       {Child, AsTag(MH_HGroup([
         MUIA_Group_Columns, 2,
         MUIA_Frame, MUIV_Frame_Group,
@@ -131,6 +186,9 @@ begin
     TAG_END]);
   // set the coord to position
   //ConnectHookFunction(MUIA_Pressed, AsTag(False), CurPos, nil, @CurPosHook, @CurPosEvent);
+  // double click to a Order Entry
+  ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, OrderList, nil, @DblOrderHook, @DblOrderEvent);
+
   // save the changes if any
   ConnectHookFunction(MUIA_Pressed, AsTag(False), SaveButton, nil, @SaveHook, @SaveEvent);
   // just close it

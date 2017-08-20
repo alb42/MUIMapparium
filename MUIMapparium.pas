@@ -1011,6 +1011,50 @@ begin
   MUIMapPanel.RedrawObject;
 end;
 
+procedure GoToPosEvent;
+var
+  MinC, MaxC: TCoord;
+  DiffLat, DiffLon: ValReal;
+  Pt: Classes.TPoint;
+  Rec: TRectCoord;
+  i: Integer;
+begin
+  if Assigned(CurOrder) then
+  begin
+    for i := 0 to High(CurOrder.Positions) do
+    begin
+      if i = 0 then
+      begin
+        MinC := CurOrder.Positions[i];
+        MaxC := CurOrder.Positions[i];
+      end else
+      begin
+        MinC.Lat := Min(MinC.Lat, CurOrder.Positions[i].Lat);
+        MinC.Lon := Min(MinC.Lon, CurOrder.Positions[i].Lon);
+        MaxC.Lat := Max(MaxC.Lat, CurOrder.Positions[i].Lat);
+        MaxC.Lon := Max(MaxC.Lon, CurOrder.Positions[i].Lon);
+      end;
+    end;
+    if Length(CurOrder.Positions) > 0 then
+    begin
+      DiffLat := Abs(MaxC.Lat - MinC.Lat);
+      DiffLon := Abs(MaxC.Lon - MinC.Lon);
+      MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+      MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
+
+      for i := 0 to 18 do
+      begin
+        Pt := GetTileCoord(i, MiddlePos);
+        Rec := GetTileRect(i, Pt);
+        if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+          CurZoom := i;
+      end;
+      CurZoom := CurZoom;
+      MUIMapPanel.RefreshImage;
+    end;
+  end;
+end;
+
 
 
 // *********************************************************************
@@ -1054,6 +1098,7 @@ begin
   OnWPChanged := @WPChangedEvent;
   OnTrackChanged := @TrackChangedEvent;
   OnTrackRedraw := @TrackRedrawEvent;
+  OnRouteGoToPos := @GoToPosEvent;
   try
     SearchTitleStr :=  GetLocString(MSG_SEARCH_RESULTS_TITLE); // 'Search Results';
     //
