@@ -278,7 +278,7 @@ begin
   WritePixelArray(FullBitmap.Data, 0, 0, FullBitmap.Width * SizeOf(LongWord), LocalRP, PTMid.X + ((0 + GPixOff.X)*256) - LOffset.X, PTMid.Y + ((0 + GPixOff.Y)*256) - LOffset.Y, FullBitmap.Width, FullBitmap.Height, RECTFMT_RGBA);
   RedrawImage := False;
   // Draw Tracks
-  if FShowMarker then
+  if FShowTracks then
     DrawTracks(LocalRP, DrawRect);
   // Draw Routes
   if FShowRoutes then
@@ -406,22 +406,20 @@ end;
 procedure TMapPanel.DrawTracks(RP: PRastPort; DrawRange: TRect);
 const
   AREA_BYTES = 4000;
-  //TrackColor: LongWord = $FF0000;
 var
   PT: TPoint;
   i, j: Integer;
   LastWasDrawn: Boolean;
   TrackPtSize: Integer;
-  //Pen: LongWord;
   Drawn: Integer;
   ShowActivePt: Boolean;
   Points: array[0..3] of record
     X: SmallInt;
     Y: SmallInt;
   end;
+  TrackPen: LongInt;
 begin
   TrackPtSize := Max(2, CurZoom - 10);
-  //Pen := SetColor(RP, TrackColor);
   SetAPen(RP, RedPen);
   SetDrMd(RP, JAM1);
   // Draw Tracks
@@ -429,13 +427,16 @@ begin
   begin
     if not TrackList[i].Visible then
       Continue;
-    if TrackList[i] = CurTrack then
-    begin
-      SetAPen(RP, YellowPen);
-    end
-    else
-    begin
-      SetAPen(RP, RedPen);
+    TrackPen := -1;
+    case TrackList[i].Color of
+      clRed: SetAPen(RP, RedPen);
+      clGreen: SetAPen(RP, GreenPen);
+      clBlue: SetAPen(RP, BluePen);
+      clBlack: SetAPen(RP, BlackPen);
+      else
+      begin
+        TrackPen := SetColor(RP, TrackList[i].Color);
+      end;
     end;
     ShowActivePt := (TrackList[i] = CurTrack);
     Drawn := 0;
@@ -458,6 +459,7 @@ begin
       end
       else
         LastWasDrawn := False;
+      UnSetColor(TrackPen);
     end;
     if ShowActivePt and (ActiveTrackPt >=0) and (ActiveTrackPt <= High(TrackList[i].Pts)) then
     begin
@@ -486,7 +488,6 @@ end;
 procedure TMapPanel.DrawRoutes(RP: PRastPort; DrawRange: TRect);
 const
   AREA_BYTES = 4000;
-  //TrackColor: LongWord = $FF0000;
 var
   PT: TPoint;
   i, j: Integer;
@@ -495,13 +496,13 @@ var
   //Pen: LongWord;
   Drawn: Integer;
   ShowActivePt: Boolean;
+  RoutePen: LongInt;
   Points: array[0..3] of record
     X: SmallInt;
     Y: SmallInt;
   end;
 begin
   RoutePtSize := Max(2, CurZoom - 10);
-  //Pen := SetColor(RP, TrackColor);
   SetAPen(RP, RedPen);
   SetDrMd(RP, JAM1);
   // Draw Tracks
@@ -509,13 +510,16 @@ begin
   begin
     if not RouteList[i].Visible then
       Continue;
-    if RouteList[i] = CurRoute then
-    begin
-      SetAPen(RP, YellowPen);
-    end
-    else
-    begin
-      SetAPen(RP, GreenPen);
+    RoutePen := -1;
+    case RouteList[i].Color of
+      clRed: SetAPen(RP, RedPen);
+      clGreen: SetAPen(RP, GreenPen);
+      clBlue: SetAPen(RP, BluePen);
+      clBlack: SetAPen(RP, BlackPen);
+      else
+      begin
+        RoutePen := SetColor(RP, RouteList[i].Color);
+      end;
     end;
     ShowActivePt := (RouteList[i] = CurRoute);
     Drawn := 0;
@@ -557,6 +561,7 @@ begin
         PolyDraw(RP, 4, @Points[0]);
       end;
     end;}
+    UnSetColor(RoutePen);
   end;
 
 

@@ -45,7 +45,7 @@ var
   OnTrackChanged: TProcedure = nil;
   OnTrackRedraw: TProcedure = nil;
   PlotPanel: TPlotPanel;
-  ChooseXAxis, ChooseYLeft, ChooseYRight, DrawButton: PObject_;
+  ChooseXAxis, ChooseYLeft, ChooseYRight, DrawButton, TrackCol: PObject_;
   IsISO: Boolean;
   LengthUnits: array[0..1] of string;
   LengthFactors: array[0..1] of Single;
@@ -85,6 +85,8 @@ end;
 
 // Open Properties Window
 procedure ShowTrackProps(NewTrack: TTrack);
+var
+  MUIRGB: TMUI_RGBcolor;
 begin
   if Assigned(NewTrack) then
   begin
@@ -92,6 +94,12 @@ begin
     MH_Set(TrackPropsWin, MUIA_Window_Open, AsTag(True));
     // Set Name
     MH_Set(TrackName, MUIA_String_Contents, AsTag(PChar(NewTrack.Name)));
+    // Set Color
+    MUIRGB.Red := NewTrack.Color shl 8;
+    MUIRGB.Green := NewTrack.Color shl 16;
+    MUIRGB.Blue := NewTrack.Color shl 24;
+    MH_Set(TrackCol, MUIA_Pendisplay_RGBcolor, AsTag(@MUIRGB));
+    //
     SetLength(TC.Data, 0);
     DrawButtonEvent(nil, nil, nil);
   end;
@@ -99,11 +107,16 @@ end;
 
 // Save the Values
 function SaveEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  MUIRGB: PMUI_RGBcolor;
 begin
   Result := 0;
   if TrackList.IndexOf(CurTrack) >= 0 then
   begin
     CurTrack.Name := PChar(MH_Get(TrackName, MUIA_String_Contents));
+    MUIRGB := PMUI_RGBcolor(MH_Get(TrackCol, MUIA_Pendisplay_RGBcolor));
+    if Assigned(MUIRGB) then
+      CurTrack.Color := (MUIRGB^.Red shr 8 and $ff0000) or (MUIRGB^.Green shr 16 and $FF00) or (MUIRGB^.Blue shr 24 and $FF);
     if Assigned(OnTrackChanged) then
       OnTrackChanged;
   end;
@@ -398,10 +411,12 @@ begin
         MUIA_Frame, MUIV_Frame_Group,
         MUIA_FrameTitle, AsTag(GetLocString(MSG_TRACKPROP_NAME)),   // 'Track Title'
         Child, AsTag(MH_String(TrackName, [
+          MUIA_Weight, 180,
           MUIA_Frame, MUIV_Frame_String,
           MUIA_String_Format, MUIV_String_Format_Left,
           MUIA_String_Contents, AsTag('________________________'),
           TAG_END])),
+        Child, AsTag(MH_Poppen(TrackCol, [MUIA_Weight, 20, TAG_END])),
         TAG_END])),
       Child, AsTag(PlotPanel.MUIObject),
       Child, AsTag(MH_HGroup([

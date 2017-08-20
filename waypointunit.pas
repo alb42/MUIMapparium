@@ -588,6 +588,7 @@ begin
           if Assigned(ExtNode) then
           begin
             Route.Visible := StrToBoolDef(GetTextNode(ExtNode, 'visible'), True);
+            Route.Color := StrToIntDef('$' + GetTextNode(ExtNode, 'color'), Route.Color);
             Route.Distance := StrToFloatDef(GetTextNode(ExtNode, 'distance'), 0);
             Route.TravelTime := StrToIntDef(GetTextNode(ExtNode, 'traveltime'), 0);
             OrderNode := nil;
@@ -652,6 +653,7 @@ begin
           if Assigned(ExtNode) then
           begin
             Track.Visible := StrToBoolDef(GetTextNode(ExtNode, 'visible'), True);
+            Track.Color := StrToIntDef('$' + GetTextNode(ExtNode, 'color'), Track.Color);
           end;
           SetLength(Track.Pts, Idx);
           TrackList.Add(Track);
@@ -732,6 +734,11 @@ begin
         TextNode.TextContent := WideString(BoolToStr(RouteList[i].Visible, True));
         ExtNode.AppendChild(TextNode);
         //
+        // Color
+        TextNode := XMLDoc.CreateElement('color');
+        TextNode.TextContent := WideString(IntToHex(RouteList[i].Color, 6));
+        ExtNode.AppendChild(TextNode);
+        //
         TextNode := XMLDoc.CreateElement('distance');
         TextNode.TextContent := WideString(FloatToStrF(RouteList[i].Distance,ffFixed, 8,2));
         ExtNode.AppendChild(TextNode);
@@ -792,8 +799,13 @@ begin
         //
         ExtNode := XMLDoc.CreateElement('extensions');
         TrkNode.AppendChild(ExtNode);
+        // visibility
         TextNode := XMLDoc.CreateElement('visible');
         TextNode.TextContent := WideString(BoolToStr(TrackList[i].Visible, True));
+        ExtNode.AppendChild(TextNode);
+        // Color
+        TextNode := XMLDoc.CreateElement('color');
+        TextNode.TextContent := WideString(IntToHex(TrackList[i].Color, 6));
         ExtNode.AppendChild(TextNode);
         //
         TrkNode.AppendChild(SegNode);

@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, dos, fgl, osmhelper, syncobjs, Math,
-  fpreadpng, fpimage, FPImgCanv, fpcanvas;
+  fpreadpng, fpimage, FPImgCanv, fpcanvas, prefsunit;
 
 const
   MINPLOTDIST = 5;
@@ -30,6 +30,7 @@ type
     Name: string;
     Visible: Boolean;
     FullName: string;
+    Color: LongWord;
   end;
 
   { TMarker }
@@ -254,6 +255,7 @@ constructor TTrack.Create;
 begin
   Visible := True;
   FZoom := -1;
+  Color := clRed;
 end;
 
 procedure TTrack.CalcCoords(NewZoom: Integer);
@@ -291,6 +293,7 @@ constructor TRoute.Create;
 begin
   Orders := TOrderList.Create(True);
   Visible := True;
+  Color := clGreen;
 end;
 
 destructor TRoute.Destroy;

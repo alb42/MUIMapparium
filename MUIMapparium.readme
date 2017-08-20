@@ -18,11 +18,13 @@ History:
 0.6
 
 * BugFix: OS4 ToolType reading
+* BugFix: Track plot enabling
 * Update Checking
 * Amiga Guide manual
 * About MUI Menu Entry
 * About Window
 * Reopen Statistics Window on start if left open on quit
+* Set color for Tracks and Routes
 
 0.5
 

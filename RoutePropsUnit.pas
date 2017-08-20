@@ -20,7 +20,7 @@ uses
   MUIMappariumlocale;
 
 var
-  RouteName, SaveButton, CloseButton//,
+  RouteName, SaveButton, CloseButton, RouteCol//,
   {WPLat, WPLon, CurPos}: PObject_;
   SaveHook{, CurPosHook}: THook;
 
@@ -34,6 +34,8 @@ end;
 
 // Open Properties Window
 procedure ShowRouteProps(NewRoute: TRoute);
+var
+  MUIRGB: TMUI_RGBcolor;
 begin
   if Assigned(NewRoute) then
   begin
@@ -41,6 +43,11 @@ begin
     MH_Set(RoutePropsWin, MUIA_Window_Open, AsTag(True));
     // Set Name
     MH_Set(RouteName, MUIA_String_Contents, AsTag(PChar(NewRoute.Name)));
+    // Set Color
+    MUIRGB.Red := NewRoute.Color shl 8;
+    MUIRGB.Green := NewRoute.Color shl 16;
+    MUIRGB.Blue := NewRoute.Color shl 24;
+    MH_Set(RouteCol, MUIA_Pendisplay_RGBcolor, AsTag(@MUIRGB));
     // Position
     //MH_Set(WPLat, MUIA_String_Contents, AsTag(PChar(FloatToStrF(NewMarker.Position.Lat, ffFixed, 8,6))));
     //MH_Set(WPLon, MUIA_String_Contents, AsTag(PChar(FloatToStrF(NewMarker.Position.Lon, ffFixed, 8,6))));
@@ -57,11 +64,16 @@ end;
 
 // Save the Values
 function SaveEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  MUIRGB: PMUI_RGBcolor;
 begin
   Result := 0;
   if RouteList.IndexOf(CurRoute) >= 0 then
   begin
     CurRoute.Name := PChar(MH_Get(RouteName, MUIA_String_Contents));
+    MUIRGB := PMUI_RGBcolor(MH_Get(RouteCol, MUIA_Pendisplay_RGBcolor));
+    if Assigned(MUIRGB) then
+      CurRoute.Color := (MUIRGB^.Red shr 8 and $ff0000) or (MUIRGB^.Green shr 16 and $FF00) or (MUIRGB^.Blue shr 24 and $FF);
     //CurMarker.Position.Lat := StrToFloatDef(PChar(MH_Get(WPLat, MUIA_String_Contents)), CurMarker.Position.Lat);
     //CurMarker.Position.Lon := StrToFloatDef(PChar(MH_Get(WPLon, MUIA_String_Contents)), CurMarker.Position.Lon);
     if Assigned(OnRouteChanged) then
@@ -83,8 +95,10 @@ begin
         Child, AsTag(MH_String(RouteName, [
           MUIA_Frame, MUIV_Frame_String,
           MUIA_String_Format, MUIV_String_Format_Left,
+          MUIA_Weight, 180,
           MUIA_String_Contents, AsTag('________________________'),
           TAG_END])),
+        Child, AsTag(MH_Poppen(RouteCol, [MUIA_Weight, 20, TAG_END])),
         TAG_END])),
       {Child, AsTag(MH_HGroup([
         MUIA_Group_Columns, 2,
