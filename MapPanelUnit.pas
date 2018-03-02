@@ -17,7 +17,6 @@ type
   private
     DownPos: TPoint;
     FLastMouse: TPoint;
-    LeftDown: Boolean;
     StartCoord: TCoord;
     // middle Marker
     MiddleMarker: LongWord;
@@ -51,6 +50,7 @@ type
     function DoSetup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Setup): PtrUInt; override;
     function DoCleanup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Cleanup): PtrUInt; override;
   public
+    LeftDown: Boolean;
     constructor Create(const Args: array of PtrUInt); override;
     procedure DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect);
     //

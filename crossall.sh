@@ -88,6 +88,7 @@ mkdir -p units/${plat}
 echo "  Compile ${plat}"
 fpc4mos.sh -B -Xs -FUunits/${plat} MUIMapparium.pas >>errmsg.log
 powerpc-morphos-strip --strip-all MUIMapparium
+chmod a+x MUIMapparium
 cp MUIMapparium Release.${plat}/MUIMapparium/
 copyit
 

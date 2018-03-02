@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, dos, fgl, osmhelper, syncobjs, Math,
-  fpreadpng, fpimage, FPImgCanv, fpcanvas, prefsunit;
+  fpreadpng, fpimage, FPImgCanv, fpcanvas, prefsunit, fphttpclient;
 
 const
   MINPLOTDIST = 5;
@@ -123,6 +123,8 @@ type
   { TImageLoadThread }
 
   TImageLoadThread = class(TThread)
+  private
+    HTTPClient: TFPHTTPClient;
   protected
     procedure Execute; override;
   end;
@@ -204,7 +206,7 @@ begin
   //writeln('<--load Bitmap');
 end;
 
-function LoadFromWeb(AZoom: Integer; MPos: TPoint; Pic: TFPAMemImage): Boolean;
+function LoadFromWeb(HTTPClient: TFPHTTPClient; AZoom: Integer; MPos: TPoint; Pic: TFPAMemImage): Boolean;
 var
   Mem: TMemoryStream;
   Url: string;
@@ -222,7 +224,7 @@ begin
   try
     Url := BuildURL(AZoom, MPos);
     FileName := BuildFilename(AZoom, MPos);
-    GetFile(URL, Mem);
+    GetFile(HTTPClient, URL, Mem);
     Mem.Position := 0;
     Mem.SaveToFile(Filename);
     Mem.Position := 0;
@@ -363,6 +365,9 @@ var
   t1: Int64;
   ListCount, j: Integer;
 begin
+  HTTPClient := TFPHTTPClient.Create(nil);
+  HTTPClient.KeepConnection := True;
+  try
   t1 := GetMsCount;
   repeat
     if SomeThingTodo then
@@ -393,7 +398,7 @@ begin
             if not FileLoaded then
             begin
               try
-                FileLoaded := LoadFromWeb(Img.Zoom, Img.Posi, Img.Pict);
+                FileLoaded := LoadFromWeb(HTTPClient, Img.Zoom, Img.Posi, Img.Pict);
               except
                 on E:Exception do
                 begin
@@ -448,8 +453,13 @@ begin
       Mutex.Leave;
     end
     else
+    begin
       Sleep(25);
+    end;
   until Terminated;
+  finally
+    HTTPClient.Free;
+  end;
 end;
 
 { TImageTile }

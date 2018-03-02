@@ -1418,7 +1418,7 @@ begin
       StartTime := GetMUITime;
       while Integer(DoMethod(app, [MUIM_Application_NewInput, AsTag(@sigs)])) <> MUIV_Application_ReturnID_Quit do
       begin
-        if UpdateImage then
+        if UpdateImage and not MUIMapPanel.LeftDown then
         begin
           MUIMapPanel.RefreshImage;
           UpdateImage := False;

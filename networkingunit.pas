@@ -11,6 +11,7 @@ uses
   {$endif}
   Dos, versionunit;
 
+function GetFile(hp: TFPHTTPClient; address: string; AStream: TStream): Boolean;
 function GetFile(address: string; AStream: TStream): Boolean; overload;
 function GetFile(address, filename: string): Boolean; overload;
 function GetCurlFile(address: string; AStream: TStream): Boolean;
@@ -24,6 +25,23 @@ var
   LTimes: Cardinal = 0;
 
 implementation
+
+
+
+
+function GetFile(hp: TFPHTTPClient; address: string; AStream: TStream): Boolean;
+var
+  t1: Int64;
+begin
+  Result := False;
+  hp.AddHeader('User-Agent', WindowTitleTemplate);
+  t1 := GetMsCount;
+  hp.Get(address, AStream);
+  t1 := GetMsCount - t1;
+  InterLockedExchangeAdd(LBytes, AStream.Size);
+  InterLockedExchangeAdd(LTimes, t1);
+  Result := True;
+end;
 
 function GetFile(address: string; AStream: TStream): Boolean;
 var

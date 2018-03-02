@@ -1,4 +1,4 @@
-MUI Mapparium 0.5
+MUI Mapparium 0.6
 
 by Marcus "ALB42" Sackrow
 
@@ -15,6 +15,7 @@ a mouse wheel you must use the menu entry.
 
 History:
 
+
 0.6
 
 * BugFix: OS4 ToolType reading
@@ -25,6 +26,9 @@ History:
 * About Window
 * Reopen Statistics Window on start if left open on quit
 * Set color for Tracks and Routes
+* Show Route Orders jump to position
+* Block redrawing when moving map (prevents map jumping)
+* Faster Image Download
 
 0.5
 
