@@ -3,10 +3,10 @@ unit waypointunit;
 interface
 
 uses
-  imagesunit, gpxunit,
+  imagesunit, gpxunit, osmhelper,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson, zipper, dateutils,
-  SysUtils, StrUtils, Types, Classes, Math, utility, exec, dos, asl,
-  MUIWrap;
+  SysUtils, StrUtils, Types, Classes, Math, utility, exec, dos, asl, fgl,
+  MUIWrap, mui;
 
 
 type
@@ -14,6 +14,85 @@ type
     procedure CreateStream(Sender: TObject; var AStream: TStream; AItem: TFullZipFileEntry);
     procedure UnpackFile(Sender: TObject; var AStream: TStream; AItem: TFullZipFileEntry);
   end;
+
+  TMapFeature = class
+    Name: string;
+    Visible: Boolean;
+    FullName: string;
+    Color: LongWord;
+    procedure UpdateFullname; virtual;
+  end;
+
+  { TMarker }
+
+  TMarker = class(TMapFeature)
+    Position: TCoord;
+    Time: TDateTime;
+    symbol: string;
+    Elevation: Double;
+    constructor Create; virtual;
+  end;
+
+  TMarkerList = specialize TFPGObjectList<TMarker>;
+
+  TTrackPoint = record
+    Position: TCoord;
+    Name: string;
+    Elevation: double;
+    Time: TDateTime;
+    AddFields: array of Double;
+  end;
+
+  { TTrack }
+
+  TTrack = class(TMapFeature)
+  private
+    FZoom: Integer;
+  public
+    Desc: string;
+    Pts: array of TTrackPoint;
+    Coords: array of TTileCoord;
+    AddFields: array of string;
+    constructor Create; virtual;
+    procedure CalcCoords(NewZoom: Integer);
+    procedure UpdateFullname; override;
+  end;
+
+  TTrackList = specialize TFPGObjectList<TTrack>;
+
+  TRoutePoint = record
+    Position: TCoord;
+  end;
+
+  TOrder = class
+    Order: string;
+    FOrder: string;
+    Positions: array of TCoord;
+  public
+    procedure FormatOrder;
+  end;
+
+  TOrderList = specialize TFPGObjectList<TOrder>;
+
+  { TRoute }
+
+  TRoute = class(TMapFeature)
+  private
+    FZoom: Integer;
+  public
+    Desc: string;
+    TravelTime: Integer;
+    Distance: Double;
+    Pts: array of TRoutePoint;
+    Coords: array of TTileCoord;
+    Orders: TOrderList;
+    constructor Create; virtual;
+    destructor Destroy; override;
+    procedure CalcCoords(NewZoom: Integer);
+    procedure UpdateFullname; override;
+  end;
+
+  TRouteList = specialize TFPGObjectList<TRoute>;
 
 var
   UnPacker: TUnPacker;
@@ -825,6 +904,131 @@ begin
     XMLDoc.Free;
     SStream.Free;
   end;
+end;
+
+procedure TMapFeature.UpdateFullname;
+begin
+  if not Visible then
+    FullName := MUIX_I + '[' + Name + ']'
+  else
+    FullName := Name;
+end;
+
+procedure TTrack.UpdateFullname;
+begin
+  FullName := Name + ' (' + IntToStr(Length(Pts)) + ')';
+  if not Visible then
+    FullName := MUIX_I + '[' + FullName + ']';
+end;
+
+procedure TRoute.UpdateFullname;
+begin
+  FullName := Name + ' (' + IntToStr(Length(Pts)) + ')';
+  if not Visible then
+    FullName := MUIX_I + '[' + FullName + ']';
+end;
+
+{ TTrack }
+
+constructor TTrack.Create;
+begin
+  Visible := True;
+  FZoom := -1;
+  Color := clRed;
+end;
+
+procedure TTrack.CalcCoords(NewZoom: Integer);
+var
+  i: Integer;
+  LastPos: TPoint;
+  ThisPos: TPoint;
+begin
+  // if Zoom is the same just skip it
+  if FZoom = NewZoom then
+    Exit;
+  FZoom := NewZoom;
+  LastPos := Point(0, 0);
+  // get the Coords for every Point
+  SetLength(Coords, Length(Pts));
+  for i := 0 to High(Pts) do
+  begin
+    Coords[i] := CoordToTile(FZoom, Pts[i].Position);
+    ThisPos.X := (Coords[i].Tile.X * 256) + Coords[i].Pixel.X;
+    ThisPos.Y := (Coords[i].Tile.Y * 256) + Coords[i].Pixel.Y;
+    // min Distance 4 pixel!
+    if (i = 0) or (Abs(ThisPos.X - LastPos.X) + Abs(ThisPos.Y - LastPos.Y) >= MINPLOTDIST) then
+      LastPos := ThisPos
+    else
+    begin
+      Coords[i].Tile.X := -1; // just an illegal position
+      Coords[i].Tile.Y := -1;
+    end;
+  end;
+end;
+
+
+procedure TOrder.FormatOrder;
+begin
+  if FOrder = '' then
+  begin
+    FOrder := StringReplace(Order,'<b>', #27'b', [rfReplaceall, rfIgnoreCase]);
+    FOrder := StringReplace(FOrder,'</b>', #27'n', [rfReplaceall, rfIgnoreCase]);
+  end;
+end;
+
+{ TRoute }
+
+constructor TRoute.Create;
+begin
+  Orders := TOrderList.Create(True);
+  Visible := True;
+  Color := clGreen;
+end;
+
+destructor TRoute.Destroy;
+begin
+  Orders.Free;
+  inherited Destroy;
+end;
+
+procedure TRoute.CalcCoords(NewZoom: Integer);
+var
+  i: Integer;
+  LastPos: TPoint;
+  ThisPos: TPoint;
+begin
+  // if Zoom is the same just skip it
+  if FZoom = NewZoom then
+    Exit;
+  FZoom := NewZoom;
+  LastPos := Point(0, 0);
+  // get the Coords for every Point
+  SetLength(Coords, Length(Pts));
+  for i := 0 to High(Pts) do
+  begin
+    Coords[i] := CoordToTile(FZoom, Pts[i].Position);
+    ThisPos.X := (Coords[i].Tile.X * 256) + Coords[i].Pixel.X;
+    ThisPos.Y := (Coords[i].Tile.Y * 256) + Coords[i].Pixel.Y;
+    // min Distance 4 pixel!
+    if (i = 0) or (Abs(ThisPos.X - LastPos.X) + Abs(ThisPos.Y - LastPos.Y) >= MINPLOTDIST) then
+      LastPos := ThisPos
+    else
+    begin
+      Coords[i].Tile.X := -1; // just an illegal position
+      Coords[i].Tile.Y := -1;
+    end;
+  end;
+end;
+
+{ TMarker }
+
+constructor TMarker.Create;
+begin
+  Name := '';
+  Symbol := '';
+  Time := Now();
+  Elevation := Nan;
+  Visible := True;
 end;
 
 

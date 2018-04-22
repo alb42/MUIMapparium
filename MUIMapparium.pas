@@ -70,6 +70,8 @@ procedure SidePanelOpenEvent; forward;
 function BoundingBoxToZoom(BoundString: string): Integer; forward;
 procedure ShowSidePanel(ShowIt: Boolean); forward;
 function EditWayEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt; forward;
+function EditTrackEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt; forward;
+function EditRouteEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt; forward;
 
 procedure OpenPrefs; forward;
 procedure UpdateWayPoints; forward;
@@ -156,9 +158,7 @@ begin
   DoMethod(WaypointListEntry, [MUIM_List_Clear]);
   for i := 0 to MarkerList.Count - 1 do
   begin
-    MarkerList[i].FullName := MarkerList[i].Name;
-    if not MarkerList[i].Visible then
-      MarkerList[i].FullName := '[' + MarkerList[i].FullName + ']';
+    MarkerList[i].UpdateFullName;
     DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(MarkerList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
   RedrawImage := True;
@@ -172,9 +172,7 @@ begin
   DoMethod(TracksListEntry, [MUIM_List_Clear]);
   for i := 0 to TrackList.Count - 1 do
   begin
-    TrackList[i].FullName := TrackList[i].Name + ' (' + IntToStr(Length(TrackList[i].Pts)) + ') ' + TrackList[i].Desc;
-    if not TrackList[i].Visible then
-      TrackList[i].FullName := '[' + TrackList[i].FullName + ']';
+    TrackList[i].UpdateFullName;
     DoMethod(TracksListEntry, [MUIM_List_InsertSingle, AsTag(PChar(TrackList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
   RedrawImage := True;
@@ -188,9 +186,7 @@ begin
   DoMethod(RoutesListEntry, [MUIM_List_Clear]);
   for i := 0 to RouteList.Count - 1 do
   begin
-    RouteList[i].FullName := RouteList[i].Name + ' (' + IntToStr(Length(RouteList[i].Pts)) + ') ' + RouteList[i].Desc;
-    if not RouteList[i].Visible then
-      RouteList[i].FullName := '[' + RouteList[i].FullName + ']';
+    RouteList[i].UpdateFullName;
     DoMethod(RoutesListEntry, [MUIM_List_InsertSingle, AsTag(PChar(RouteList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
   RedrawImage := True;
@@ -532,9 +528,7 @@ begin
         end;
         dmVisible: begin
           Ma.Visible := not Ma.Visible;
-          Ma.FullName := Ma.Name;
-          if not Ma.Visible then
-            Ma.FullName := '[' + MA.Name + ']';
+          Ma.UpdateFullName;
           DoMethod(WaypointListEntry, [MUIM_List_Remove, Active]);
           DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
           MUIMapPanel.RefreshImage;
@@ -563,36 +557,49 @@ begin
     Tr := TrackList[Active];
     if Assigned(Tr) then
     begin
-      for i := 0 to High(Tr.Pts) do
-      begin
-        if i = 0 then
-        begin
-          MinC := Tr.Pts[0].Position;
-          MaxC := Tr.Pts[0].Position;
-        end else
-        begin
-          MinC.Lat := Min(MinC.Lat, Tr.Pts[i].Position.Lat);
-          MinC.Lon := Min(MinC.Lon, Tr.Pts[i].Position.Lon);
-          MaxC.Lat := Max(MaxC.Lat, Tr.Pts[i].Position.Lat);
-          MaxC.Lon := Max(MaxC.Lon, Tr.Pts[i].Position.Lon);
-        end;
-      end;
-      if Length(Tr.Pts) > 0 then
-      begin
-        DiffLat := Abs(MaxC.Lat - MinC.Lat);
-        DiffLon := Abs(MaxC.Lon - MinC.Lon);
-        MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
-        MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
+      case Prefs.DClickMode of
+        dmCenter, dmProperty: begin
+          for i := 0 to High(Tr.Pts) do
+          begin
+            if i = 0 then
+            begin
+              MinC := Tr.Pts[0].Position;
+              MaxC := Tr.Pts[0].Position;
+            end else
+            begin
+              MinC.Lat := Min(MinC.Lat, Tr.Pts[i].Position.Lat);
+              MinC.Lon := Min(MinC.Lon, Tr.Pts[i].Position.Lon);
+              MaxC.Lat := Max(MaxC.Lat, Tr.Pts[i].Position.Lat);
+              MaxC.Lon := Max(MaxC.Lon, Tr.Pts[i].Position.Lon);
+            end;
+          end;
+          if Length(Tr.Pts) > 0 then
+          begin
+            DiffLat := Abs(MaxC.Lat - MinC.Lat);
+            DiffLon := Abs(MaxC.Lon - MinC.Lon);
+            MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+            MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
 
-        for i := 0 to 18 do
-        begin
-          Pt := GetTileCoord(i, MiddlePos);
-          Rec := GetTileRect(i, Pt);
-          if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
-            CurZoom := i;
+            for i := 0 to 18 do
+            begin
+              Pt := GetTileCoord(i, MiddlePos);
+              Rec := GetTileRect(i, Pt);
+              if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+                CurZoom := i;
+            end;
+            CurZoom := CurZoom + 1;
+            MUIMapPanel.RefreshImage;
+          end;
+          if Prefs.DClickMode = dmProperty then
+            EditTrackEvent(nil, nil, nil);
         end;
-        CurZoom := CurZoom + 1;
-        MUIMapPanel.RefreshImage;
+        dmVisible: begin
+          Tr.Visible := not Tr.Visible;
+          Tr.UpdateFullName;
+          DoMethod(TracksListEntry, [MUIM_List_Remove, Active]);
+          DoMethod(TracksListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Tr.FullName)), Active]);
+          MUIMapPanel.RefreshImage;
+        end;
       end;
     end;
   end;
@@ -617,36 +624,49 @@ begin
     Ro := RouteList[Active];
     if Assigned(Ro) then
     begin
-      for i := 0 to High(Ro.Pts) do
-      begin
-        if i = 0 then
-        begin
-          MinC := Ro.Pts[0].Position;
-          MaxC := Ro.Pts[0].Position;
-        end else
-        begin
-          MinC.Lat := Min(MinC.Lat, Ro.Pts[i].Position.Lat);
-          MinC.Lon := Min(MinC.Lon, Ro.Pts[i].Position.Lon);
-          MaxC.Lat := Max(MaxC.Lat, Ro.Pts[i].Position.Lat);
-          MaxC.Lon := Max(MaxC.Lon, Ro.Pts[i].Position.Lon);
-        end;
-      end;
-      if Length(Ro.Pts) > 0 then
-      begin
-        DiffLat := Abs(MaxC.Lat - MinC.Lat);
-        DiffLon := Abs(MaxC.Lon - MinC.Lon);
-        MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
-        MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
+      case Prefs.DClickMode of
+        dmCenter, dmProperty: begin
+          for i := 0 to High(Ro.Pts) do
+          begin
+            if i = 0 then
+            begin
+              MinC := Ro.Pts[0].Position;
+              MaxC := Ro.Pts[0].Position;
+            end else
+            begin
+              MinC.Lat := Min(MinC.Lat, Ro.Pts[i].Position.Lat);
+              MinC.Lon := Min(MinC.Lon, Ro.Pts[i].Position.Lon);
+              MaxC.Lat := Max(MaxC.Lat, Ro.Pts[i].Position.Lat);
+              MaxC.Lon := Max(MaxC.Lon, Ro.Pts[i].Position.Lon);
+            end;
+          end;
+          if Length(Ro.Pts) > 0 then
+          begin
+            DiffLat := Abs(MaxC.Lat - MinC.Lat);
+            DiffLon := Abs(MaxC.Lon - MinC.Lon);
+            MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+            MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
 
-        for i := 0 to 18 do
-        begin
-          Pt := GetTileCoord(i, MiddlePos);
-          Rec := GetTileRect(i, Pt);
-          if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
-            CurZoom := i;
+            for i := 0 to 18 do
+            begin
+              Pt := GetTileCoord(i, MiddlePos);
+              Rec := GetTileRect(i, Pt);
+              if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+                CurZoom := i;
+            end;
+            CurZoom := CurZoom + 1;
+            MUIMapPanel.RefreshImage;
+          end;
+          if Prefs.DClickMode = dmProperty then
+            EditRouteEvent(nil, nil, nil);
         end;
-        CurZoom := CurZoom + 1;
-        MUIMapPanel.RefreshImage;
+        dmVisible: begin
+          Ro.Visible := not Ro.Visible;
+          Ro.UpdateFullName;
+          DoMethod(RoutesListEntry, [MUIM_List_Remove, Active]);
+          DoMethod(RoutesListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ro.FullName)), Active]);
+          MUIMapPanel.RefreshImage;
+        end;
       end;
     end;
   end;
@@ -786,9 +806,7 @@ begin
       begin
         Ma := MarkerList[Active];
         Ma.Visible := not Ma.Visible;
-        Ma.FullName := Ma.Name;
-        if not Ma.Visible then
-          Ma.FullName := '[' + MA.Name + ']';
+        Ma.UpdateFullName;
         DoMethod(WaypointListEntry, [MUIM_List_Remove, Active]);
         DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
         MUIMapPanel.RedrawObject;
@@ -801,9 +819,7 @@ begin
       begin
         Ma := TrackList[Active];
         Ma.Visible := not Ma.Visible;
-        Ma.FullName := Ma.Name;
-        if not Ma.Visible then
-          Ma.FullName := '[' + MA.Name + ']';
+        Ma.UpdateFullName;
         DoMethod(TracksListEntry, [MUIM_List_Remove, Active]);
         DoMethod(TracksListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
         MUIMapPanel.RedrawObject;
@@ -816,9 +832,7 @@ begin
       begin
         Ma := RouteList[Active];
         Ma.Visible := not Ma.Visible;
-        Ma.FullName := Ma.Name;
-        if not Ma.Visible then
-          Ma.FullName := '[' + MA.Name + ']';
+        Ma.UpdateFullName;
         DoMethod(RoutesListEntry, [MUIM_List_Remove, Active]);
         DoMethod(RoutesListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
         MUIMapPanel.RedrawObject;
