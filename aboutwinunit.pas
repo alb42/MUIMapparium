@@ -14,7 +14,15 @@ const
 
     'OpenStreetMap viewer'#10 +
     'for all'#10 +
-    'Amiga Systems';
+    'Amiga Systems'#10 +
+
+    'written with the'#10 +
+    'magnificant'#10 +
+    'FreePascal'#10 +
+
+    'thanks to Chain|Q'#10 +
+    'migario and all'#10 +
+    'users and testers.'#10;
 
   StarterText =
     'Click here and'#10 +
@@ -30,14 +38,14 @@ type
   TEnemyModus = (emIdle, emHit);
 
   TSomething = class
-    Pos: TPoint;
+    Pos: Classes.TPoint;
   end;
   TEnemy = class(TSomething)
     Modus: TEnemyModus;
     Letter: Char;
     Height: Integer;
     Width: Integer;
-    Aim: TPoint;
+    Aim: Classes.TPoint;
     Pts: Integer;
     IsNumber: Boolean;
     Health: Integer;
@@ -53,7 +61,7 @@ type
   TPlayPanel = class(TMUIPaintBox)
   private
     PlayModus: TPlayModus; // game runs or not
-    EOffset: TPoint; // Offset of the Enemies (all move together)
+    EOffset: Classes.TPoint; // Offset of the Enemies (all move together)
     MoveDir: Integer; // move directioy of the enemies - 1 or + 1 (for EOffset)
     TextLine: Integer; // Next line to load in About Text to create Enemies
     AboutText: TStringList; // The AboutText loaded from DefText
@@ -209,7 +217,7 @@ var
   i: Integer;
   Bullet: TBullet;
   E: TEnemy;
-  Dist, Dist1: TPoint;
+  Dist, Dist1: Classes.TPoint;
   Aspect: Single;
 begin
   // get this calls time
@@ -258,7 +266,7 @@ begin
       E.Pos.Y := E.Pos.Y - Abs(Dist1.Y + 1); // always fly up
       //
       // already close enough or even out of sight, then remove it and add it's points
-      if (E.Modus = emHit) and (((Abs(E.Pos.X - E.Aim.X) < 5) and (Abs(E.Pos.Y - E.Aim.Y) < 5))  or (E.Pos.Y < 0)) then
+      if (E.Modus = emHit) and (((Abs(E.Pos.X - E.Aim.X) <= 5) and (Abs(E.Pos.Y - E.Aim.Y) <= 5))  or (E.Pos.Y <= 5)) then
       begin
         Inc(Points, E.Pts);
         EnemyList.Delete(i);
@@ -283,8 +291,8 @@ begin
     for i := BulletList.Count - 1 downto 0 do
     begin
       Bullet := BulletList[i];
-      Bullet.Pos.Y := Bullet.Pos.Y - Delta;
-      if Bullet.Pos.Y < -8 then
+      Bullet.Pos.Y := Bullet.Pos.Y - 2 * Delta;
+      if Bullet.Pos.Y < 8 then
         BulletList.Delete(i);
     end;
   end;
@@ -311,7 +319,7 @@ begin
     for j := BulletList.Count - 1 downto 0  do
     begin
       B := BulletList[j];
-      BR := Rect(B.Pos.X + 1, B.Pos.Y + 1, B.Pos.X + 2, B.Pos.Y + 3);
+      BR := Rect(B.Pos.X, B.Pos.Y, B.Pos.X + 2, B.Pos.Y + 3);
       if IntersectRect(r, ER, BR) then
       begin
         Hit := True;
@@ -437,7 +445,7 @@ end;
 procedure TPlayPanel.DrawEnemies(Rp: PRastPort; DrawRect: TRect);
 var
   E: TEnemy;
-  P: TPoint;
+  P: Classes.TPoint;
   i: Integer;
 begin
   if (EnemyList.Count = 0) or (EOffset.Y > 250) then
@@ -476,7 +484,7 @@ begin
   for i := 0 to BulletList.Count - 1 do
   begin
     Bullet := BulletList[i];
-    DrawEllipse(RP, Bullet.Pos.X, Bullet.Pos.Y, 2, 6);
+    DrawEllipse(RP, Bullet.Pos.X, Bullet.Pos.Y, 2, 4);
   end;
 end;
 

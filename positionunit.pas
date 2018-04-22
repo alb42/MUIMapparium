@@ -19,12 +19,12 @@ var
 
   // shortcuts for mouseactions
   GResX, GResY: Single;
-  Offset: TPoint;
-  GPixOff: TPoint;
+  Offset: Classes.TPoint;
+  GPixOff: Classes.TPoint;
 
-  RecordedSize: TPoint;
+  RecordedSize: Classes.TPoint;
   //
-  MoveOffset: TPoint;
+  MoveOffset: Classes.TPoint;
   // Pens for drawing something
   WhitePen,
   BlackPen,
@@ -48,10 +48,10 @@ var
 procedure DrawFullImage(Width, Height: Integer);
 var
   TileRect: TRectCoord;
-  PTMid: TPoint;
+  PTMid: Classes.TPoint;
   y, x, OffX, OffY: Integer;
   LMiddleCoord: TTileCoord;
-  PixOff: TPoint;
+  PixOff: Classes.TPoint;
   NumX, NumY: Integer;
   Tile: TFPAMemImage;
 begin

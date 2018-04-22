@@ -59,7 +59,7 @@ type
     FOptions: TAxisOptions;
     FPosition: TAxisPosition;
     FAxisScale: TAxisScale;
-    Start, Stop: TPoint;
+    Start, Stop: Classes.TPoint;
     Increment: Double;
     FTextPosition:TAxisPosition;
     DivideFac: Double;
@@ -74,8 +74,8 @@ type
   public
     procedure DoDraw(Rp: PRastPort; DrawRect: TRect);
     procedure DrawGrid(Rp: PRastPort; ClipRect: TRect);
-    function Place(Value: Double): TPoint;
-    function Shift(Position: TPoint; Value: Double): TPoint;
+    function Place(Value: Double): Classes.TPoint;
+    function Shift(Position: Classes.TPoint; Value: Double): Classes.TPoint;
     function PosToValue(Pos: integer): Double;
     function GetWidth(RP: PRastPort; GetForced: boolean = True): integer;
     procedure SetIncrement(MinDist: Integer);
@@ -92,8 +92,8 @@ type
 
   TPlotPanel = class(TMUIPaintBox)
   private
-    //DownPos: TPoint;
-    //FLastMouse: TPoint;
+    //DownPos: Classes.TPoint;
+    //FLastMouse: Classes.TPoint;
     //LeftDown: Boolean;
     FTitle: string;
     FAxisLeft: TAxis;
@@ -109,7 +109,7 @@ type
     // Mousepos
     MouseDown: Boolean;
     ZoomBox: TRect;
-    CrossPos: TPoint;
+    CrossPos: Classes.TPoint;
     CrossText: TStringList;
     PopupMenu: PObject_;
     PopupHook: THook;
@@ -118,13 +118,13 @@ type
     //
     FXMarker: Double; // x Position Marker
     FXMarkerValueIdx: Integer;
-    FMarkerLoc: TPoint;
+    FMarkerLoc: Classes.TPoint;
     FShowMarker: Boolean; //
     FOnMarkerChange: TMarkerChangeEvent;
   protected
     procedure DrawCurves(RP: PRastPort; ClipRect: TRect);
     procedure DrawMarker(RP: PRastPort; ClipRect: TRect);
-    function FindNearestCurve(X, Y: Integer; var MinLoc: TPoint; var CurveIdx, PointIdx: Integer): Boolean;
+    function FindNearestCurve(X, Y: Integer; var MinLoc: Classes.TPoint; var CurveIdx, PointIdx: Integer): Boolean;
   public
     constructor Create(const Args: array of PtrUInt); override;
     destructor Destroy; override;
@@ -150,11 +150,11 @@ type
     procedure ZoomIn(ToPos: Boolean);
     procedure ZoomOut;
     procedure RefreshImage;
-    function PixelToPos(T: TPoint): TCoord;
-    function PosToPixel(C: TCoord): TPoint;
+    function PixelToPos(T: Classes.TPoint): TCoord;
+    function PosToPixel(C: TCoord): Classes.TPoint;
 
     property OnUpdateLocationLabel: TProcedure read FOnUpdateLocationLabel write FOnUpdateLocationLabel;
-    property LastMouse: TPoint read FLastMouse;}
+    property LastMouse: Classes.TPoint read FLastMouse;}
     property Title: string read FTitle write FTitle;
     property AxisTop: TAxis read FAxisTop write FAxisTop;
     property AxisLeft: TAxis read FAxisLeft write FAxisLeft;
@@ -620,7 +620,7 @@ begin
 end;
 
 
-function TAxis.Place(value: Double): TPoint;
+function TAxis.Place(value: Double): Classes.TPoint;
 begin
   if FMinValue = FMaxValue then
   begin
@@ -655,7 +655,7 @@ begin
   end;
 end;
 
-function TAxis.Shift(Position: TPoint; Value: Double): TPoint;
+function TAxis.Shift(Position: Classes.TPoint; Value: Double): Classes.TPoint;
 begin
   if FMinValue = FMaxValue then
     Result := Position
@@ -834,7 +834,7 @@ var
   i, j, jopt: Integer;
   AbsMax: Double;
   d1: Integer;
-  pt1,pt2: TPoint;
+  pt1,pt2: Classes.TPoint;
 const
   goodInc: array[1..18] of integer =
    (10,15,20,25,30,40,50,75,100,150,200,250,300,400,500,750,1000,1500);
@@ -1320,7 +1320,7 @@ end;
 // DrawMarker
 procedure TPlotPanel.DrawMarker(RP: PRastPort; ClipRect: TRect);
 var
-  loc: TPoint;
+  loc: Classes.TPoint;
   DoMove: Boolean;
   Pen: LongWord;
 begin
@@ -1341,7 +1341,7 @@ end;
 procedure TPlotPanel.DrawCurves(RP: PRastPort; ClipRect: TRect);
 var
   i,j:integer;
-  loc: TPoint;
+  loc: Classes.TPoint;
   ox,oy{,bx,by}:integer;
   //wd,wi:integer;
   //dx,dy:integer;
@@ -1605,11 +1605,11 @@ end;
 
 // #######################
 // Find Nearest
-function TPlotPanel.FindNearestCurve(X, Y: Integer; var MinLoc: TPoint; var CurveIdx, PointIdx: Integer): Boolean;
+function TPlotPanel.FindNearestCurve(X, Y: Integer; var MinLoc: Classes.TPoint; var CurveIdx, PointIdx: Integer): Boolean;
 var
   i, j: Integer;
   MinDist, Dist: Double;
-  Loc: TPoint;
+  Loc: Classes.TPoint;
 begin
   Result := False;
   MinDist := 1e100;
@@ -1643,7 +1643,7 @@ procedure TPlotPanel.MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent:
 var
   Dist: Double;
   FoundCurve, FoundPos: Integer;
-  MinLoc: TPoint;
+  MinLoc: Classes.TPoint;
 begin
   if MouseDown then
   begin

@@ -30,13 +30,13 @@ type
 
   TImageTile = class
     Zoom: Integer;
-    Posi: TPoint;
+    Posi: Classes.TPoint;
     Pict: TFPAMemImage;
     Requested: Boolean;
     ReadyToUse: Boolean;
     Error: Boolean;
     LastUsed: Int64;
-    constructor Create(AZoom: Integer; APos: TPoint);
+    constructor Create(AZoom: Integer; APos: Classes.TPoint);
     destructor Destroy; override;
   end;
 
@@ -52,7 +52,7 @@ type
     procedure Execute; override;
   end;
 
-  function GetTile(AZoom: Integer; MPos: TPoint; out IsRealPicture: Boolean): TFPAMemImage;
+  function GetTile(AZoom: Integer; MPos: Classes.TPoint; out IsRealPicture: Boolean): TFPAMemImage;
 
 var
   LNumLoaded: Cardinal = 0;
@@ -130,7 +130,7 @@ begin
   //writeln('<--load Bitmap');
 end;
 
-function LoadFromWeb(HTTPClient: TFPHTTPClient; AZoom: Integer; MPos: TPoint; Pic: TFPAMemImage): Boolean;
+function LoadFromWeb(HTTPClient: TFPHTTPClient; AZoom: Integer; MPos: Classes.TPoint; Pic: TFPAMemImage): Boolean;
 var
   Mem: TMemoryStream;
   Url: string;
@@ -287,7 +287,7 @@ end;
 
 { TImageTile }
 
-constructor TImageTile.Create(AZoom: Integer; APos: TPoint);
+constructor TImageTile.Create(AZoom: Integer; APos: Classes.TPoint);
 begin
   Pict := TFPAMemImage.Create(10,10);
   LastUsed := GetMsCount;
@@ -311,7 +311,7 @@ begin
   inherited Destroy;
 end;
 
-function GetTile(AZoom: Integer; MPos: TPoint; out IsRealPicture: Boolean): TFPAMemImage;
+function GetTile(AZoom: Integer; MPos: Classes.TPoint; out IsRealPicture: Boolean): TFPAMemImage;
 var
   i: Integer;
   Found: Boolean;

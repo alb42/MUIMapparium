@@ -940,8 +940,8 @@ end;
 procedure TTrack.CalcCoords(NewZoom: Integer);
 var
   i: Integer;
-  LastPos: TPoint;
-  ThisPos: TPoint;
+  LastPos: Classes.TPoint;
+  ThisPos: Classes.TPoint;
 begin
   // if Zoom is the same just skip it
   if FZoom = NewZoom then
@@ -994,8 +994,8 @@ end;
 procedure TRoute.CalcCoords(NewZoom: Integer);
 var
   i: Integer;
-  LastPos: TPoint;
-  ThisPos: TPoint;
+  LastPos: Classes.TPoint;
+  ThisPos: Classes.TPoint;
 begin
   // if Zoom is the same just skip it
   if FZoom = NewZoom then

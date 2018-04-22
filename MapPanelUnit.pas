@@ -15,8 +15,8 @@ type
 
   TMapPanel = class(TMUIPaintBox)
   private
-    DownPos: TPoint;
-    FLastMouse: TPoint;
+    DownPos: Classes.TPoint;
+    FLastMouse: Classes.TPoint;
     StartCoord: TCoord;
     // middle Marker
     MiddleMarker: LongWord;
@@ -65,13 +65,13 @@ type
     procedure ZoomIn(ToPos: Boolean);
     procedure ZoomOut;
     procedure RefreshImage;
-    function PixelToPos(T: TPoint): TCoord;
-    function PosToPixel(C: TCoord): TPoint;
-    function CoordToPixel(NCoord: TTileCoord): TPoint;
+    function PixelToPos(T: Classes.TPoint): TCoord;
+    function PosToPixel(C: TCoord): Classes.TPoint;
+    function CoordToPixel(NCoord: TTileCoord): Classes.TPoint;
 
     property OnUpdateLocationLabel: TProcedure read FOnUpdateLocationLabel write FOnUpdateLocationLabel;
     property OnSidePanelOpen: TProcedure read FOnSidePanelOpen write FOnSidePanelOpen;
-    property LastMouse: TPoint read FLastMouse;
+    property LastMouse: Classes.TPoint read FLastMouse;
     property ShowSidePanelBtn: Boolean read FShowSidePanelBtn write SetShowSidePanelBtn;
 
     property ShowMarker: Boolean read FShowMarker write SetShowMarker;
@@ -251,8 +251,8 @@ end;
 // Draw Event
 procedure TMapPanel.DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect);
 var
-  PTMid: TPoint;
-  LOffset: TPoint;
+  PTMid: Classes.TPoint;
+  LOffset: Classes.TPoint;
   LocalRP: PRastPort;
   li: pLayer_Info;
 begin
@@ -306,7 +306,7 @@ end;
 // Draw the middle Marker
 procedure TMapPanel.DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
 var
-  PTMid: TPoint;
+  PTMid: Classes.TPoint;
   //Pen: LongWord;
 begin
   {$ifndef MorphOS}
@@ -346,7 +346,7 @@ var
   Points: packed array of packed record
     x,y: SmallInt;
   end;
-  pt: TPoint;
+  pt: Classes.TPoint;
   Ras: TPlanePtr;
   TRas: TTmpRas;
   WarBuff: array[0..AREA_BYTES] of Word;
@@ -407,7 +407,7 @@ procedure TMapPanel.DrawTracks(RP: PRastPort; DrawRange: TRect);
 const
   AREA_BYTES = 4000;
 var
-  PT: TPoint;
+  PT: Classes.TPoint;
   i, j: Integer;
   LastWasDrawn: Boolean;
   TrackPtSize: Integer;
@@ -489,7 +489,7 @@ procedure TMapPanel.DrawRoutes(RP: PRastPort; DrawRange: TRect);
 const
   AREA_BYTES = 4000;
 var
-  PT: TPoint;
+  PT: Classes.TPoint;
   i, j: Integer;
   LastWasDrawn: Boolean;
   RoutePtSize: Integer;
@@ -497,10 +497,6 @@ var
   Drawn: Integer;
   ShowActivePt: Boolean;
   RoutePen: LongInt;
-  Points: array[0..3] of record
-    X: SmallInt;
-    Y: SmallInt;
-  end;
 begin
   RoutePtSize := Max(2, CurZoom - 10);
   SetAPen(RP, RedPen);
@@ -577,7 +573,7 @@ end;
 
 procedure TMapPanel.DrawGUI(RP: PRastPort; DrawRange: TRect);
 var
-  ButtonSize: TPoint;
+  ButtonSize: Classes.TPoint;
   //Pen: LongWord;
 begin
   ButtonSize.X := Round(TW(RP, 'W') * 1.2);
@@ -660,9 +656,9 @@ end;
 
 
 // Calculate Pixel to real coordinate
-function TMapPanel.PixelToPos(T: TPoint): TCoord;
+function TMapPanel.PixelToPos(T: Classes.TPoint): TCoord;
 var
-  PTMid, MidDist: TPoint;
+  PTMid, MidDist: Classes.TPoint;
   NCoord: TTileCoord;
 begin
   PTMid := Point((Width div 2), (Height div 2));
@@ -682,12 +678,12 @@ begin
   Result := TileToCoord(CurZoom, NCoord);
 end;
 
-function TMapPanel.PosToPixel(C: TCoord): TPoint;
+function TMapPanel.PosToPixel(C: TCoord): Classes.TPoint;
 var
-  PTMid: TPoint;
+  PTMid: Classes.TPoint;
   NCoord: TTileCoord;
-  TileDist: TPoint;
-  MidDist: TPoint;
+  TileDist: Classes.TPoint;
+  MidDist: Classes.TPoint;
 begin
   Result.X := 0;
   Result.Y := 0;
@@ -705,11 +701,9 @@ begin
   Result.Y := TileDist.Y + NCoord.Pixel.Y + MidDist.Y + MoveOffset.Y;
 end;
 
-function TMapPanel.CoordToPixel(NCoord: TTileCoord): TPoint;
+function TMapPanel.CoordToPixel(NCoord: TTileCoord): Classes.TPoint;
 var
-  PTMid: TPoint;
-  TileDist: TPoint;
-  MidDist: TPoint;
+  PTMid, TileDist, MidDist: Classes.TPoint;
 begin
   Result.X := 0;
   Result.Y := 0;

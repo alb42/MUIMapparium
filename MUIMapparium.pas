@@ -102,7 +102,7 @@ var
   MinLat, MaxLat, MinLon, MaxLon, DiffLat, DiffLon: Double;
   Deg: TCoord;
   i: Integer;
-  Pt: TPoint;
+  Pt: Classes.TPoint;
   Rec: TRectCoord;
 begin
   Result := 9;

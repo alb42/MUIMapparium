@@ -32,8 +32,8 @@ type
   end;
 
   TTileCoord = record
-    Tile: TPoint;
-    Pixel: TPoint;
+    Tile: Classes.TPoint;
+    Pixel: Classes.TPoint;
   end;
 
 function GradToDistance(const P1, P2: TCoord): double;
@@ -41,15 +41,15 @@ function GradToDistance(const P1, P2: TCoord): double;
 function CoordToTile(Zoom: Integer; Deg: TCoord): TTileCoord;
 function TileToCoord(Zoom: Integer; T: TTileCoord): TCoord;
 
-function GetTileCoord(Zoom: Integer; Deg: TCoord): TPoint;
-function GetMapPosition(Zoom: Integer; MPos: TPoint): TCoord;
-function GetTileRect(Zoom: Integer; MPos: TPoint): TRectCoord;
+function GetTileCoord(Zoom: Integer; Deg: TCoord): Classes.TPoint;
+function GetMapPosition(Zoom: Integer; MPos: Classes.TPoint): TCoord;
+function GetTileRect(Zoom: Integer; MPos: Classes.TPoint): TRectCoord;
 
 function GetResolution(Zoom: Integer; Deg: TCoord): Double;
 function GetYResolution(Zoom: Integer; Deg: TCoord): Double;
 
-function BuildURL(Zoom: Integer; MPos: TPoint): string;
-function BuildFilename(Zoom: Integer; MPos: TPoint): string;
+function BuildURL(Zoom: Integer; MPos: Classes.TPoint): string;
+function BuildFilename(Zoom: Integer; MPos: Classes.TPoint): string;
 
 function GetPosbyString(PosStr: string; var Coord: TCoord; var Zoom: Integer): Boolean;
 
@@ -72,7 +72,7 @@ begin
   Result := Sqrt(dx**2 + dy**2);
 end;
 
-function GetTileCoord(Zoom: Integer; Deg: TCoord): TPoint;
+function GetTileCoord(Zoom: Integer; Deg: TCoord): Classes.TPoint;
 var
   n, LatRad: Double;
 begin
@@ -124,7 +124,7 @@ function GetYResolution(Zoom: Integer; Deg: TCoord): Double;
 var
   n, LatRad: Double;
   c, LResY, LResY1: Double;
-  Pt: TPoint;
+  Pt: Classes.TPoint;
   TileRect: TRectCoord;
 begin
   Result := 0;
@@ -149,7 +149,7 @@ begin
   Result := ((1- C) * LResY1) + (C * LResY);
 end;
 
-function GetMapPosition(Zoom: Integer; MPos: TPoint): TCoord;
+function GetMapPosition(Zoom: Integer; MPos: Classes.TPoint): TCoord;
 var
   n, LatRad: Double;
 begin
@@ -159,7 +159,7 @@ begin
   Result.Lon := MPos.X / n * 360.0 - 180.0;
 end;
 
-function GetTileRect(Zoom: Integer; MPos: TPoint): TRectCoord;
+function GetTileRect(Zoom: Integer; MPos: Classes.TPoint): TRectCoord;
 var
   Pt: TCoord;
   p: float;
@@ -188,12 +188,12 @@ begin
   Result := 156543.03 * cos(DegToRad(Deg.Lat)) / Power(2, Zoom);
 end;
 
-function BuildURL(Zoom: Integer; MPos: TPoint): string;
+function BuildURL(Zoom: Integer; MPos: Classes.TPoint): string;
 begin
   Result := BASEURL + IntToStr(Zoom) + '/' + IntToStr(MPos.X) + '/' + intToStr(MPos.Y) + '.png';
 end;
 
-function BuildFilename(Zoom: Integer; MPos: TPoint): string;
+function BuildFilename(Zoom: Integer; MPos: Classes.TPoint): string;
 begin
   Result := IncludeTrailingPathDelimiter(DataDir) + BASEFILE + IntToStr(Zoom) + '_' + IntToStr(MPos.X) + '_' + intToStr(MPos.Y) + '.png';
 end;
