@@ -14,6 +14,7 @@ var
   PrefsWin: PObject_ = nil;
   CountButton, ClearButton, FilesLabel, ToLevel,
   SaveButton, CancelButton, MarkerType, MarkerSize,
+  DblMode,
   LangSel, TilesHD: PObject_;
   Bytes, Counter: Int64;
 
@@ -36,6 +37,7 @@ begin
   MH_Set(MarkerSize, MUIA_String_Integer, Prefs.MarkerSize);
   MH_Set(LangSel, MUIA_String_Contents, AsTag(PChar(Prefs.SearchLang)));
   MH_Set(TilesHD, MUIA_String_Integer, Prefs.MaxTiles);
+  MH_Set(DblMode, MUIA_Cycle_Active, Ord(Prefs.DClickMode));
   //
   MH_Set(PrefsWin, MUIA_Window_Open, AsTag(True));
 end;
@@ -48,6 +50,7 @@ begin
   Prefs.MarkerSize := MH_Get(MarkerSize, MUIA_String_Integer);
   Prefs.SearchLang := PChar(MH_Get(LangSel, MUIA_String_Contents));
   Prefs.MaxTiles := MH_Get(TilesHD, MUIA_String_Integer);
+  Prefs.DClickMode := TDClickMode(MH_Get(DblMode, MUIA_Cycle_Active));
   //
   if Assigned(OnUpdatePrefs) then
     OnUpdatePrefs();
@@ -142,6 +145,9 @@ var
   MarkerStrings: array[0..3] of string;
   MarkerTypes: array[0..4] of PChar =
     ('None'#0, 'Point'#0, 'Cross'#0, 'Lines'#0, nil);
+  DblModeString: array[0..2] of string;
+  DblModes: array[0..3] of PChar =
+    ('Center'#0, 'Properties'#0, 'Toggle Visibility'#0, nil);
 
 procedure CreatePrefsWin;
 var
@@ -157,6 +163,18 @@ begin
     begin
       MarkerStrings[i] := SL[i];
       MarkerTypes[i] := PChar(MarkerStrings[i]);
+    end;
+  finally
+    SL.Free;
+  end;
+  str := GetLocString(MSG_PREFS_DBLMODES);
+  SL := TStringList.Create;
+  try
+    ExtractStrings(['|'], [], PChar(Str), SL);
+    for i := 0 to 2 do
+    begin
+      DblModeString[i] := SL[i];
+      DblModes[i] := PChar(DblModeString[i]);
     end;
   finally
     SL.Free;
@@ -190,6 +208,15 @@ begin
         Child, AsTag(MH_String(LangSel, [
           MUIA_Frame, MUIV_Frame_String,
           MUIA_String_Contents, AsTag('en'),
+          TAG_DONE])),
+        TAG_DONE])),
+      Child, AsTag(MH_HGroup([
+        MUIA_Frame, MUIV_Frame_Group,
+        MUIA_FrameTitle, AsTag(GetLocString(MSG_PREFS_MOUSESETTINGS)), // 'Mouse Settings'
+        Child, AsTag(MH_Text(GetLocString(MSG_PREFS_DBLMODE))),    // 'Double click mode'
+        Child, AsTag(MH_HSpace(0)),
+        Child, AsTag(MH_Cycle(DblMode, [
+          MUIA_Cycle_Entries, AsTag(@DblModes),
           TAG_DONE])),
         TAG_DONE])),
       Child, AsTag(MH_HGroup([

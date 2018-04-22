@@ -139,6 +139,18 @@ MSG_PREFS_MARKERTYPES
 Keiner|Punkt|Kreuz|Linien
 ; None|Point|Cross|Lines
 ;
+MSG_PREFS_DBLMODES
+Zentriere|Eigenschaften|Änder Sichtbarkeit
+; Center|Properties|Toggle Visibility
+;
+MSG_PREFS_MOUSESETTINGS
+Maus Einstellungen
+; Mouse Settings
+;
+MSG_PREFS_DBLMODE
+Doppelklickmode
+; Double click mode
+;
 ;#### Statistics
 MSG_STAT_WINTITLE
 Statistiken
@@ -281,13 +293,25 @@ Neue Route
 ;
 ;
 ;#### Menus
-MSG_POPUP_WAYPOINT
-Wegpunkt
-; Waypoint
+MSG_POPUP_FEATURE
+Kartenobject
+; Map Feature
 ;
-MSG_POPUP_WAYPOINT_TOGGLE
+MSG_POPUP_FEATURE_TOGGLE
 Ändere Sichtbarkeit
 ; Toggle visibility
+;
+MSG_POPUP_FEATURE_GOTO
+Springe zu
+; Goto
+;
+MSG_POPUP_FEATURE_SHOWALL
+Zeige alle
+; Show all
+;
+MSG_POPUP_FEATURE_HIDEALL
+Verstecke alle
+; Hide all
 ;
 ; --- MainMenu
 MSG_MENU_PROJECT

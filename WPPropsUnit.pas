@@ -95,7 +95,6 @@ begin
           MUIA_String_Accept, AsTag('0123456789.'),
           MUIA_String_Contents, AsTag('0000.000000'),
           TAG_END])),
-        Child, AsTag(MH_HSpace(0)),
         Child, AsTag(MH_Button(CurPos, GetLocString(MSG_WAYPROP_CURRENTPOS))),  // 'Current Position'
         TAG_END])),
       Child, AsTag(MH_HGroup([

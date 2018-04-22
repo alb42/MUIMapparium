@@ -559,6 +559,9 @@ begin
           Marker.symbol := GetTextNode(SubNode, 'sym');
           str := GetTextNode(SubNode, 'time');
           Marker.Time := XMLTimeToDateTime(str);
+          ExtNode := SubNode.FindNode('extensions');
+          if Assigned(ExtNode) then
+            Marker.Visible := StrToBoolDef(GetTextNode(ExtNode, 'visible'), True);
           MarkerList.Add(Marker);
         end;
       //##### Route
@@ -706,6 +709,11 @@ begin
           WptNode.AppendChild(TextNode);
           TextNode.TextContent := WideString(FloatToStrF(MarkerList[i].Elevation, ffFixed,8,1));
         end;
+        ExtNode := XMLDoc.CreateElement('extensions');
+        WptNode.AppendChild(ExtNode);
+        TextNode := XMLDoc.CreateElement('visible');
+        ExtNode.AppendChild(TextNode);
+        TextNode.TextContent := WideString(BoolToStr(MarkerList[i].Visible, True));
         GPXNode.AppendChild(WptNode);
       end;
       for i := 0 to RouteList.Count -1 do

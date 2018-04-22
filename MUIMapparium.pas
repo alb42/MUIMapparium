@@ -13,6 +13,7 @@ uses
   MapPanelUnit, UpdateUnit, aboutwinunit;
 
 const
+  NM_BarLabel: LongInt = -1;
   // MainMenu
   MID_QUIT        = 1;
   MID_SIDEPANEL   = 2;
@@ -30,8 +31,6 @@ const
   MID_Help        = 14;
   MID_About       = 15;
   MID_AboutMUI    = 16;
-  // WayMenu
-  WID_Toggle = 1;
 
 var
   TabStrings: array[0..4] of string = ('Search', 'WayPoints', 'Tracks', 'Routes', 'Images');
@@ -44,7 +43,7 @@ var
   // Search
   SearchEdit, SearchList, SearchListEntry,
   // Waypoints
-  WayPointList, WaypointListEntry, WayPointMenu,
+  WayPointList, WaypointListEntry, MapFeatureMenu,
   // Tracks
   TracksList, TracksListEntry,
   //Routes
@@ -52,6 +51,7 @@ var
   // Basic
   App, Window: PObject_;
   // MainWindow
+  ListTabs,
   SidePanel, MainBalance, MainMenu: PObject_;
   // Menu
   MenuSidePanel, MenuDrawMarker, MenuDrawTracks, MenuDrawRoutes: PObject_;
@@ -61,7 +61,7 @@ var
 
   MUIMapPanel: TMapPanel;
 
-  WM1: PObject_;
+  WM1, WM2, WM3, WM4: PObject_;
 
   SidePanelOpen: Boolean = FALSE;
 
@@ -69,6 +69,7 @@ procedure UpdateLocationLabel; forward;
 procedure SidePanelOpenEvent; forward;
 function BoundingBoxToZoom(BoundString: string): Integer; forward;
 procedure ShowSidePanel(ShowIt: Boolean); forward;
+function EditWayEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt; forward;
 
 procedure OpenPrefs; forward;
 procedure UpdateWayPoints; forward;
@@ -157,7 +158,7 @@ begin
   begin
     MarkerList[i].FullName := MarkerList[i].Name;
     if not MarkerList[i].Visible then
-      MarkerList[i].FullName := '(' + MarkerList[i].FullName + ')';
+      MarkerList[i].FullName := '[' + MarkerList[i].FullName + ']';
     DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(MarkerList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
   RedrawImage := True;
@@ -173,7 +174,7 @@ begin
   begin
     TrackList[i].FullName := TrackList[i].Name + ' (' + IntToStr(Length(TrackList[i].Pts)) + ') ' + TrackList[i].Desc;
     if not TrackList[i].Visible then
-      TrackList[i].FullName := '(' + TrackList[i].FullName + ')';
+      TrackList[i].FullName := '[' + TrackList[i].FullName + ']';
     DoMethod(TracksListEntry, [MUIM_List_InsertSingle, AsTag(PChar(TrackList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
   RedrawImage := True;
@@ -189,7 +190,7 @@ begin
   begin
     RouteList[i].FullName := RouteList[i].Name + ' (' + IntToStr(Length(RouteList[i].Pts)) + ') ' + RouteList[i].Desc;
     if not RouteList[i].Visible then
-      RouteList[i].FullName := '(' + RouteList[i].FullName + ')';
+      RouteList[i].FullName := '[' + RouteList[i].FullName + ']';
     DoMethod(RoutesListEntry, [MUIM_List_InsertSingle, AsTag(PChar(RouteList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
   RedrawImage := True;
@@ -517,9 +518,28 @@ begin
     Ma := MarkerList[Active];
     if Assigned(Ma) then
     begin
-      MiddlePos.Lat := Ma.Position.Lat;
-      MiddlePos.Lon := Ma.Position.Lon;
-      MUIMapPanel.RefreshImage;
+      case Prefs.DClickMode of
+        dmCenter: begin
+          MiddlePos.Lat := Ma.Position.Lat;
+          MiddlePos.Lon := Ma.Position.Lon;
+          MUIMapPanel.RefreshImage;
+        end;
+        dmProperty: begin
+          MiddlePos.Lat := Ma.Position.Lat;
+          MiddlePos.Lon := Ma.Position.Lon;
+          MUIMapPanel.RefreshImage;
+          EditWayEvent(nil, nil, nil);
+        end;
+        dmVisible: begin
+          Ma.Visible := not Ma.Visible;
+          Ma.FullName := Ma.Name;
+          if not Ma.Visible then
+            Ma.FullName := '[' + MA.Name + ']';
+          DoMethod(WaypointListEntry, [MUIM_List_Remove, Active]);
+          DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
+          MUIMapPanel.RefreshImage;
+        end;
+      end;
     end;
   end;
 end;
@@ -755,22 +775,227 @@ end;
 function WPToggleEvent(Hook: PHook; Obj: PObject_; AMsg: Pointer): NativeInt;
 var
   Active: Integer;
-  Ma: TMarker;
+  Ma: TMapFeature;
 begin
   Result := 0;
-  Active := MH_Get(WayPointListEntry, MUIA_List_Active);
-  if (Active >= 0) and (Active < MarkerList.Count) then
-  begin
-    Ma := MarkerList[Active];
-    Ma.Visible := not Ma.Visible;
-    Ma.FullName := Ma.Name;
-    if not Ma.Visible then
-      Ma.FullName := '(' + Ma.FullName + ')';
-    DoMethod(WaypointListEntry, [MUIM_List_Remove, Active]);
-    DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
-    MUIMapPanel.RedrawObject;
+  case MH_Get(ListTabs, MUIA_Group_ActivePage) of
+    1: // waypoint
+    begin
+      Active := MH_Get(WayPointListEntry, MUIA_List_Active);
+      if (Active >= 0) and (Active < MarkerList.Count) then
+      begin
+        Ma := MarkerList[Active];
+        Ma.Visible := not Ma.Visible;
+        Ma.FullName := Ma.Name;
+        if not Ma.Visible then
+          Ma.FullName := '[' + MA.Name + ']';
+        DoMethod(WaypointListEntry, [MUIM_List_Remove, Active]);
+        DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
+        MUIMapPanel.RedrawObject;
+      end;
+    end;
+    2: // Track
+    begin
+      Active := MH_Get(TracksListEntry, MUIA_List_Active);
+      if (Active >= 0) and (Active < TrackList.Count) then
+      begin
+        Ma := TrackList[Active];
+        Ma.Visible := not Ma.Visible;
+        Ma.FullName := Ma.Name;
+        if not Ma.Visible then
+          Ma.FullName := '[' + MA.Name + ']';
+        DoMethod(TracksListEntry, [MUIM_List_Remove, Active]);
+        DoMethod(TracksListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
+        MUIMapPanel.RedrawObject;
+      end;
+    end;
+    3: // Route
+    begin
+      Active := MH_Get(RoutesListEntry, MUIA_List_Active);
+      if (Active >= 0) and (Active < RouteList.Count) then
+      begin
+        Ma := RouteList[Active];
+        Ma.Visible := not Ma.Visible;
+        Ma.FullName := Ma.Name;
+        if not Ma.Visible then
+          Ma.FullName := '[' + MA.Name + ']';
+        DoMethod(RoutesListEntry, [MUIM_List_Remove, Active]);
+        DoMethod(RoutesListEntry, [MUIM_List_InsertSingle, AsTag(PChar(Ma.FullName)), Active]);
+        MUIMapPanel.RedrawObject;
+      end;
+    end;
   end;
 end;
+
+function WPGoToEvent(Hook: PHook; Obj: PObject_; AMsg: Pointer): NativeInt;
+var
+  Active: Integer;
+  Ma: TMarker;
+  Tr: TTrack;
+  Ro: TRoute;
+  MinC, MaxC: TCoord;
+  DiffLat, DiffLon: ValReal;
+  Pt: Classes.TPoint;
+  Rec: TRectCoord;
+  i: Integer;
+begin
+  Result := 0;
+  case MH_Get(ListTabs, MUIA_Group_ActivePage) of
+    1: // WayPoints
+    begin
+      Active := MH_Get(WayPointListEntry, MUIA_List_Active);
+      if (Active >= 0) and (Active < MarkerList.Count) then
+      begin
+        Ma := MarkerList[Active];
+        MiddlePos.Lat := Ma.Position.Lat;
+        MiddlePos.Lon := Ma.Position.Lon;
+        MUIMapPanel.RefreshImage;
+      end;
+    end;
+    2: // Track
+    begin
+      Active := MH_Get(TracksListEntry, MUIA_List_Active);
+      if (Active >= 0) and (Active < TrackList.Count) then
+      begin
+        Tr := TrackList[Active];
+        if Assigned(Tr) then
+        begin
+          for i := 0 to High(Tr.Pts) do
+          begin
+            if i = 0 then
+            begin
+              MinC := Tr.Pts[0].Position;
+              MaxC := Tr.Pts[0].Position;
+            end else
+            begin
+              MinC.Lat := Min(MinC.Lat, Tr.Pts[i].Position.Lat);
+              MinC.Lon := Min(MinC.Lon, Tr.Pts[i].Position.Lon);
+              MaxC.Lat := Max(MaxC.Lat, Tr.Pts[i].Position.Lat);
+              MaxC.Lon := Max(MaxC.Lon, Tr.Pts[i].Position.Lon);
+            end;
+          end;
+          if Length(Tr.Pts) > 0 then
+          begin
+            DiffLat := Abs(MaxC.Lat - MinC.Lat);
+            DiffLon := Abs(MaxC.Lon - MinC.Lon);
+            MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+            MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
+
+            for i := 0 to 18 do
+            begin
+              Pt := GetTileCoord(i, MiddlePos);
+              Rec := GetTileRect(i, Pt);
+              if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+                CurZoom := i;
+            end;
+            CurZoom := CurZoom + 1;
+            MUIMapPanel.RefreshImage;
+          end;
+        end;
+      end;
+    end;
+    3: // Route
+    begin
+      Active := MH_Get(RoutesListEntry, MUIA_List_Active);
+      if (Active >= 0) and (Active < RouteList.Count) then
+      begin
+        Ro := RouteList[Active];
+        if Assigned(Ro) then
+        begin
+          for i := 0 to High(Ro.Pts) do
+          begin
+            if i = 0 then
+            begin
+              MinC := Ro.Pts[0].Position;
+              MaxC := Ro.Pts[0].Position;
+            end else
+            begin
+              MinC.Lat := Min(MinC.Lat, Ro.Pts[i].Position.Lat);
+              MinC.Lon := Min(MinC.Lon, Ro.Pts[i].Position.Lon);
+              MaxC.Lat := Max(MaxC.Lat, Ro.Pts[i].Position.Lat);
+              MaxC.Lon := Max(MaxC.Lon, Ro.Pts[i].Position.Lon);
+            end;
+          end;
+          if Length(Ro.Pts) > 0 then
+          begin
+            DiffLat := Abs(MaxC.Lat - MinC.Lat);
+            DiffLon := Abs(MaxC.Lon - MinC.Lon);
+            MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+            MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
+
+            for i := 0 to 18 do
+            begin
+              Pt := GetTileCoord(i, MiddlePos);
+              Rec := GetTileRect(i, Pt);
+              if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+                CurZoom := i;
+            end;
+            CurZoom := CurZoom + 1;
+            MUIMapPanel.RefreshImage;
+          end;
+        end;
+      end;
+    end;
+  end;
+  MUIMapPanel.RedrawObject;
+end;
+
+function WPShowAllEvent(Hook: PHook; Obj: PObject_; AMsg: Pointer): NativeInt;
+var
+  i: Integer;
+begin
+  Result := 0;
+  case MH_Get(ListTabs, MUIA_Group_ActivePage) of
+    1: // Waypoint
+    begin
+      for i := 0 to MarkerList.Count - 1 do
+        MarkerList[i].Visible := True;
+      UpdateWayPoints;
+    end;
+    2: // Track
+    begin
+      for i := 0 to TrackList.Count - 1 do
+        TrackList[i].Visible := True;
+      UpdateTracks;
+    end;
+    3: // Route
+    begin
+      for i := 0 to RouteList.Count - 1 do
+        RouteList[i].Visible := True;
+      UpdateRoutes;
+    end;
+  end;
+  MUIMapPanel.RedrawObject;
+end;
+
+function WPHideAllEvent(Hook: PHook; Obj: PObject_; AMsg: Pointer): NativeInt;
+var
+  i: Integer;
+begin
+  Result := 0;
+  case MH_Get(ListTabs, MUIA_Group_ActivePage) of
+    1: // Waypoint
+    begin
+      for i := 0 to MarkerList.Count - 1 do
+        MarkerList[i].Visible := False;
+      UpdateWayPoints;
+    end;
+    2: // Track
+    begin
+      for i := 0 to TrackList.Count - 1 do
+        TrackList[i].Visible := False;
+      UpdateTracks;
+    end;
+    3: // Route
+    begin
+      for i := 0 to RouteList.Count - 1 do
+        RouteList[i].Visible := False;
+      UpdateRoutes;
+    end;
+  end;
+  MUIMapPanel.RedrawObject;
+end;
+
 
 //###################################
 // AREXX Hook
@@ -1073,7 +1298,7 @@ var
   AddWay, RemWay, EditWay: PObject_;
   AddWayHook, RemWayHook, EditWayHook: Thook;
   StartTime: Int64;
-  WayMenuHooks: array[0..0] of THook;
+  WayMenuHooks: array[0..3] of THook;
   RexxHook: THook;
   ThisAppDiskIcon: Pointer;
   i: Integer;
@@ -1105,12 +1330,21 @@ begin
     StrCoord := FloatToStrF(MiddlePos.Lat, ffFixed, 8,6) + ' ; ' + FloatToStrF(MiddlePos.Lon, ffFixed, 8,6) + ' ; ' + IntToStr(CurZoom) + '  ';
     StrCoord := Format('%25s', [StrCoord]);
     //
-    // Popupmenu for WayPointList ++++++++++++++++++++++++++++++++++++++
-    WayPointMenu := MH_Menustrip([
-      Child, AsTag(MH_Menu(GetLocString(MSG_POPUP_WAYPOINT), [                   // 'Waypoint'
+    // Popupmenu for Lists ++++++++++++++++++++++++++++++++++++++
+    MapFeatureMenu := MH_Menustrip([
+      Child, AsTag(MH_Menu(GetLocString(MSG_POPUP_FEATURE), [                   // 'Map Feature'
+        Child, AsTag(MH_MenuItem(WM2, [
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_POPUP_FEATURE_GOTO)),     // 'GoTo'
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem([ MUIA_Menuitem_Title, AsTag(NM_BarLabel), TAG_DONE])),
         Child, AsTag(MH_MenuItem(WM1, [
-          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_POPUP_WAYPOINT_TOGGLE)),   // 'Toggle visibility'
-          MUIA_UserData, WID_Toggle,
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_POPUP_FEATURE_TOGGLE)),   // 'Toggle visibility'
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem(WM3, [
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_POPUP_FEATURE_SHOWALL)),  // 'Show all'
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem(WM4, [
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_POPUP_FEATURE_HIDEALL)),  // 'Hide all'
           TAG_DONE])),
         TAG_DONE])),
       TAG_DONE]);
@@ -1120,7 +1354,7 @@ begin
     // Side Panel
     SidePanel := MH_VGroup([
       MUIA_ShowMe, AsTag(False),
-      Child, AsTag(MH_Register([
+      Child, AsTag(MH_Register(ListTabs, [
         MUIA_Register_Titles, AsTag(@TabTitles),
         //#### Search list
         Child, AsTag(MH_ListView(SearchList, [
@@ -1141,7 +1375,7 @@ begin
             MUIA_Listview_List, AsTag(MH_List(WaypointListEntry, [
               MUIA_Frame, MUIV_Frame_ReadList,
               MUIA_Background, MUII_ReadListBack,
-              MUIA_ContextMenu, AsTag(WayPointMenu),
+              MUIA_ContextMenu, AsTag(MapFeatureMenu),
               MUIA_List_PoolThreshSize, 256,
               TAG_DONE])),
             TAG_DONE])),
@@ -1159,7 +1393,7 @@ begin
             MUIA_Listview_List, AsTag(MH_List(TracksListEntry, [
               MUIA_Frame, MUIV_Frame_ReadList,
               MUIA_Background, MUII_ReadListBack,
-              //MUIA_ContextMenu, AsTag(WayPointMenu),
+              MUIA_ContextMenu, AsTag(MapFeatureMenu),
               MUIA_List_PoolThreshSize, 256,
               TAG_DONE])),
             TAG_DONE])),
@@ -1176,7 +1410,7 @@ begin
             MUIA_Listview_List, AsTag(MH_List(RoutesListEntry, [
               MUIA_Frame, MUIV_Frame_ReadList,
               MUIA_Background, MUII_ReadListBack,
-              //MUIA_ContextMenu, AsTag(WayPointMenu),
+              MUIA_ContextMenu, AsTag(MapFeatureMenu),
               MUIA_List_PoolThreshSize, 256,
               TAG_DONE])),
             TAG_DONE])),
@@ -1370,6 +1604,9 @@ begin
     ConnectHookFunction(MUIA_Window_MenuAction, MUIV_EveryTime, Window, nil, @MenuHook, @MenuEvent); // MainMenu
     // WayPointMenu events
     ConnectHookFunction(MUIA_Menuitem_Trigger, MUIV_EveryTime, WM1, nil, @WayMenuHooks[0], @WPToggleEvent);
+    ConnectHookFunction(MUIA_Menuitem_Trigger, MUIV_EveryTime, WM2, nil, @WayMenuHooks[1], @WPGoToEvent);
+    ConnectHookFunction(MUIA_Menuitem_Trigger, MUIV_EveryTime, WM3, nil, @WayMenuHooks[2], @WPShowAllEvent);
+    ConnectHookFunction(MUIA_Menuitem_Trigger, MUIV_EveryTime, WM4, nil, @WayMenuHooks[3], @WPHideAllEvent);
     // Add WayPoint Hook
     ConnectHookFunction(MUIA_Pressed, AsTag(False), AddWay, nil, @AddWayHook, @AddWayEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), RemWay, nil, @RemWayHook, @RemWayEvent);
@@ -1463,8 +1700,8 @@ begin
     MH_Set(Window, MUIA_Window_Open, AsTag(False));
 
   finally
-    if Assigned(WayPointMenu) then
-      MUI_DisposeObject(WayPointMenu);
+    if Assigned(MapFeatureMenu) then
+      MUI_DisposeObject(MapFeatureMenu);
     if Assigned(App) then
       MUI_DisposeObject(app);
     if Assigned(ThisAppDiskIcon) then

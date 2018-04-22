@@ -105,6 +105,15 @@ MSG_PREFS_DELETEDATA (20113//)
 MSG_PREFS_MARKERTYPES (20114//)
 None|Point|Cross|Lines
 ;
+MSG_PREFS_DBLMODES (20115//)
+Center|Properties|Toggle Visibility
+;
+MSG_PREFS_MOUSESETTINGS (20116//)
+Mouse Settings
+;
+MSG_PREFS_DBLMODE (20117//)
+Double click mode
+;
 ;#### Statistics
 MSG_STAT_WINTITLE (20200//)
 Statistics
@@ -213,11 +222,20 @@ New Route
 ;
 ;
 ;#### Menus
-MSG_POPUP_WAYPOINT (30000//)
-Waypoint
+MSG_POPUP_FEATURE (30000//)
+Map Feature
 ;
-MSG_POPUP_WAYPOINT_TOGGLE (30001//)
+MSG_POPUP_FEATURE_TOGGLE (30001//)
 Toggle visibility
+;
+MSG_POPUP_FEATURE_GOTO (30002//)
+Goto
+;
+MSG_POPUP_FEATURE_SHOWALL (30003//)
+Show all
+;
+MSG_POPUP_FEATURE_HIDEALL (30004//)
+Hide all
 ;
 ; --- MainMenu
 MSG_MENU_PROJECT (30100//)
