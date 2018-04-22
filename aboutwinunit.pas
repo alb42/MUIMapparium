@@ -22,7 +22,11 @@ const
 
     'thanks to Chain|Q'#10 +
     'migario and all'#10 +
-    'users and testers.'#10;
+    'users and testers.'#10 +
+
+    '0123456789876543210'#10 +
+    'End of transmission.'#10 +
+    '0123456789876543210'#10;
 
   StarterText =
     'Click here and'#10 +
