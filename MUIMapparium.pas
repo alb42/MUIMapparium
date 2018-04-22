@@ -1228,6 +1228,13 @@ begin
   MaxImages := Prefs.MaxTiles;
   // let redraw to make the marker changes visible
   RedrawImage := True;
+  if Assigned(MUIMapPanel) then
+  begin
+    MUIMapPanel.MiddleMarker := Prefs.MiddleMarker;
+    MUIMapPanel.MiddleMarkerColor := Prefs.MiddleMarkerColor;
+    MUIMapPanel.MiddleMarkerSize := Prefs.MarkerSize;
+    MUIMapPanel.RedrawObject;
+  end;
 end;
 
 // WayPoint Property edit changed something ;-)

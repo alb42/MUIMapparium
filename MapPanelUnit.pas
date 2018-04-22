@@ -19,9 +19,7 @@ type
     FLastMouse: Classes.TPoint;
     StartCoord: TCoord;
     // middle Marker
-    MiddleMarker: LongWord;
-    MiddleMarkerColor: LongWord;
-    MiddleMarkerSize: LongWord;
+
     FOnUpdateLocationLabel: TProcedure;
     FOnSidePanelOpen: TProcedure;
     //
@@ -50,6 +48,9 @@ type
     function DoSetup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Setup): PtrUInt; override;
     function DoCleanup(cl: PIClass; Obj: PObject_; Msg: PMUIP_Cleanup): PtrUInt; override;
   public
+    MiddleMarker: LongWord;
+    MiddleMarkerColor: LongWord;
+    MiddleMarkerSize: LongWord;
     LeftDown: Boolean;
     constructor Create(const Args: array of PtrUInt); override;
     procedure DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect);
