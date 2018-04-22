@@ -587,7 +587,15 @@ begin
           Child, AsTag(MH_Text(MUIX_C+'MUI Version' + MUIX_N, [MUIA_Font, AsTag(MUIV_Font_Tiny), TAG_END])),
           Child, AsTag(MH_Text(PChar('  Version: ' + IntToStr(VersionMajor) + '.' + IntToStr(VersionMinor)))),
           Child, AsTag(MH_Text(PChar('  Date: ' + {$INCLUDE %DATE%}))),
+          {$ifdef AMIGA68k}
+            {$ifdef FPUSOFT}
+            Child, AsTag(MH_Text(PChar('  Target: ' + {$INCLUDE %FPCTARGETCPU%} + '-' + {$INCLUDE %FPCTARGETOS%} + ' Soft  '))),
+            {$else}
+            Child, AsTag(MH_Text(PChar('  Target: ' + {$INCLUDE %FPCTARGETCPU%} + '-' + {$INCLUDE %FPCTARGETOS%} + ' 68881 '))),
+            {$endif}
+          {$else}
           Child, AsTag(MH_Text(PChar('  Target: ' + {$INCLUDE %FPCTARGETCPU%} + '-' + {$INCLUDE %FPCTARGETOS%} + '       '))),
+          {$endif}
           TAG_DONE])),
         TAG_DONE])),
       Child, AsTag(MH_VGroup([

@@ -29,6 +29,8 @@ History:
 * Show Route Orders jump to position
 * Block redrawing when moving map (prevents map jumping)
 * Faster Image Download
+* Choose double click map feature lists mode
+* Popup menu for all map feature lists
 
 0.5
 

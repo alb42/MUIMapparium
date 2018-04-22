@@ -1711,6 +1711,23 @@ begin
   end;
 end;
 
+{$ifdef AMIGA68k}
+procedure TestVampire;
+var
+  a: Double;
 begin
+  a := 5;
+  if Round(a*1.3) = 0 then
+  begin
+    writeln('Your FPU is not IEEE 754 compatible, please use the NoFPU Version');
+    halt(5);
+  end;
+end;
+{$endif}
+
+begin
+  {$ifdef AMIGA68k}
+    TestVampire;
+  {$endif}
   StartMe;
 end.
