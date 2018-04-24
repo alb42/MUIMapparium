@@ -12,7 +12,7 @@ rm -f errmsg.log
 
 function copyit {
   cp Catalogs/deutsch/MUIMapparium.catalog Release.${plat}/MUIMapparium/Catalogs/deutsch/
-  cp MUIMapparium.readme Release.${plat}/MUIMapparium/
+  cp MUIMapparium.guide Release.${plat}/MUIMapparium/
   cd Release.${plat}
   rm -f *.lha
   echo "  create archive ${base}${plat}.lha"
