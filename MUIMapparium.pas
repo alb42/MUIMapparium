@@ -1611,6 +1611,7 @@ begin
     WrapApp := App;
     WrapWin := Window;
     //
+    MH_Set(AddRoute, MUIA_Disabled, MUI_TRUE);
     MH_Set(CoordsLabel, MUIA_Text_PreParse, AsTag(PChar(MUIX_R)));
     // Close main window
     DoMethod(Window, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,

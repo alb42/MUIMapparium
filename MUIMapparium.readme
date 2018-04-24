@@ -7,11 +7,6 @@ written with FreePascal for Amiga Systems.
 
 This is a speed optimized version implemented with native
 MUI (no LCL wrapper used as the common Mapparium).
-It only contains the basic map showing functions.
-
-Much things still missing.
-Zoom with Mouse wheel or double click, if you don't have
-a mouse wheel you must use the menu entry.
 
 History:
 

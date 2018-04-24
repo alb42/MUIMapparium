@@ -1,5 +1,5 @@
 @DATABASE MUIMapparium.guide
-@$VER: MUIMapparium.guide 0.1 (10.07.2017)
+@$VER: MUIMapparium.guide 0.2 (24.04.2018)
 @(c) 2017 Marcus "ALB42" Sackrow
 @author Marcus "ALB42" Sackrow
 @width 80
@@ -9,58 +9,154 @@
 @TITLE "MUIMapparium - Table of Contents"
   @{b}
   MUIMapparium
-   Contents@{ub}
-
-  1)@{" Introduction " LINK Intro}
-  2)@{" GUI " LINK GUI}
-
-@ENDNODE
-
-
-@NODE Intro "Intoduction"
-
-  @{b}Introduction@{ub}
+  @{ub}
 
 MUIMapparium is a OpenStreetMap Viewer for all Amiga Systems. It's
 completly written in FreePascal and uses MUI/Zune as GUI toolkit.
 
-Requirements for all Systems:
+  @{" Requirements " LINK requirements}
+  @{" Installation " LINK install}
+  @{" History " LINK history}
+
+  @{b}GUI description@{ub}
+  1) @{" Main Window " LINK MainWin}
+  2) @{" Main Menu " LINK MainMenu} - Menu of the Main Window
+  3) @{" Statistics Window " LINK StatWin}
+  4) @{" Preferences Window" LINK PrefsWin}
+  5) @{" Waypoint Properties " LINK WayWin}
+  6) @{" Track Properties " LINK TrackWin}
+  7) @{" Route Properties " LINK RouteWin}
+
+The map tiles are downloaded from OpenStreetMap as PNG files and cached
+onto the Harddisk. By default the images are saved to the "Data" folder
+in the MUIMapparium directory. This behavior can be changed by setting a
+DATAPATH Tooltype to the MUIMapparium Icon e.g. DATAPATH=DH1:tmpdir.
+
+MUIMapparium can show Waypoints, Tracks and Routes which can be loaded
+from various GPS Formats: GPX, KML, KMZ, FIT. The Data can be saved to
+GPX Format.
+
+Use the "Check for Updates" Entry in the About Menu to check for updates
+or go the MUIMapparium page http://blog.alb42.de/programs/MUIMapparium
+
+@ENDNODE
+
+@NODE requirements "Requirements"
+
+  @{b}Requirements@{ub}
+
+@{u}all Systems@{uu}
 - RTG Graphics card (Picasso 96 or CGFX) 15/16/24/32 bit Screen
 - TCP/IP Stack (Internet connection)
 - 8+ MB RAM
 
-Supported Amiga-systems and requirements (Version 0.5):
- - Amiga 68k, 68020+, (68881 FPU recommended) AmigaOS 3.0+
+@{u}Supported Amiga-systems@{uu}:
+ - Amiga 68k, 68020+, (68881+ FPU recommended) AmigaOS 3.0+
  - Amiga OS4, OS 4.0+
  - AROS i386, ABIv0
  - AROS ARM, ABIv0 ARMV6+ VFPV2+ HardFloat (e.g. RasPi 1-3)
  - AROS x86_64, ABIv1 (non SMP-Version)
  - MorphOS 3.8+
 
-The map tiles are downloaded from OpenStreetMap as PNG files and cached
-onto the Harddisk. By default the images are saved to the "Data" folder
-in the MUIMapparium directory. This behavior can be changed by setting a
-DATADIR Tooltype to the MUIMapparium Icon e.g. DATAPATH=DH1:tmpdir.
+@{u}Additional Notes:@{uu}
 
-MUIMapparium can show Waypoints, Tracks and Routes which can be loaded
-from various GPS Formats: GPX, KML, KMZ, FIT. The Data can be saved to
-GPX Format.
+The FPU version is much faster, especially with routes and tracks. If
+you experience slow map movement, with the NoFPU version, don't blame me
+(or the program) buy a proper FPU.
 
-@ENDNODE
+With Vampire (at least until Gold 2.9) you have to use the
+NoFPU-Version of MUIMapparium. The Vampire FPU is not IEEE754
+compatible and therefore does not work with MUIMapparium.
 
-@NODE GUI "GUI description"
-
-  @{b}GUI description@{ub}
-  1)@{" Main Window " LINK MainWin}
-  2)@{" Statistics " LINK StatWin}
-  3)@{" Preferences " LINK PrefsWin}
-  4)@{" Waypoint Properties " LINK WayWin}
-  5)@{" Track Properties " LINK TrackWin}
-  6)@{" Route Properties " LINK RouteWin}
-
+Offline Operation is possible, harddisk cached map images
+are shown only.
 
 @ENDNODE
 
+@NODE install "Installation"
+
+  @{b}Installation@{ub}
+
+To Install it, copy the MUIMapparium drawer to any place you want, no
+further setup needed.
+
+If you want images cache to somwhere else edit the ToolTypes of the
+Main program and change and enable the DATAPATH Tooltype.
+
+On 68k Amiga check, if you don't have an FPU (68881, 68882, 68040 or 68060)
+you must use the NoFPU Version included in the MUIMapparium Drawer.
+The FPU version is much faster, especially with routes and tracks. If
+you experience slow map movement, with the NoFPU version, don't blame me
+(or the program) buy a proper FPU.
+
+@ENDNODE
+
+
+@NODE history "History"
+
+0.6
+
+* BugFix: OS4 ToolType reading
+* BugFix: Track plot enabling
+* Update Checking
+* Amiga Guide manual
+* About MUI Menu Entry
+* About Window
+* Reopen Statistics Window on start if left open on quit
+* Set color for Tracks and Routes
+* Show Route Orders jump to position
+* Block redrawing when moving map (prevents map jumping)
+* Faster Image Download
+* Choose double click map feature lists mode
+* Popup menu for all map feature lists
+
+0.5
+
+* Bugfix: imperial units
+* Bugfix: key mapping
+* Bugfix: 2nd track curve drawing
+* Bugfix: Date/Time loading from GPX,KML,KMZ files
+* Level of Detail for Tracks
+* Precalculation of Trackpositions (Speed optimization for NonFPU systems)
+* Route drawing
+* Marker in Plot, shows also a marker in the Track
+* Turn off Marker, Track and Route drawing via Menu
+* Define Directory for Images via ToolTypes: e.g. DATAPATH=DH1:TmpDir
+* Change find IP to freegeoip.net (old one is too slow currently)
+* FPU Version for 68k
+
+0.4
+
+* Basic Plot module for Trackcurves (Height, slope, speed)
+* Plot popupmenu, Zoom, Data Readout
+* Support for imperial units
+* in-map GUI (Zoom In/Out, Side Panel)
+* OS4 mouse wheel
+* Keybinding for map (+,-, cursor keys)
+* Bugfix: AROS disabled Edit
+* BugFix: Amiga redrawing error
+
+0.3
+
+* AROS64
+* Localization
+* more precise position calculation
+* AREXX Port
+
+0.2
+
+* WayPoints
+* Tracks
+* Load Tracks/WayPoints GPX, TCX, KML, KMZ, FIT
+* Save Tracks/WayPoints GPX
+
+0.1
+
+* Complete new implementation with native MUI GUI
+* small as possible GUI
+* much faster own drawing routines
+
+@ENDNODE
 
 @NODE MainWin "Main window"
 
@@ -122,6 +218,13 @@ Search Page:
 Search results are shown here. A double click to an entry sets the map
 center to this search result.
 
+The other three Pages are map feature lists
+  waypoints, tracks and routes
+In every list you can use the popupmenu to center the map to the feature
+and show/hide the feature on the map. Use the @{"prefs window" LINK PrefsWin}
+to define what a double click on an map feature entry is doing.
+Map features can be saved to GPX files via menu entry @{i}Save@{ui}.
+
 Waypoints:
 List of waypoints. Waypoints are single point marker on the map. They can
 be loaded from GPX, KML or KMZ files via menu entry @{i}Load@{ui} or
@@ -129,9 +232,235 @@ added via AREXX command @{i}addwaypoint@{ui}. To add a waypoint at the
 current position press @{i}Add@{ui} button. The @{i}Edit@{ui}
 button opens the @{"waypoint properties" LINK WayWin} window where you
 can change the name and position of a waypoint. The @{i}Remove@{ui}
-button deletes a waypoint.
-Waypoints can be saved to GPX files via menu entry @{i}Save@{ui}.
+button deletes the selected waypoint.
 
+Tracks:
+Tracks are recorded travels. They are shown as a list and as colored
+Lines with points for every recorded point on the map. They can
+be loaded from GPX, KML or KMZ files via menu entry @{i}Load@{ui}.
+The @{i}Edit@{ui} button opens the @{"track properties" LINK TrackWin}
+window where you can change the name and color of the track
+and plot travel data as curves. The @{i}Remove@{ui}
+button deletes the selected track.
+
+
+Routes:
+Routes are calculated travels. They are shown as a list and as colored
+Lines with points for every turnning point on the map. They can
+be loaded from GPX files via menu entry @{i}Load@{ui}.
+The @{i}Edit@{ui} button opens the @{"route properties" LINK RouteWin}
+window where you can change the name and color of the route.
+The @{i}Remove@{ui} button deletes the selected track. At the moment is
+not possible to create or edit tracks (beside name and color).
+
+@ENDNODE
+
+@NODE MainMenu "MainMenu"
+
+ @{b}Main menu@{ub}
+
+@{u}Project@{uu}
+  Load - Load waypoints/tracks and routes from a file Supported formats
+         GPX, KML, KMZ, TCX, FIT
+  Save - Save the waypoints/tracks and routes to a GPX File
+  Quit - Close the program
+
+@{u}Map@{uu}
+  Find Me - Use your current IP to locate your position (Network needed)
+            Attention: IP location is known to be very inprecise or even
+                       wrong for dynamic IP ranges.
+  Zoom Out
+  Zoom In - Zoom in or out the big map.
+  Draw Marker,
+  Draw Tracks,
+  Draw Routes - Enable or disable drawing of the map feature on the map
+    Attention it does not change the visible status of the map features,
+    you may need to toggle visibility in the lists as well to show it.
+
+@{u}Window@{uu}
+  SidePanel  - Show or hide the side panel
+  Prefs      - Open the @{"Preferences window" LINK PrefsWin}
+  Statistics - Open the @{"Statistics window" LINK StatWin}
+
+@{u}About@{uu}
+  About     - Open About window with Version numbers and credits game
+  About MUI - Open MUI About window
+  Help      - Open this Help file
+  Check for Updates - Check if there is a new Version available
+                      Network is needed, only the new Version number is
+                      loaded, no additional data is sent
 
 
 @ENDNODE
+
+
+@NODE StatWin "Statistic Window"
+
+  @{b}Statistic Window@{ub}
+
+This window shows the statistics for the map tiles loaded from network
+or hard disk. It diverts the statistics for the current session (since
+last start of the program) and since installation.
+
+ @{u}Tiles in memory@{uu}
+Number of map tiles are kept in memory at the moment. For faster moving
+on the map MUIMapparium keep the last used map tiles in memory. It throws
+away the tiles from memory when you change the zoom level or there are
+more tiles in memory as set in "Max Tiles in Memory" in @{"Prefs" LINK PrefsWin}
+
+ @{u}Tiles Loaded from Net@{uu}
+Number of map tiles loaded from the web.
+
+ @{u}Tiles Loaded from HD@{uu}
+Number of map tiles loaded from the HD cache.
+
+ @{u}Tiles to load@{uu}
+Number of map tiles pending to load. It makes no different if the tiles
+are to get loaded from Internet or from Hard disk.
+
+ @{u}Bytes downloaded@{uu}
+Number of bytes downloaded from the Internet.
+
+ @{u}Average Speed@{uu}
+Average downloading speed for the map tiles from the Internet.
+
+@ENDNODE
+
+@NODE PrefsWin "Preferences Window"
+
+  @{b}Preferences Window@{ub}
+
+General settings for MUIMapparium.
+
+ @{u}Middle position marker@{uu}
+  Type/Size
+Type and size of the middle marker in the main map.
+Available types:
+ - None: do not show a middle marker
+ - Point: quadratic Point
+ - Cross: a small cross
+ - Lines: a big cross over the whole picture (size is ignored)
+Size:
+ - define the size of the item in pixels
+
+ @{u}Language@{uu}
+  Default search result language
+Defines the language of the search results. Here the standard two letter
+shortcuts are expected (e.g. en, de, pl, fr and so on)
+
+ @{u}Memory@{uu}
+  Max Tiles in Memory
+Maximum Number of tiles to keep in memory to make the movement of the map
+faster. Every tile need around 500 kB of RAM.
+
+ @{u}Mouse Settings@{uu}
+  Double click mode
+Define the action when a map feature is clicked in any of the list.
+(waypoint, track, route)
+Available actions:
+ - Center:
+     Center the map onto the feature. Track and Route will also adjust
+     the zoom that the whole line is visible.
+ - Properties:
+     Center the map onto the feature and open the properties window.
+ - Toggle Visiblity:
+     Toggle the visibility of the map feature (hide if map feature is
+     shown, Show if the map feature is hidden)
+
+ @{u}Files on hard disk@{uu}
+ - Count: Count the numbers of mape tiles kept in the hard disk and the
+          memory used by them. The result is shown underneath.
+ - Clear: Delete all tiles zoom levels higher or equal the given number.
+          Usually one can keep the lower zoom levels as long as they
+          never change
+
+ @{u}Save/Cancel@{uu}
+Save:   Save and apply the settings and close the preferences window.
+Cancel: Close preferences window without using them.
+
+
+@ENDNODE
+
+@NODE WayWin "Waypoint Properties Window"
+
+  @{b}Waypoint Properties Window@{ub}
+
+View and edit properties of way points.
+
+  @{u}Waypoint Title@{uu}
+Define the name of the way point. The name is used in the list and
+printed next to the marker in the map.
+
+  @{u}Position@{uu}
+Latitude and Longitude of the way point. Current Position set the
+edits to current middle position of the map.
+
+  @{u}Save/Close@{uu}
+Save:  Save the changes done in the window and close the properties
+Close: Close the window without saving.
+
+@ENDNODE
+
+@NODE TrackWin "Waypoint Properties Window"
+
+  @{b}Track Properties Window@{ub}
+
+View and edit properties of a track. The plot can show various data
+recorded along the track.
+
+  @{u}Track Title@{uu}
+Define the name and color of the Track. Change the color by clicking
+on the colored button and choose the color in the color dialog opens.
+The color is used in the map and the title is used in the list.
+
+  @{u}Track Plot@{uu}
+This plot can show up to two curves which can be configured with the
+combo boxes underneath. Choose the X and two Y axis and press Plot.
+X Axis - time or distance of the travel with different units
+Y Axis - height, slope or speed curve of the travel
+Left Axis - the curve is drawn in blue and the Y axis are shown left
+Right Axis - the curve is drawn in red and the Y axis are shown right
+
+The Popup menu (right click) of the plot contains the following functions:
+Rescale       - rescale the plot the full curve
+the next four Entries are the Mouse mode
+Zoom          - Click and drag a rectange to zoom to this area
+Position Data - Show the x and y values at the mouse position
+Curve Data    - Show the x and y values of the curve points nearest
+                to the mouse position.
+Set Marker    - Click to a position to set the marker, the marker is
+                also show in the map as a little triangle
+
+The plot is only for viewing purpose, the settings are not saved.
+
+  @{u}Save/Close@{uu}
+Save:  Save the changes done in the window and close the properties
+Close: Close the window without saving.
+
+@ENDNODE
+
+@NODE RouteWin "Route Properties Window"
+
+  @{b}Route Properties Window@{ub}
+
+  @{u}Route Title@{uu}
+Define the name and color of the route. Change the color by clicking
+on the colored button and choose the color in the color dialog opens.
+The color is used in the map and the title is used in the list.
+
+  @{u}Route Orders@{uu}
+List of orders to drive along this calculated route, double click onto
+an order to zoom the map to place of the event.
+
+View and edit properties of a Route. Currently it's not possible to edit
+or create new routes.
+
+  @{u}Save/Close@{uu}
+Save:  Save the changes done in the window and close the properties
+Close: Close the window without saving.
+
+@ENDNODE
+
+
+
+
