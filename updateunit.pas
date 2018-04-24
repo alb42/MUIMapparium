@@ -3,7 +3,7 @@ unit updateunit;
 interface
 
 const
-  VERSIONURL = 'http://home.alb42.de/files/mapparium.version';
+  VERSIONURL = 'http://www.alb42.de/mapparium.version';
   UPDATEURL = 'http://blog.alb42.de/muimapparium';
 
 procedure CheckForUpdate;

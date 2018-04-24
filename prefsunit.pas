@@ -195,17 +195,17 @@ end;
 
 function TPrefs.GetStartPosLat: Double;
 begin
-  Result := IniFile.ReadFloat(SECTION_GENERAL, 'StartLat', 52.0);
+  Result := IniFile.ReadFloat(SECTION_GENERAL, 'StartLat', 52.516280);
 end;
 
 function TPrefs.GetStartPosLon: Double;
 begin
-  Result := IniFile.ReadFloat(SECTION_GENERAL, 'StartLon', 13.0);
+  Result := IniFile.ReadFloat(SECTION_GENERAL, 'StartLon', 13.377721);
 end;
 
 function TPrefs.GetStartZoom: Integer;
 begin
-  Result := IniFile.ReadInteger(SECTION_GENERAL, 'StartZoom', 7);
+  Result := IniFile.ReadInteger(SECTION_GENERAL, 'StartZoom', 8);
 end;
 
 function TPrefs.GetTrackColor: TColor;
