@@ -4,6 +4,7 @@ interface
 
 const
   VERSIONURL = 'http://www.alb42.de/mapparium.version';
+  ALTVERSIONURL = 'http://home.alb42.de/mapparium.version';
   UPDATEURL = 'http://blog.alb42.de/muimapparium';
 
 procedure CheckForUpdate;
@@ -21,11 +22,28 @@ var
   Msg: string;
   VerN: single;
   Major, Minor: Integer;
+  Res: Boolean;
 begin
   Msg := GetLocString(MSG_UPDATE_ERROR); //'Error to get update information.';
   ss := TStringStream.Create;
   try
-    if GetFile(VERSIONURL, ss) then
+    Res := False;
+    try
+      Res := GetFile(VERSIONURL, ss);
+    except
+      On E: Exception do
+        Msg := GetLocString(MSG_UPDATE_ERROR) + ': ' + E.Message;
+    end;
+    if not Res then
+    begin
+      try
+        Res := GetFile(ALTVERSIONURL, ss);
+      except
+        On E: Exception do
+          Msg := GetLocString(MSG_UPDATE_ERROR) + ': ' + E.Message;
+      end;
+    end;
+    if Res then
     begin
       ss.Position := 0;
       OnlineVersion := ss.DataString;
