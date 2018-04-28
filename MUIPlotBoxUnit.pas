@@ -13,8 +13,9 @@ const
   PID_Position = 2;
   PID_Data     = 3;
   PID_Marker   = 4;
+	PID_ASCII    = 5;
 
-  PID_Last = 4;
+  PID_Last = 5;
 
 
   ln10=2.30258509299404568401799145468436;
@@ -141,6 +142,8 @@ type
     procedure MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
     procedure MouseLeaveEvent(Sender: TObject);
     procedure PopupEvent(EventID: Integer);
+	  procedure ExportASCII(FileName: string = '');
+	
     {procedure MouseDblClick(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
     procedure MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
     procedure MouseWheelEvent(Sender: TObject; ScrollUp: Boolean; var EatEvent: Boolean);
@@ -175,6 +178,7 @@ var
   Menutitle_Position: string = 'Position Data';
   Menutitle_Data: string = 'Curve Data';
   Menutitle_Marker: string = 'Set Marker';
+	MenuTitle_ASCII: string = 'Export as ASCII';
 
   HintText_XAxis1: string = 'X Axis';
   HintText_XAxis2: string = 'X Axis';
@@ -183,6 +187,9 @@ var
 
 
 implementation
+	
+uses
+	ASL;
 
 
 function ValueToStr(Value: Double; Precision: Integer): string;
@@ -1052,6 +1059,11 @@ begin
         MUIA_Menuitem_Exclude, AsTag((1 shl 2) or (1 shl 3) or (1 shl 4)),
         MUIA_UserData, PID_Marker,
         TAG_DONE])),
+			Child, AsTag(MH_MenuItem([MUIA_Menuitem_Title, AsTag(-1), TAG_DONE])),
+      Child, AsTag(MH_MenuItem(PM[5], [
+        MUIA_Menuitem_Title, AsTag(PChar(MenuTitle_ASCII)),   // 'Export as ASCII'
+        MUIA_UserData, PID_ASCII,
+        TAG_DONE])),			
       TAG_DONE])),
     TAG_DONE]);
   MH_Set(MUIObject, MUIA_ContextMenu, AsTag(PopUpMenu));
@@ -1120,6 +1132,10 @@ begin
       FMouseModus := mmMarker;
       MouseDown := False;
     end;
+		PID_ASCII:
+		begin
+			ExportAscii;
+		end;	
   end;
   if OldModus = mmMarker then
   begin
@@ -1129,6 +1145,83 @@ begin
       FOnMarkerChange(0);
   end;
 end;
+
+procedure TPlotPanel.ExportASCII(FileName: string = '');
+var
+  fr: PFileRequester;
+  SL: TStringList;
+  Val, Line: string;
+  i, j, MaxLength: Integer;
+begin 
+	// if no Filename is given ask for it
+	if Filename = '' then
+	begin
+		fr := AllocAslRequestTags(ASL_FileRequest, [
+      NativeUInt(ASLFR_TitleText),      NativeUInt(PChar('Choose file to save')),
+      NativeUInt(ASLFR_InitialPattern), NativeUInt(PChar('(#?.txt)')),
+      NativeUInt(ASLFR_DoPatterns),     LTrue,
+  		NativeUInt(ASLFR_DoSaveMode),       LTrue,
+    TAG_END]);
+		if Assigned(fr) then
+	  begin
+			if AslRequestTags(fr, [TAG_END]) then
+      begin
+        {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
+        Filename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
+        {$else}
+        Filename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
+        {$endif}
+    end;
+      FreeAslRequest(fr);
+    end;			
+	end;
+  if FileName = '' then
+    Exit;
+  SL := TStringList.Create;
+  try
+	  Maxlength := 0;
+		for i := 0 to High(Curves) do
+    begin			
+			MaxLength := Max(MaxLength, Length(Curves[i].X));
+			MaxLength := Max(MaxLength, Length(Curves[i].Y));
+		end;
+	  //
+		for i := 0 to High(Curves) do
+		begin
+			if i = 0 then 
+			  Line := Line + 'X' + IntToStr(i+1)
+      else
+				Line := Line + #9 + 'X' + IntToStr(i+1);
+			Line := Line + #9 + Curves[i].Name;
+    end;
+		SL.Add(Line);
+		//
+		for i := 0 to MaxLength - 1 do
+		begin
+			Line := ''; 
+      for j := 0 to High(Curves) do
+			begin
+        if i <= High(Curves[j].X) then
+				  Val := FloatToStr(Curves[j].X[i])
+        else
+          Val := ' ';
+				if Line = '' then
+					Line := Line + Val
+				else
+					Line := Line + #9 + Val;
+				if i <= High(Curves[j].Y) then
+				  Val := FloatToStr(Curves[j].Y[i])
+        else
+          Val := ' ';
+				Line := Line + #9 + Val;
+      end;				
+			SL.Add(Line);
+    end;
+    Sl.SaveToFile(FileName);		
+  finally
+    SL.Free;
+  end;	
+end;	
 
 //##########################################
 // DrawEvent
