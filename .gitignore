@@ -1,3 +1,12 @@
 data
 units
 Release*/*.lha
+Release.*/MUIMapparium/Catalogs
+Release.*/MUIMapparium/MUIMapparium.guide
+Release.*/MUIMapparium/MUIMapparium
+Release.*/MUIMapparium/MUIMapparium_NoFPU
+MUIMapparium
+MUIMapparium.prefs
+makeversion
+mapparium.version
+md5.txt
