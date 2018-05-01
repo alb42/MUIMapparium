@@ -99,6 +99,7 @@ you experience slow map movement, with the NoFPU version, don't blame me
 
 * BugFix: OS4 ToolType reading
 * BugFix: Track plot enabling
+* BugFix: Deleting Tiles
 * Update Checking
 * Amiga Guide manual
 * About MUI Menu Entry
@@ -110,6 +111,7 @@ you experience slow map movement, with the NoFPU version, don't blame me
 * Faster Image Download
 * Choose double click map feature lists mode
 * Popup menu for all map feature lists
+* Calculate Routes with YOURS
 
 0.5
 
