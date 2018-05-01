@@ -67,7 +67,6 @@ var
 
 procedure UpdateLocationLabel; forward;
 procedure SidePanelOpenEvent; forward;
-function BoundingBoxToZoom(BoundString: string): Integer; forward;
 procedure ShowSidePanel(ShowIt: Boolean); forward;
 function EditWayEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt; forward;
 function EditTrackEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt; forward;
@@ -91,46 +90,6 @@ begin
   Marker.Position.Lon := MiddlePos.Lon;
   Marker.Name := Format(GetLocString(MSG_DEFAULT_WAYPOINT), [MarkerList.Add(Marker)]); //'Waypoint %d';
   UpdateWayPoints;
-end;
-
-
-// calculate the Zoom level, that the Bounding box is completely visible
-// needed for search
-function BoundingBoxToZoom(BoundString: string): Integer;
-var
-  SL: TStringList;
-  MinLat, MaxLat, MinLon, MaxLon, DiffLat, DiffLon: Double;
-  Deg: TCoord;
-  i: Integer;
-  Pt: Classes.TPoint;
-  Rec: TRectCoord;
-begin
-  Result := 9;
-  SL := TStringList.Create;
-  try
-    ExtractStrings([','], [], PChar(BoundString), SL);
-    if SL.Count = 4 then
-    begin
-      MinLat := StrToFloatDef(SL[0], 0);
-      MaxLat := StrToFloatDef(SL[1], 0);
-      MinLon := StrToFloatDef(SL[2], 0);
-      MaxLon := StrToFloatDef(SL[3], 0);
-      DiffLat := Abs(MaxLat - MinLat);
-      DiffLon := Abs(MaxLon - MinLon);
-      Deg.Lat:= (MaxLat + MinLat) / 2;
-      Deg.Lon:= (MaxLon + MinLon) / 2;
-
-      for i := 0 to 18 do
-      begin
-        Pt := GetTileCoord(i, Deg);
-        Rec := GetTileRect(i, Pt);
-        if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
-          Result := i;
-      end;
-    end;
-  finally
-    SL.Free;
-  end;
 end;
 
 // Update the Location below the picture
@@ -1265,40 +1224,92 @@ var
   Rec: TRectCoord;
   i: Integer;
 begin
-  if Assigned(CurOrder) then
-  begin
-    for i := 0 to High(CurOrder.Positions) do
-    begin
-      if i = 0 then
+  case GoToMode of
+    0: begin
+      if Assigned(CurOrder) then
       begin
-        MinC := CurOrder.Positions[i];
-        MaxC := CurOrder.Positions[i];
-      end else
-      begin
-        MinC.Lat := Min(MinC.Lat, CurOrder.Positions[i].Lat);
-        MinC.Lon := Min(MinC.Lon, CurOrder.Positions[i].Lon);
-        MaxC.Lat := Max(MaxC.Lat, CurOrder.Positions[i].Lat);
-        MaxC.Lon := Max(MaxC.Lon, CurOrder.Positions[i].Lon);
+        for i := 0 to High(CurOrder.Positions) do
+        begin
+          if i = 0 then
+          begin
+            MinC := CurOrder.Positions[i];
+            MaxC := CurOrder.Positions[i];
+          end else
+          begin
+            MinC.Lat := Min(MinC.Lat, CurOrder.Positions[i].Lat);
+            MinC.Lon := Min(MinC.Lon, CurOrder.Positions[i].Lon);
+            MaxC.Lat := Max(MaxC.Lat, CurOrder.Positions[i].Lat);
+            MaxC.Lon := Max(MaxC.Lon, CurOrder.Positions[i].Lon);
+          end;
+        end;
+        if Length(CurOrder.Positions) > 0 then
+        begin
+          DiffLat := Abs(MaxC.Lat - MinC.Lat);
+          DiffLon := Abs(MaxC.Lon - MinC.Lon);
+          MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+          MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
+
+          for i := 0 to 18 do
+          begin
+            Pt := GetTileCoord(i, MiddlePos);
+            Rec := GetTileRect(i, Pt);
+            if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+              CurZoom := i;
+          end;
+          CurZoom := CurZoom;
+          MUIMapPanel.RefreshImage;
+        end;
       end;
     end;
-    if Length(CurOrder.Positions) > 0 then
-    begin
-      DiffLat := Abs(MaxC.Lat - MinC.Lat);
-      DiffLon := Abs(MaxC.Lon - MinC.Lon);
-      MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
-      MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
-
-      for i := 0 to 18 do
+    1: begin
+      if Assigned(CurRoute) then
       begin
-        Pt := GetTileCoord(i, MiddlePos);
-        Rec := GetTileRect(i, Pt);
-        if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
-          CurZoom := i;
+        for i := 0 to High(CurRoute.Pts) do
+        begin
+          if i = 0 then
+          begin
+            MinC := CurRoute.Pts[i].Position;
+            MaxC := CurRoute.Pts[i].Position;
+          end else
+          begin
+            MinC.Lat := Min(MinC.Lat, CurRoute.Pts[i].Position.Lat);
+            MinC.Lon := Min(MinC.Lon, CurRoute.Pts[i].Position.Lon);
+            MaxC.Lat := Max(MaxC.Lat, CurRoute.Pts[i].Position.Lat);
+            MaxC.Lon := Max(MaxC.Lon, CurRoute.Pts[i].Position.Lon);
+          end;
+        end;
+        if Length(CurRoute.Pts) > 0 then
+        begin
+          DiffLat := Abs(MaxC.Lat - MinC.Lat);
+          DiffLon := Abs(MaxC.Lon - MinC.Lon);
+          MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+          MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
+
+          for i := 0 to 18 do
+          begin
+            Pt := GetTileCoord(i, MiddlePos);
+            Rec := GetTileRect(i, Pt);
+            if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+              CurZoom := i + 1;
+          end;
+          CurZoom := CurZoom;
+          MUIMapPanel.RefreshImage;
+        end;
       end;
-      CurZoom := CurZoom;
+    end;
+    2: begin
+      MiddlePos := GoToPos;
+      CurZoom := 11;
       MUIMapPanel.RefreshImage;
     end;
   end;
+end;
+
+procedure RouteChangedEvent;
+begin
+  UpdateRoutes;
+  MUIMapPanel.RefreshImage;
+  MUIMapPanel.RedrawObject;
 end;
 
 
@@ -1345,6 +1356,7 @@ begin
   OnTrackChanged := @TrackChangedEvent;
   OnTrackRedraw := @TrackRedrawEvent;
   OnRouteGoToPos := @GoToPosEvent;
+  OnRouteChanged := @RouteChangedEvent;
   try
     SearchTitleStr :=  GetLocString(MSG_SEARCH_RESULTS_TITLE); // 'Search Results';
     //
@@ -1611,7 +1623,7 @@ begin
     WrapApp := App;
     WrapWin := Window;
     //
-    MH_Set(AddRoute, MUIA_Disabled, MUI_TRUE);
+    //MH_Set(AddRoute, MUIA_Disabled, MUI_TRUE);
     MH_Set(CoordsLabel, MUIA_Text_PreParse, AsTag(PChar(MUIX_R)));
     // Close main window
     DoMethod(Window, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,

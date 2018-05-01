@@ -35,6 +35,7 @@ var
   RedPen: LongInt;
 
   procedure DrawFullImage(Width, Height: Integer);
+  function BoundingBoxToZoom(BoundString: string): Integer;
 
 implementation
 
@@ -127,6 +128,45 @@ begin
   MiddleCoord := LMiddleCoord;
   GPixOff := PixOff;
   //writeln('Images: ', ImageList.Count, ' of ', MaxImages);
+end;
+
+// calculate the Zoom level, that the Bounding box is completely visible
+// needed for search
+function BoundingBoxToZoom(BoundString: string): Integer;
+var
+  SL: TStringList;
+  MinLat, MaxLat, MinLon, MaxLon, DiffLat, DiffLon: Double;
+  Deg: TCoord;
+  i: Integer;
+  Pt: Classes.TPoint;
+  Rec: TRectCoord;
+begin
+  Result := 9;
+  SL := TStringList.Create;
+  try
+    ExtractStrings([','], [], PChar(BoundString), SL);
+    if SL.Count = 4 then
+    begin
+      MinLat := StrToFloatDef(SL[0], 0);
+      MaxLat := StrToFloatDef(SL[1], 0);
+      MinLon := StrToFloatDef(SL[2], 0);
+      MaxLon := StrToFloatDef(SL[3], 0);
+      DiffLat := Abs(MaxLat - MinLat);
+      DiffLon := Abs(MaxLon - MinLon);
+      Deg.Lat:= (MaxLat + MinLat) / 2;
+      Deg.Lon:= (MaxLon + MinLon) / 2;
+
+      for i := 0 to 18 do
+      begin
+        Pt := GetTileCoord(i, Deg);
+        Rec := GetTileRect(i, Pt);
+        if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+          Result := i;
+      end;
+    end;
+  finally
+    SL.Free;
+  end;
 end;
 
 

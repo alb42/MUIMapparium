@@ -123,7 +123,7 @@ begin
       ZoomLevel := StrToIntDef(Copy(Filename, 1, P1 - 1), -1);
       if ZoomLevel >= Limit then
       begin
-        DeleteFile(IncludeTrailingPathDelimiter(DataDir) + DirectorySeparator + Info.Name);
+        DeleteFile(IncludeTrailingPathDelimiter(DataDir) + Info.Name);
         Inc(DeletedFiles);
       end else
       begin

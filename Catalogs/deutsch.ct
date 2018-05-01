@@ -291,6 +291,42 @@ MSG_ROUTEPROP_NEW_NAME
 Neue Route
 ; New Route
 ;
+MSG_ROUTEPROP_SEARCH
+Suche
+; Search
+;
+MSG_ROUTEPROP_CALCROUTE
+Berechne Weg
+; Calculate Route
+;
+MSG_ROUTEPROP_FROM
+Von
+; From
+;
+MSG_ROUTEPROP_TO
+Nach
+; To
+;
+MSG_ROUTEPROP_CAR
+Auto
+; Car
+;
+MSG_ROUTEPROP_BIKE
+Fahrrad
+; Bicycle
+;
+MSG_ROUTEPROP_FOOT
+Fuß
+; Foot
+;
+MSG_ROUTEPROP_FASTEST
+Schnellste
+; FASTEST
+;
+MSG_ROUTEPROP_SHORTEST
+Kürzeste
+; Shortest
+;
 ;
 ;#### Menus
 MSG_POPUP_FEATURE

@@ -41,6 +41,7 @@ type
     procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
     procedure DrawMarker(RP: PRastPort; DrawRange: TRect);
     procedure DrawTracks(RP: PRastPort; DrawRange: TRect);
+    procedure DrawRoute(RP: PRastPort; DrawRange: TRect; ARoute: TRoute);
     procedure DrawRoutes(RP: PRastPort; DrawRange: TRect);
     procedure DrawGUI(RP: PRastPort; DrawRange: TRect);
     procedure SetShowSidePanelBtn(AValue: Boolean);
@@ -484,14 +485,12 @@ begin
   //UnSetColor(Pen);
 end;
 
-// Route
-// Draw the Routes
-procedure TMapPanel.DrawRoutes(RP: PRastPort; DrawRange: TRect);
+procedure TMapPanel.DrawRoute(RP: PRastPort; DrawRange: TRect; ARoute: TRoute);
 const
   AREA_BYTES = 4000;
 var
   PT: Classes.TPoint;
-  i, j: Integer;
+  j: Integer;
   LastWasDrawn: Boolean;
   RoutePtSize: Integer;
   //Pen: LongWord;
@@ -499,34 +498,53 @@ var
   ShowActivePt: Boolean;
   RoutePen: LongInt;
 begin
+  if not ARoute.Visible then
+    Exit;
   RoutePtSize := Max(2, CurZoom - 10);
   SetAPen(RP, RedPen);
   SetDrMd(RP, JAM1);
-  // Draw Tracks
-  for i := 0 to RouteList.Count - 1 do
-  begin
-    if not RouteList[i].Visible then
-      Continue;
-    RoutePen := -1;
-    case RouteList[i].Color of
-      clRed: SetAPen(RP, RedPen);
-      clGreen: SetAPen(RP, GreenPen);
-      clBlue: SetAPen(RP, BluePen);
-      clBlack: SetAPen(RP, BlackPen);
-      else
-      begin
-        RoutePen := SetColor(RP, RouteList[i].Color);
-      end;
-    end;
-    ShowActivePt := (RouteList[i] = CurRoute);
-    Drawn := 0;
-    LastWasDrawn := False;
-    RouteList[i].CalcCoords(CurZoom);
-    for j := 0 to High(RouteList[i].Pts) do
+  //
+  RoutePen := -1;
+  case ARoute.Color of
+    clRed: SetAPen(RP, RedPen);
+    clGreen: SetAPen(RP, GreenPen);
+    clBlue: SetAPen(RP, BluePen);
+    clBlack: SetAPen(RP, BlackPen);
+    else
     begin
-      if (RouteList[i].Coords[j].Tile.X < 0) and (RouteList[i].Coords[j].Tile.Y < 0) then
-        Continue;
-      Pt := CoordToPixel(RouteList[i].Coords[j]);
+      RoutePen := SetColor(RP, ARoute.Color);
+    end;
+  end;
+  ShowActivePt := (ARoute = CurRoute);
+  Drawn := 0;
+  LastWasDrawn := False;
+  ARoute.CalcCoords(CurZoom);
+  for j := 0 to High(ARoute.Pts) do
+  begin
+    if (ARoute.Coords[j].Tile.X < 0) and (ARoute.Coords[j].Tile.Y < 0) then
+      Continue;
+    Pt := CoordToPixel(ARoute.Coords[j]);
+    if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
+    begin
+      Inc(Drawn);
+      RectFill(RP, Pt.X - RoutePtSize, Pt.Y - RoutePtSize, Pt.X + RoutePtSize, Pt.Y + RoutePtSize);
+      if not LastWasDrawn then
+        GfxMove(RP, PT.X, PT.Y)
+      else
+        Draw(RP, Pt.X, PT.Y);
+      LastWasDrawn := True;
+    end
+    else
+      LastWasDrawn := False;
+  end;
+  UnSetColor(RoutePen);
+  LastWasDrawn := False;
+  if ShowActivePt and Assigned(CurOrder) then
+  begin
+    SetAPen(Rp, GreenPen);
+    for j := 0 to High(CurOrder.Positions) do
+    begin
+      Pt := PosToPixel(CurOrder.Positions[j]);
       if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
       begin
         Inc(Drawn);
@@ -540,32 +558,25 @@ begin
       else
         LastWasDrawn := False;
     end;
-    UnSetColor(RoutePen);
-    LastWasDrawn := False;
-    if ShowActivePt and Assigned(CurOrder) then
-    begin
-      SetAPen(Rp, GreenPen);
-      for j := 0 to High(CurOrder.Positions) do
-      begin
-        Pt := PosToPixel(CurOrder.Positions[j]);
-        if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
-        begin
-          Inc(Drawn);
-          RectFill(RP, Pt.X - RoutePtSize, Pt.Y - RoutePtSize, Pt.X + RoutePtSize, Pt.Y + RoutePtSize);
-          if not LastWasDrawn then
-            GfxMove(RP, PT.X, PT.Y)
-          else
-            Draw(RP, Pt.X, PT.Y);
-          LastWasDrawn := True;
-        end
-        else
-          LastWasDrawn := False;
-      end;
-    end;
   end;
-
   SetAPen(RP, RedPen);
   SetDrMd(RP, JAM1);
+end;
+
+// Route
+// Draw the Routes
+procedure TMapPanel.DrawRoutes(RP: PRastPort; DrawRange: TRect);
+var
+  i: Integer;
+begin
+  // Draw Tracks
+  for i := 0 to RouteList.Count - 1 do
+  begin
+    DrawRoute(RP, DrawRange, RouteList[i]);
+  end;
+  //
+  if Assigned(CurRoute) and (RouteList.IndexOf(CurRoute) < 0) then
+    DrawRoute(RP, DrawRange, CurRoute);
 end;
 
 
