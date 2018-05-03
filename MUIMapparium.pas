@@ -1668,17 +1668,14 @@ begin
     UpdateTracks;
     UpdateRoutes;
     //
-    // open the window
-    MH_Set(Window, MUIA_Window_Open, AsTag(True));
     // open additionally the stat window if needed
     if Prefs.StatWinOpen then
       MH_Set(StatWin, MUIA_Window_Open, AsTag(True));
+    // open the window
+    MH_Set(Window, MUIA_Window_Open, AsTag(True));
     //
-    // This is the ideal input loop for an object oriented MUI application.
-    // Everything is encapsulated in classes, no return ids need to be used,
-    // we just check if the program shall terminate.
-    // Note that MUIM_Application_NewInput expects sigs to contain the result
-    // from Wait() (or 0). This makes the input loop significantly faster.
+    if Prefs.StatWinOpen then
+      DoMethod(StatWin, [MUIM_Window_ToFront]);
 
     if MH_Get(Window, MUIA_Window_Open) <> 0 then
     begin
