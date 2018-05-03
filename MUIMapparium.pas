@@ -1335,6 +1335,7 @@ var
   ThisAppDiskIcon: Pointer;
   i: Integer;
 begin
+  SidePanelOpen := Prefs.SidePanelOpen;
   //Initialize Frame titles 'Search', 'WayPoints', 'Tracks'
   TabStrings[0] := string(GetLocString(MSG_FRAME_SEARCH));
   TabStrings[1] := string(GetLocString(MSG_FRAME_WAYPOINTS));
@@ -1386,12 +1387,15 @@ begin
     //
     // Side Panel
     SidePanel := MH_VGroup([
-      MUIA_ShowMe, AsTag(False),
+      MUIA_ObjectID, 1,
+      MUIA_ShowMe, AsTag(Prefs.SidePanelOpen),
       Child, AsTag(MH_Register(ListTabs, [
+        MUIA_ObjectID, 2,
         MUIA_Register_Titles, AsTag(@TabTitles),
         //#### Search list
         Child, AsTag(MH_ListView(SearchList, [
           MUIA_Weight, 100,
+          MUIA_ObjectID, 3,
           MUIA_Listview_Input, MUI_TRUE,
           MUIA_Listview_List, AsTag(MH_List(SearchListEntry, [
             MUIA_Frame, MUIV_Frame_ReadList,
@@ -1565,7 +1569,7 @@ begin
     MUIMapPanel := TMapPanel.Create([MUIA_Weight, 200, TAG_DONE]);
     MUIMapPanel.OnUpdateLocationLabel := @UpdateLocationLabel;
     MUIMapPanel.OnSidePanelOpen := @SidePanelOpenEvent;
-    // writeln(GetLocString(MSG_ERROR_CUSTOM_CLASS)); // 'Could not create custom class.'
+    MUIMapPanel.ShowSidePanelBtn := not SidePanelOpen;
 
     // Application +++++++++++++++++++++++++++++++++++++++++++++++++++++
     MH_SetHook(RexxHook, @RexxHookEvent, nil);
@@ -1596,7 +1600,7 @@ begin
             TAG_DONE])),
           Child, AsTag(MH_HGroup([
             Child, AsTag(SidePanel),
-            Child, AsTag(MH_Balance(MainBalance, [MUIA_CycleChain, 1, MUIA_Disabled, AsTag(True), TAG_END])),
+            Child, AsTag(MH_Balance(MainBalance, [MUIA_ObjectID, 4, MUIA_CycleChain, 1, MUIA_Disabled, AsTag(not SidePanelOpen), TAG_END])),
             Child, AsTag(MUIMapPanel.MUIObject),
             TAG_DONE])),
           Child, AsTag(MH_HGroup([
@@ -1727,6 +1731,7 @@ begin
     Prefs.StatWinOpen := LongBool(MH_Get(StatWin, MUIA_Window_Open));
     if Prefs.StatWinOpen then
       DoMethod(StatWin, [MUIM_Window_Snapshot, 1]);
+    Prefs.SidePanelOpen := LongBool(MH_Get(SidePanel, MUIA_ShowMe));
     // end of main loop, close window if still open
     MH_Set(Window, MUIA_Window_Open, AsTag(False));
 

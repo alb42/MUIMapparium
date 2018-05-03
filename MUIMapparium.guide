@@ -100,6 +100,7 @@ you experience slow map movement, with the NoFPU version, don't blame me
 0.7
 
 * Set current maps position and zoom as start position for the program
+* Remember open status of Side Panel
 
 0.6
 
