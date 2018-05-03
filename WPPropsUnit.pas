@@ -19,12 +19,14 @@ uses
 
 var
   WPName, SaveButton, CloseButton,
-  WPLat, WPLon, CurPos: PObject_;
+  WPLat, WPLon, CurPos, MarkerCol: PObject_;
   CurMarker: TMarker = nil;
   SaveHook, CurPosHook: THook;
 
 // Open Properties Window
 procedure ShowWPProps(NewMarker: TMarker);
+var
+  MUIRGB: TMUI_RGBcolor;
 begin
   if Assigned(NewMarker) then
   begin
@@ -35,6 +37,12 @@ begin
     // Position
     MH_Set(WPLat, MUIA_String_Contents, AsTag(PChar(FloatToStrF(NewMarker.Position.Lat, ffFixed, 8,6))));
     MH_Set(WPLon, MUIA_String_Contents, AsTag(PChar(FloatToStrF(NewMarker.Position.Lon, ffFixed, 8,6))));
+    // Color
+    // Set Color
+    MUIRGB.Red := NewMarker.Color shl 8;
+    MUIRGB.Green := NewMarker.Color shl 16;
+    MUIRGB.Blue := NewMarker.Color shl 24;
+    MH_Set(MarkerCol, MUIA_Pendisplay_RGBcolor, AsTag(@MUIRGB));
   end;
 end;
 
@@ -48,6 +56,8 @@ end;
 
 // Save the Values
 function SaveEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  MUIRGB: PMUI_RGBcolor;
 begin
   Result := 0;
   if MarkerList.IndexOf(CurMarker) >= 0 then
@@ -55,6 +65,10 @@ begin
     CurMarker.Name := PChar(MH_Get(WPName, MUIA_String_Contents));
     CurMarker.Position.Lat := StrToFloatDef(PChar(MH_Get(WPLat, MUIA_String_Contents)), CurMarker.Position.Lat);
     CurMarker.Position.Lon := StrToFloatDef(PChar(MH_Get(WPLon, MUIA_String_Contents)), CurMarker.Position.Lon);
+    //
+    MUIRGB := PMUI_RGBcolor(MH_Get(MarkerCol, MUIA_Pendisplay_RGBcolor));
+    if Assigned(MUIRGB) then
+      CurMarker.Color := (MUIRGB^.Red shr 8 and $ff0000) or (MUIRGB^.Green shr 16 and $FF00) or (MUIRGB^.Blue shr 24 and $FF);
     if Assigned(OnWPChanged) then
       OnWPChanged;
   end;
@@ -76,6 +90,7 @@ begin
           MUIA_String_Format, MUIV_String_Format_Left,
           MUIA_String_Contents, AsTag('________________________'),
           TAG_END])),
+          Child, AsTag(MH_Poppen(MarkerCol, [MUIA_Weight, 20, TAG_END])),
         TAG_END])),
       Child, AsTag(MH_HGroup([
         MUIA_Group_Columns, 2,

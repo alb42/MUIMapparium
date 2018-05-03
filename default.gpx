@@ -10,6 +10,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="-22.950407" lon="-43.209536">
@@ -18,6 +19,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="36.149370" lon="-111.839335">
@@ -26,6 +28,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="-33.855436" lon="151.212200">
@@ -34,6 +37,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="41.902384" lon="12.458632">
@@ -42,6 +46,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="51.502959" lon="-0.120804">
@@ -50,6 +55,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="41.728342" lon="-49.948810">
@@ -58,6 +64,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="39.913799" lon="116.390809">
@@ -66,6 +73,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="35.340630" lon="138.781827">
@@ -74,6 +82,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="37.421695" lon="-122.085703">
@@ -82,6 +91,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="52.423559" lon="14.108752">
@@ -90,6 +100,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="52.450224" lon="12.494629">
@@ -97,6 +108,7 @@
     <time>2017-06-28T22:07:39Z</time>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="48.857801" lon="2.295968">
@@ -105,6 +117,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="-22.950407" lon="-43.209536">
@@ -113,6 +126,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="36.149370" lon="-111.839335">
@@ -121,6 +135,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="-33.855436" lon="151.212200">
@@ -129,6 +144,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="41.902384" lon="12.458632">
@@ -137,6 +153,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="51.502959" lon="-0.120804">
@@ -145,6 +162,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="41.728342" lon="-49.948810">
@@ -153,6 +171,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="39.913799" lon="116.390809">
@@ -161,6 +180,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="35.340630" lon="138.781827">
@@ -169,6 +189,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="37.421695" lon="-122.085703">
@@ -177,6 +198,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="52.849230" lon="14.062500">
@@ -185,6 +207,7 @@
     <ele>0.0</ele>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="52.177361" lon="13.823975">
@@ -192,6 +215,7 @@
     <time>2017-06-28T22:07:39Z</time>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <wpt lat="52.688980" lon="14.109619">
@@ -199,6 +223,7 @@
     <time>2017-06-28T22:07:39Z</time>
     <extensions>
       <visible>True</visible>
+      <color>FF00D3</color>
     </extensions>
   </wpt>
   <wpt lat="50.000000" lon="12.000000">
@@ -206,6 +231,7 @@
     <time>2017-06-28T22:07:39Z</time>
     <extensions>
       <visible>True</visible>
+      <color>0000FF</color>
     </extensions>
   </wpt>
   <rte>

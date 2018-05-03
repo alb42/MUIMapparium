@@ -640,7 +640,10 @@ begin
           Marker.Time := XMLTimeToDateTime(str);
           ExtNode := SubNode.FindNode('extensions');
           if Assigned(ExtNode) then
+          begin
             Marker.Visible := StrToBoolDef(GetTextNode(ExtNode, 'visible'), True);
+            Marker.Color := StrToIntDef('$' + GetTextNode(ExtNode, 'color'), Marker.Color);
+          end;
           MarkerList.Add(Marker);
         end;
       //##### Route
@@ -788,11 +791,18 @@ begin
           WptNode.AppendChild(TextNode);
           TextNode.TextContent := WideString(FloatToStrF(MarkerList[i].Elevation, ffFixed,8,1));
         end;
+        // extensions
         ExtNode := XMLDoc.CreateElement('extensions');
         WptNode.AppendChild(ExtNode);
+        // Visible
         TextNode := XMLDoc.CreateElement('visible');
         ExtNode.AppendChild(TextNode);
         TextNode.TextContent := WideString(BoolToStr(MarkerList[i].Visible, True));
+        // Color
+        TextNode := XMLDoc.CreateElement('color');
+        ExtNode.AppendChild(TextNode);
+        TextNode.TextContent := WideString(IntToHex(MarkerList[i].Color, 6));
+        //
         GPXNode.AppendChild(WptNode);
       end;
       for i := 0 to RouteList.Count -1 do
@@ -1026,6 +1036,7 @@ constructor TMarker.Create;
 begin
   Name := '';
   Symbol := '';
+  Color := clBlue;
   Time := Now();
   Elevation := Nan;
   Visible := True;

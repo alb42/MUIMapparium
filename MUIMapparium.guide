@@ -101,6 +101,7 @@ you experience slow map movement, with the NoFPU version, don't blame me
 
 * Set current maps position and zoom as start position for the program
 * Remember open status and active page of Side Panel
+* Configure Color of WayPoints
 
 0.6
 

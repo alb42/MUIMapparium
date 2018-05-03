@@ -356,6 +356,7 @@ var
   //Pen: LongWord;
   TE: TTextExtent;
   MarkerText: string;
+  MarkerPen: LongInt;
 begin
   //Pen := SetColor(RP, WPColor);
   SetAPen(RP, BluePen);
@@ -367,6 +368,16 @@ begin
   begin
     if MarkerList[i].Visible then
     begin
+      MarkerPen := -1;
+      case MarkerList[i].Color of
+        clRed: SetAPen(RP, RedPen);
+        clGreen: SetAPen(RP, GreenPen);
+        clBlue: SetAPen(RP, BluePen);
+        clBlack: SetAPen(RP, BlackPen);
+        else
+          MarkerPen := SetColor(RP, MarkerList[i].Color);
+      end;
+      //
       SetLength(Points, 4);
       pt := PosToPixel(MarkerList[i].Position);
       Points[0].X := pt.x;
@@ -396,12 +407,12 @@ begin
         GfxText(Rp, PChar(MarkerText), Length(MarkerText));
         //Ca.TextOut(Points[0].X - (TE.CY div 2), Points[1].Y - TE.cy, AnsiToUtf8(MarkerText));
       end;
+      UnSetColor(MarkerPen);
     end;
   end;
   RP^.TmpRas := nil;
   RP^.AreaInfo := nil;
   FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
-  //UnSetColor(Pen);
 end;
 
 // Draw the tracks
