@@ -1391,6 +1391,7 @@ begin
       MUIA_ShowMe, AsTag(Prefs.SidePanelOpen),
       Child, AsTag(MH_Register(ListTabs, [
         MUIA_ObjectID, 2,
+        MUIA_Group_ActivePage, Prefs.SidePage,
         MUIA_Register_Titles, AsTag(@TabTitles),
         //#### Search list
         Child, AsTag(MH_ListView(SearchList, [
@@ -1659,8 +1660,6 @@ begin
     ConnectHookFunction(MUIA_Pressed, AsTag(False), EditRoute, nil, @EditRouteHook, @EditRouteEvent);
     ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, RoutesList, nil, @DblRouteHook, @DblRouteEvent);
 
-
-
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,
       AsTag(PrefsWin), 3, MUIM_SET, MUIA_Window_Open, AsTag(False)]);
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_Open, MUI_FALSE,
@@ -1732,6 +1731,7 @@ begin
     if Prefs.StatWinOpen then
       DoMethod(StatWin, [MUIM_Window_Snapshot, 1]);
     Prefs.SidePanelOpen := LongBool(MH_Get(SidePanel, MUIA_ShowMe));
+    Prefs.SidePage := MH_Get(ListTabs, MUIA_Group_ActivePage);
     // end of main loop, close window if still open
     MH_Set(Window, MUIA_Window_Open, AsTag(False));
 
