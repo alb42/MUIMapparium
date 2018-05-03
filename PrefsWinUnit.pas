@@ -14,9 +14,11 @@ var
   PrefsWin: PObject_ = nil;
   CountButton, ClearButton, FilesLabel, ToLevel,
   SaveButton, CancelButton, MarkerType, MarkerSize,
-  DblMode,
+  DblMode, SetStart,
   LangSel, TilesHD: PObject_;
   Bytes, Counter: Int64;
+  StartPos: TCoord;
+  StartZoom: Integer;
 
   OnUpdatePrefs: TProcedure;
 
@@ -25,10 +27,10 @@ procedure OpenPrefsWindow;
 implementation
 
 uses
-  MUIMappariumLocale;
+  MUIMappariumLocale, positionunit;
 
 var
-  CountHook, ClearHook, SaveHook: THook;
+  CountHook, ClearHook, SaveHook, SetStartHook: THook;
 
 procedure OpenPrefsWindow;
 begin
@@ -38,6 +40,10 @@ begin
   MH_Set(LangSel, MUIA_String_Contents, AsTag(PChar(Prefs.SearchLang)));
   MH_Set(TilesHD, MUIA_String_Integer, Prefs.MaxTiles);
   MH_Set(DblMode, MUIA_Cycle_Active, Ord(Prefs.DClickMode));
+  StartPos.Lat := Prefs.StartPosLat;
+  StartPos.Lon := Prefs.StartPosLon;
+  StartZoom := Prefs.StartZoom;
+
   //
   MH_Set(PrefsWin, MUIA_Window_Open, AsTag(True));
 end;
@@ -51,6 +57,9 @@ begin
   Prefs.SearchLang := PChar(MH_Get(LangSel, MUIA_String_Contents));
   Prefs.MaxTiles := MH_Get(TilesHD, MUIA_String_Integer);
   Prefs.DClickMode := TDClickMode(MH_Get(DblMode, MUIA_Cycle_Active));
+  Prefs.StartPosLat := StartPos.Lat;
+  Prefs.StartPosLon := StartPos.Lon;
+  Prefs.StartZoom := StartZoom;
   //
   if Assigned(OnUpdatePrefs) then
     OnUpdatePrefs();
@@ -140,6 +149,12 @@ begin
   CountButtonEvent(Hook, nil, nil);
 end;
 
+function SetStartEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+begin
+  StartPos := MiddlePos;
+  StartZoom := CurZoom;
+end;
+
 
 var
   MarkerStrings: array[0..3] of string;
@@ -211,12 +226,19 @@ begin
           TAG_DONE])),
         TAG_DONE])),
       Child, AsTag(MH_HGroup([
-        MUIA_Frame, MUIV_Frame_Group,
-        MUIA_FrameTitle, AsTag(GetLocString(MSG_PREFS_MOUSESETTINGS)), // 'Mouse Settings'
-        Child, AsTag(MH_Text(GetLocString(MSG_PREFS_DBLMODE))),    // 'Double click mode'
-        Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Cycle(DblMode, [
-          MUIA_Cycle_Entries, AsTag(@DblModes),
+        Child, AsTag(MH_HGroup([
+          MUIA_Frame, MUIV_Frame_Group,
+          MUIA_FrameTitle, AsTag(GetLocString(MSG_PREFS_MOUSESETTINGS)), // 'Mouse Settings'
+          Child, AsTag(MH_Text(GetLocString(MSG_PREFS_DBLMODE))),    // 'Double click mode'
+          Child, AsTag(MH_HSpace(0)),
+          Child, AsTag(MH_Cycle(DblMode, [
+            MUIA_Cycle_Entries, AsTag(@DblModes),
+            TAG_DONE])),
+          TAG_DONE])),
+        Child, AsTag(MH_HGroup([
+          MUIA_Frame, MUIV_Frame_Group,
+          MUIA_FrameTitle, AsTag(GetLocString(MSG_PREFS_STARTPOSITION)), // 'Start Position'
+          Child, AsTag(MH_Button(SetStart, GetLocString(MSG_PREFS_USECURRENT))),    // 'Use current'
           TAG_DONE])),
         TAG_DONE])),
       Child, AsTag(MH_HGroup([
@@ -258,6 +280,8 @@ begin
 
   ConnectHookFunction(MUIA_Pressed, AsTag(False), CountButton, nil, @CountHook, @CountButtonEvent);
   ConnectHookFunction(MUIA_Pressed, AsTag(False), ClearButton, nil, @ClearHook, @ClearButtonEvent);
+
+  ConnectHookFunction(MUIA_Pressed, AsTag(False), SetStart, nil, @SetStartHook, @SetStartEvent);
 
   ConnectHookFunction(MUIA_Pressed, AsTag(False), SaveButton, nil, @SaveHook, @SaveEvent);
   DoMethod(CancelButton, [MUIM_Notify, MUIA_Pressed, AsTag(False),

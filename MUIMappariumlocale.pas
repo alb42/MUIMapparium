@@ -114,6 +114,12 @@ const
   MSG_PREFS_DBLMODE = 20117 ;
   MSG_PREFS_DBLMODE_STR = 'Double click mode'#0;
 
+  MSG_PREFS_STARTPOSITION = 20118 ;
+  MSG_PREFS_STARTPOSITION_STR = 'Start position'#0;
+
+  MSG_PREFS_USECURRENT = 20119 ;
+  MSG_PREFS_USECURRENT_STR = 'Use current'#0;
+
   MSG_STAT_WINTITLE = 20200 ;
   MSG_STAT_WINTITLE_STR = 'Statistics'#0;
 
@@ -394,7 +400,7 @@ type
      str: string;
   end;
 
-  TAppStringArray = array[0..120] of TAppString;
+  TAppStringArray = array[0..122] of TAppString;
 
 const
   AppStrings: TAppStringArray = (
@@ -431,6 +437,8 @@ const
     (id: MSG_PREFS_DBLMODES ; str: MSG_PREFS_DBLMODES_STR ),
     (id: MSG_PREFS_MOUSESETTINGS ; str: MSG_PREFS_MOUSESETTINGS_STR ),
     (id: MSG_PREFS_DBLMODE ; str: MSG_PREFS_DBLMODE_STR ),
+    (id: MSG_PREFS_STARTPOSITION ; str: MSG_PREFS_STARTPOSITION_STR ),
+    (id: MSG_PREFS_USECURRENT ; str: MSG_PREFS_USECURRENT_STR ),
     (id: MSG_STAT_WINTITLE ; str: MSG_STAT_WINTITLE_STR ),
     (id: MSG_STAT_TITLE ; str: MSG_STAT_TITLE_STR ),
     (id: MSG_STAT_SESSION ; str: MSG_STAT_SESSION_STR ),

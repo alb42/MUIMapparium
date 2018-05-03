@@ -114,6 +114,13 @@ Mouse Settings
 MSG_PREFS_DBLMODE (20117//)
 Double click mode
 ;
+MSG_PREFS_STARTPOSITION (20118//)
+Start position
+;
+MSG_PREFS_USECURRENT (20119//)
+Use current
+;
+;
 ;#### Statistics
 MSG_STAT_WINTITLE (20200//)
 Statistics

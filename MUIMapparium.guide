@@ -69,8 +69,8 @@ With Vampire (at least until Gold 2.9) you have to use the
 NoFPU-Version of MUIMapparium. The Vampire FPU is not IEEE754
 compatible and therefore does not work with MUIMapparium.
 
-Offline Operation is possible, harddisk cached map images
-are shown only.
+Offline Operation is possible, but only harddisk cached map images
+are shown.
 
 @ENDNODE
 
@@ -81,8 +81,10 @@ are shown only.
 To Install it, copy the MUIMapparium drawer to any place you want, no
 further setup needed.
 
-If you want images cache to somwhere else edit the ToolTypes of the
-Main program and change and enable the DATAPATH Tooltype.
+By default the downloaded maps tiles are saved to the data drawer inside
+the MUIMapparium drawer. If you want images cache to somewhere else edit
+the ToolTypes of the Main program and change and enable the DATAPATH
+Tooltype.
 
 On 68k Amiga check, if you don't have an FPU (68881, 68882, 68040 or 68060)
 you must use the NoFPU Version included in the MUIMapparium Drawer.
@@ -94,6 +96,10 @@ you experience slow map movement, with the NoFPU version, don't blame me
 
 
 @NODE history "History"
+
+0.7
+
+* Set current maps position and zoom as start position for the program
 
 0.6
 
@@ -111,7 +117,9 @@ you experience slow map movement, with the NoFPU version, don't blame me
 * Faster Image Download
 * Choose double click map feature lists mode
 * Popup menu for all map feature lists
+* ASCII Export for plot
 * Calculate Routes with YOURS
+* Include *.cd file for own translations
 
 0.5
 
@@ -246,16 +254,15 @@ window where you can change the name and color of the track
 and plot travel data as curves. The @{i}Remove@{ui}
 button deletes the selected track.
 
-
 Routes:
 Routes are calculated travels. They are shown as a list and as colored
 Lines with points for every turnning point on the map. They can
 be loaded from GPX files via menu entry @{i}Load@{ui}.
 The @{i}Edit@{ui} button opens the @{"route properties" LINK RouteWin}
 window where you can change the name and color of the route.
-The @{i}Remove@{ui} button deletes the selected track. At the moment is
-not possible to create or edit tracks (beside name and color).
-
+The @{i}Remove@{ui} button deletes the selected track.
+@{i}Add@{ui} creates a new route which can be calculated using YOURS
+online routing service. See {"route properties" LINK RouteWin}.
 @ENDNODE
 
 @NODE MainMenu "MainMenu"
@@ -292,7 +299,6 @@ not possible to create or edit tracks (beside name and color).
   Check for Updates - Check if there is a new Version available
                       Network is needed, only the new Version number is
                       loaded, no additional data is sent
-
 
 @ENDNODE
 
@@ -370,6 +376,11 @@ Available actions:
      Toggle the visibility of the map feature (hide if map feature is
      shown, Show if the map feature is hidden)
 
+ @{u}Start position@{uu}
+  Use current
+Use current map position and zoom as the position and zoom when the
+program starts.
+
  @{u}Files on hard disk@{uu}
  - Count: Count the numbers of mape tiles kept in the hard disk and the
           memory used by them. The result is shown underneath.
@@ -380,7 +391,6 @@ Available actions:
  @{u}Save/Cancel@{uu}
 Save:   Save and apply the settings and close the preferences window.
 Cancel: Close preferences window without using them.
-
 
 @ENDNODE
 
@@ -433,6 +443,8 @@ Curve Data    - Show the x and y values of the curve points nearest
                 to the mouse position.
 Set Marker    - Click to a position to set the marker, the marker is
                 also show in the map as a little triangle
+Export ASCII  - Export the currently shown curves to and ascii file
+                with TAB separated values.
 
 The plot is only for viewing purpose, the settings are not saved.
 
@@ -451,12 +463,32 @@ Define the name and color of the route. Change the color by clicking
 on the colored button and choose the color in the color dialog opens.
 The color is used in the map and the title is used in the list.
 
+  @{u}From:@{uu}
+Start of the route. Only available when creating a new route. To define
+a start point type in the start address and press enter or click the
+search button next to it. A list of search results will open, select
+the result you want to use as start by double clicking it. You can also
+use the current position as start point by using the button.
+
+  @{u}To:@{uu}
+End of the route. Only available when creating a new route. To define
+a start point type in the start address and press enter or click the
+search button next to it. A list of search results will open, select
+the result you want to use as start by double clicking it. You can also
+use the current position as start point by using the button.
+
+  @{u}Calculate Route@{uu}
+Start the route calculation. Only available when creating a new route
+and start and end of the route are defined. (Start and end are defined
+if the coordinates are written next to the "From:/To:" Label).
+Choose if you want to go by car, by bicycle or by foot and want to
+calculate the fastest or shortest route. Don't forget to save to keep
+the newly created route.
+
   @{u}Route Orders@{uu}
 List of orders to drive along this calculated route, double click onto
-an order to zoom the map to place of the event.
-
-View and edit properties of a Route. Currently it's not possible to edit
-or create new routes.
+an order to zoom the map to place of the event, if the information is
+saved to the route. (Not for YOURS routes)
 
   @{u}Save/Close@{uu}
 Save:  Save the changes done in the window and close the properties

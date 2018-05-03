@@ -151,6 +151,15 @@ MSG_PREFS_DBLMODE
 Doppelklickmode
 ; Double click mode
 ;
+MSG_PREFS_STARTPOSITION
+Startposition
+; Start position
+;
+MSG_PREFS_USECURRENT
+aktuelle Position
+; Use current
+;
+;
 ;#### Statistics
 MSG_STAT_WINTITLE
 Statistiken
