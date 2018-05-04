@@ -10,7 +10,7 @@ uses
   Statisticsunit, waypointunit, WPPropsUnit, TrackPropsUnit, RoutePropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math, versionunit,
-  MapPanelUnit, UpdateUnit, aboutwinunit;
+  MapPanelUnit, UpdateUnit, aboutwinunit, ASL;
 
 const
   NM_BarLabel: LongInt = -1;
@@ -31,6 +31,7 @@ const
   MID_Help        = 14;
   MID_About       = 15;
   MID_AboutMUI    = 16;
+  MID_ExportPNG   = 17;
 
 var
   TabStrings: array[0..4] of string = ('Search', 'WayPoints', 'Tracks', 'Routes', 'Images');
@@ -59,8 +60,6 @@ var
   SRes: TSearchResults;
   SearchTitleStr: string;
 
-  MUIMapPanel: TMapPanel;
-
   WM1, WM2, WM3, WM4: PObject_;
 
   SidePanelOpen: Boolean = FALSE;
@@ -71,6 +70,8 @@ procedure ShowSidePanel(ShowIt: Boolean); forward;
 function EditWayEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt; forward;
 function EditTrackEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt; forward;
 function EditRouteEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt; forward;
+procedure CenterToRoute(Ro: TRoute); forward;
+procedure CenterToTrack(Tr: TTrack); forward;
 
 procedure OpenPrefs; forward;
 procedure UpdateWayPoints; forward;
@@ -407,6 +408,40 @@ begin
   {$endif}
 end;
 
+procedure ExportAsPng;
+var
+  fr: PFileRequester;
+  OldDrawer: string;
+  OldFileName: string;
+begin
+{$R-}
+  OldFilename := 'Map.png';
+  OldDrawer := Prefs.LoadPath;
+  fr := AllocAslRequestTags(ASL_FileRequest, [
+    NativeUInt(ASLFR_TitleText),      NativeUInt(PChar('Choose name  to save the Map as PNG')),
+    NativeUInt(ASLFR_InitialFile),    NativeUInt(PChar(OldFileName)),
+    NativeUInt(ASLFR_InitialDrawer),  NativeUInt(PChar(OldDrawer)),
+    NativeUInt(ASLFR_InitialPattern), NativeUInt(PChar('#?.png')),
+    NativeUInt(ASLFR_DoSaveMode),     LTrue,
+    NativeUInt(ASLFR_DoPatterns),     LTrue,
+    TAG_END]);
+  if Assigned(fr) then
+  begin
+    //
+    if AslRequestTags(fr, [TAG_END]) then
+    begin
+      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
+      OldFilename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
+      {$else}
+      OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
+      {$endif}
+      OldFilename := ChangeFileExt(OldFilename, '.png');
+      MUIMapPanel.SaveToFile(OldFilename);
+    end;
+    FreeAslRequest(fr);
+  end;
+end;
+
 //###################################
 // Menu Event
 function MenuEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
@@ -419,6 +454,7 @@ begin
         UpdateTracks;
       end;
     MID_Save: SaveWayFile;
+    MID_ExportPNG: ExportAsPng;
     MID_Quit: Running := False;
     MID_SidePanel: ShowSidePanel(Boolean(MH_Get(MenuSidePanel, MUIA_Menuitem_Checked)));
     MID_ZOOMIN: MUIMapPanel.ZoomIn(False);
@@ -503,11 +539,6 @@ function DblTrackEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 var
   Active: LongInt;
   Tr: TTrack;
-  MinC, MaxC: TCoord;
-  DiffLat, DiffLon: ValReal;
-  Pt: Classes.TPoint;
-  Rec: TRectCoord;
-  i: Integer;
 begin
   Result := 0;
   Active := MH_Get(TracksListEntry, MUIA_List_Active);
@@ -517,41 +548,8 @@ begin
     if Assigned(Tr) then
     begin
       case Prefs.DClickMode of
-        dmCenter, dmProperty: begin
-          for i := 0 to High(Tr.Pts) do
-          begin
-            if i = 0 then
-            begin
-              MinC := Tr.Pts[0].Position;
-              MaxC := Tr.Pts[0].Position;
-            end else
-            begin
-              MinC.Lat := Min(MinC.Lat, Tr.Pts[i].Position.Lat);
-              MinC.Lon := Min(MinC.Lon, Tr.Pts[i].Position.Lon);
-              MaxC.Lat := Max(MaxC.Lat, Tr.Pts[i].Position.Lat);
-              MaxC.Lon := Max(MaxC.Lon, Tr.Pts[i].Position.Lon);
-            end;
-          end;
-          if Length(Tr.Pts) > 0 then
-          begin
-            DiffLat := Abs(MaxC.Lat - MinC.Lat);
-            DiffLon := Abs(MaxC.Lon - MinC.Lon);
-            MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
-            MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
-
-            for i := 0 to 18 do
-            begin
-              Pt := GetTileCoord(i, MiddlePos);
-              Rec := GetTileRect(i, Pt);
-              if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
-                CurZoom := i;
-            end;
-            CurZoom := CurZoom + 1;
-            MUIMapPanel.RefreshImage;
-          end;
-          if Prefs.DClickMode = dmProperty then
-            EditTrackEvent(nil, nil, nil);
-        end;
+        dmCenter: CenterToTrack(Tr);
+        dmProperty: EditTrackEvent(nil, nil, nil);
         dmVisible: begin
           Tr.Visible := not Tr.Visible;
           Tr.UpdateFullName;
@@ -564,17 +562,98 @@ begin
   end;
 end;
 
+procedure CenterToTrack(Tr: TTrack);
+var
+  MinC, MaxC: TCoord;
+  DiffLat, DiffLon: Double;
+  Pt: TPoint;
+  Rec: TRectCoord;
+  i: Integer;
+begin
+  if not Assigned(Tr) then
+    Exit;
+  for i := 0 to High(Tr.Pts) do
+  begin
+    if i = 0 then
+    begin
+      MinC := Tr.Pts[0].Position;
+      MaxC := Tr.Pts[0].Position;
+    end else
+    begin
+      MinC.Lat := Min(MinC.Lat, Tr.Pts[i].Position.Lat);
+      MinC.Lon := Min(MinC.Lon, Tr.Pts[i].Position.Lon);
+      MaxC.Lat := Max(MaxC.Lat, Tr.Pts[i].Position.Lat);
+      MaxC.Lon := Max(MaxC.Lon, Tr.Pts[i].Position.Lon);
+    end;
+  end;
+  if Length(Tr.Pts) > 0 then
+  begin
+    DiffLat := Abs(MaxC.Lat - MinC.Lat);
+    DiffLon := Abs(MaxC.Lon - MinC.Lon);
+    MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+    MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
+
+    for i := 0 to 18 do
+    begin
+      Pt := GetTileCoord(i, MiddlePos);
+      Rec := GetTileRect(i, Pt);
+      if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+        CurZoom := i;
+    end;
+    CurZoom := CurZoom + 1;
+    MUIMapPanel.RefreshImage;
+  end;
+end;
+
+procedure CenterToRoute(Ro: TRoute);
+var
+  MinC, MaxC: TCoord;
+  DiffLat, DiffLon: Double;
+  Pt: TPoint;
+  Rec: TRectCoord;
+  i: Integer;
+begin
+  if not Assigned(Ro) then
+    Exit;
+  for i := 0 to High(Ro.Pts) do
+  begin
+    if i = 0 then
+    begin
+      MinC := Ro.Pts[0].Position;
+      MaxC := Ro.Pts[0].Position;
+    end else
+    begin
+      MinC.Lat := Min(MinC.Lat, Ro.Pts[i].Position.Lat);
+      MinC.Lon := Min(MinC.Lon, Ro.Pts[i].Position.Lon);
+      MaxC.Lat := Max(MaxC.Lat, Ro.Pts[i].Position.Lat);
+      MaxC.Lon := Max(MaxC.Lon, Ro.Pts[i].Position.Lon);
+    end;
+  end;
+  if Length(Ro.Pts) > 0 then
+  begin
+    DiffLat := Abs(MaxC.Lat - MinC.Lat);
+    DiffLon := Abs(MaxC.Lon - MinC.Lon);
+    MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
+    MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
+
+    for i := 0 to 18 do
+    begin
+      Pt := GetTileCoord(i, MiddlePos);
+      Rec := GetTileRect(i, Pt);
+      if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+        CurZoom := i;
+    end;
+    CurZoom := CurZoom + 1;
+    MUIMapPanel.RefreshImage;
+  end;
+end;
+
 //###################################
 // Double Click to Route
 function DblRouteEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 var
   Active: LongInt;
   Ro: TRoute;
-  MinC, MaxC: TCoord;
-  DiffLat, DiffLon: ValReal;
-  Pt: Classes.TPoint;
-  Rec: TRectCoord;
-  i: Integer;
 begin
   Result := 0;
   Active := MH_Get(RoutesListEntry, MUIA_List_Active);
@@ -584,41 +663,8 @@ begin
     if Assigned(Ro) then
     begin
       case Prefs.DClickMode of
-        dmCenter, dmProperty: begin
-          for i := 0 to High(Ro.Pts) do
-          begin
-            if i = 0 then
-            begin
-              MinC := Ro.Pts[0].Position;
-              MaxC := Ro.Pts[0].Position;
-            end else
-            begin
-              MinC.Lat := Min(MinC.Lat, Ro.Pts[i].Position.Lat);
-              MinC.Lon := Min(MinC.Lon, Ro.Pts[i].Position.Lon);
-              MaxC.Lat := Max(MaxC.Lat, Ro.Pts[i].Position.Lat);
-              MaxC.Lon := Max(MaxC.Lon, Ro.Pts[i].Position.Lon);
-            end;
-          end;
-          if Length(Ro.Pts) > 0 then
-          begin
-            DiffLat := Abs(MaxC.Lat - MinC.Lat);
-            DiffLon := Abs(MaxC.Lon - MinC.Lon);
-            MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
-            MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
-
-            for i := 0 to 18 do
-            begin
-              Pt := GetTileCoord(i, MiddlePos);
-              Rec := GetTileRect(i, Pt);
-              if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
-                CurZoom := i;
-            end;
-            CurZoom := CurZoom + 1;
-            MUIMapPanel.RefreshImage;
-          end;
-          if Prefs.DClickMode = dmProperty then
-            EditRouteEvent(nil, nil, nil);
-        end;
+        dmCenter: CenterToRoute(Ro);
+        dmProperty: EditRouteEvent(nil, nil, nil);
         dmVisible: begin
           Ro.Visible := not Ro.Visible;
           Ro.UpdateFullName;
@@ -695,6 +741,7 @@ begin
   if (Active >= 0) and (Active < TrackList.Count) then
   begin
     Tr := TrackList[Active];
+    CenterToTrack(Tr);
     ShowTrackProps(Tr);
     MUIMapPanel.RedrawObject;
   end;
@@ -702,21 +749,10 @@ end;
 
 // Add Route
 function AddRouteEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
-//var
-//  Ro: TRoute;
-//  Active: Integer;
 begin
   Result := 0;
   NewRouteProps;
-  {Active := MH_Get(RoutesListEntry, MUIA_List_Active);
-  if (Active >= 0) and (Active < RouteList.Count) then
-  begin
-    Ro := RouteList[Active];
-    //ShowTrackProps(Tr);
-    MUIMapPanel.RedrawObject;
-  end;}
 end;
-
 
 // Remove Route Button
 function RemRouteEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
@@ -744,6 +780,7 @@ begin
   if (Active >= 0) and (Active < RouteList.Count) then
   begin
     Ro := RouteList[Active];
+    CenterToRoute(Ro);
     ShowRouteProps(Ro);
     MUIMapPanel.RedrawObject;
   end;
@@ -804,13 +841,6 @@ function WPGoToEvent(Hook: PHook; Obj: PObject_; AMsg: Pointer): NativeInt;
 var
   Active: Integer;
   Ma: TMarker;
-  Tr: TTrack;
-  Ro: TRoute;
-  MinC, MaxC: TCoord;
-  DiffLat, DiffLon: ValReal;
-  Pt: Classes.TPoint;
-  Rec: TRectCoord;
-  i: Integer;
 begin
   Result := 0;
   case MH_Get(ListTabs, MUIA_Group_ActivePage) of
@@ -829,85 +859,13 @@ begin
     begin
       Active := MH_Get(TracksListEntry, MUIA_List_Active);
       if (Active >= 0) and (Active < TrackList.Count) then
-      begin
-        Tr := TrackList[Active];
-        if Assigned(Tr) then
-        begin
-          for i := 0 to High(Tr.Pts) do
-          begin
-            if i = 0 then
-            begin
-              MinC := Tr.Pts[0].Position;
-              MaxC := Tr.Pts[0].Position;
-            end else
-            begin
-              MinC.Lat := Min(MinC.Lat, Tr.Pts[i].Position.Lat);
-              MinC.Lon := Min(MinC.Lon, Tr.Pts[i].Position.Lon);
-              MaxC.Lat := Max(MaxC.Lat, Tr.Pts[i].Position.Lat);
-              MaxC.Lon := Max(MaxC.Lon, Tr.Pts[i].Position.Lon);
-            end;
-          end;
-          if Length(Tr.Pts) > 0 then
-          begin
-            DiffLat := Abs(MaxC.Lat - MinC.Lat);
-            DiffLon := Abs(MaxC.Lon - MinC.Lon);
-            MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
-            MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
-
-            for i := 0 to 18 do
-            begin
-              Pt := GetTileCoord(i, MiddlePos);
-              Rec := GetTileRect(i, Pt);
-              if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
-                CurZoom := i;
-            end;
-            CurZoom := CurZoom + 1;
-            MUIMapPanel.RefreshImage;
-          end;
-        end;
-      end;
+        CenterToTrack(TrackList[Active]);
     end;
     3: // Route
     begin
       Active := MH_Get(RoutesListEntry, MUIA_List_Active);
       if (Active >= 0) and (Active < RouteList.Count) then
-      begin
-        Ro := RouteList[Active];
-        if Assigned(Ro) then
-        begin
-          for i := 0 to High(Ro.Pts) do
-          begin
-            if i = 0 then
-            begin
-              MinC := Ro.Pts[0].Position;
-              MaxC := Ro.Pts[0].Position;
-            end else
-            begin
-              MinC.Lat := Min(MinC.Lat, Ro.Pts[i].Position.Lat);
-              MinC.Lon := Min(MinC.Lon, Ro.Pts[i].Position.Lon);
-              MaxC.Lat := Max(MaxC.Lat, Ro.Pts[i].Position.Lat);
-              MaxC.Lon := Max(MaxC.Lon, Ro.Pts[i].Position.Lon);
-            end;
-          end;
-          if Length(Ro.Pts) > 0 then
-          begin
-            DiffLat := Abs(MaxC.Lat - MinC.Lat);
-            DiffLon := Abs(MaxC.Lon - MinC.Lon);
-            MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
-            MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
-
-            for i := 0 to 18 do
-            begin
-              Pt := GetTileCoord(i, MiddlePos);
-              Rec := GetTileRect(i, Pt);
-              if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
-                CurZoom := i;
-            end;
-            CurZoom := CurZoom + 1;
-            MUIMapPanel.RefreshImage;
-          end;
-        end;
-      end;
+        CenterToRoute(RouteList[Active]);
     end;
   end;
   MUIMapPanel.RedrawObject;
@@ -1261,42 +1219,7 @@ begin
         end;
       end;
     end;
-    1: begin
-      if Assigned(CurRoute) then
-      begin
-        for i := 0 to High(CurRoute.Pts) do
-        begin
-          if i = 0 then
-          begin
-            MinC := CurRoute.Pts[i].Position;
-            MaxC := CurRoute.Pts[i].Position;
-          end else
-          begin
-            MinC.Lat := Min(MinC.Lat, CurRoute.Pts[i].Position.Lat);
-            MinC.Lon := Min(MinC.Lon, CurRoute.Pts[i].Position.Lon);
-            MaxC.Lat := Max(MaxC.Lat, CurRoute.Pts[i].Position.Lat);
-            MaxC.Lon := Max(MaxC.Lon, CurRoute.Pts[i].Position.Lon);
-          end;
-        end;
-        if Length(CurRoute.Pts) > 0 then
-        begin
-          DiffLat := Abs(MaxC.Lat - MinC.Lat);
-          DiffLon := Abs(MaxC.Lon - MinC.Lon);
-          MiddlePos.Lat:= (MaxC.Lat + MinC.Lat) / 2;
-          MiddlePos.Lon:= (MaxC.Lon + MinC.Lon) / 2;
-
-          for i := 0 to 18 do
-          begin
-            Pt := GetTileCoord(i, MiddlePos);
-            Rec := GetTileRect(i, Pt);
-            if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
-              CurZoom := i + 1;
-          end;
-          CurZoom := CurZoom;
-          MUIMapPanel.RefreshImage;
-        end;
-      end;
-    end;
+    1: CenterToRoute(CurRoute);
     2: begin
       MiddlePos := GoToPos;
       CurZoom := 11;
@@ -1479,6 +1402,10 @@ begin
           MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAIN_SAVE)), //  'Save...'
           MUIA_Menuitem_Shortcut, AsTag(GetLocString(MSG_MENU_MAIN_SAVE_KEY)), // 'S'
           MUIA_UserData, MID_Save,
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem([
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAIN_EXPORTPNG)), //  'Export as PNG...'
+          MUIA_UserData, MID_ExportPNG,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
           MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAIN_QUIT)), //  'Quit'

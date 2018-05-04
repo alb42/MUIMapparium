@@ -336,6 +336,14 @@ MSG_ROUTEPROP_SHORTEST
 Kürzeste
 ; Shortest
 ;
+MSG_ROUTEPOP_EXPORT
+Export
+; Export
+;
+MSG_ROUTEPOP_EXPORTHTML
+Export als HTML
+; Export as HTML
+;
 ;
 ;#### Menus
 MSG_POPUP_FEATURE
@@ -386,6 +394,10 @@ Beenden
 MSG_MENU_MAIN_QUIT_KEY
 Q
 ; Q
+;
+MSG_MENU_MAIN_EXPORTPNG
+Exportiere als PNG...
+; Export as PNG...
 ;
 MSG_MENU_MAP
 Karte

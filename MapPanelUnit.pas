@@ -39,10 +39,10 @@ type
     procedure SetShowRoutes(AValue: Boolean);
   protected
     procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
-    procedure DrawMarker(RP: PRastPort; DrawRange: TRect);
-    procedure DrawTracks(RP: PRastPort; DrawRange: TRect);
-    procedure DrawRoute(RP: PRastPort; DrawRange: TRect; ARoute: TRoute);
-    procedure DrawRoutes(RP: PRastPort; DrawRange: TRect);
+    procedure DrawMarker(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
+    procedure DrawTracks(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
+    procedure DrawRoute(RP: PRastPort; DrawRange: TRect; ARoute: TRoute; UsePens: Boolean = True);
+    procedure DrawRoutes(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
     procedure DrawGUI(RP: PRastPort; DrawRange: TRect);
     procedure SetShowSidePanelBtn(AValue: Boolean);
     //
@@ -67,6 +67,8 @@ type
     procedure ZoomIn(ToPos: Boolean);
     procedure ZoomOut;
     procedure RefreshImage;
+    procedure SaveToFile(AFileName: string);
+
     function PixelToPos(T: Classes.TPoint): TCoord;
     function PosToPixel(C: TCoord): Classes.TPoint;
     function CoordToPixel(NCoord: TTileCoord): Classes.TPoint;
@@ -81,9 +83,12 @@ type
     property ShowRoutes: Boolean read FShowRoutes write SetShowRoutes;
   end;
 
+var
+  MUIMapPanel: TMapPanel;
+
 implementation
 uses
-  TrackPropsUnit, RoutePropsUnit;
+  TrackPropsUnit, RoutePropsUnit, fpwritepng;
 
 
 // #####################################################################
@@ -250,6 +255,77 @@ begin
   EatEvent := True;
 end;
 
+procedure TMapPanel.SaveToFile(AFileName: string);
+var
+  PTMid: Classes.TPoint;
+  LOffset: Classes.TPoint;
+  LocalRP: PRastPort;
+  li: pLayer_Info;
+  DrawRect: Classes.TRect;
+  SavePict: TFPAMemImage;
+  Writer: TFPWriterPNG;
+  RP: PRastPort;
+begin
+  try
+    DrawRect := Rect(0, 0, RecordedSize.X, RecordedSize.Y);
+    //
+    PTMid.X := DrawRect.Width div 2;
+    PTMid.Y := DrawRect.Height div 2;
+    // Make a temporary Rastport to draw to
+    LocalRP := CreateRastPort;
+    li := NewLayerInfo(); // Layerinfo we also need
+    // Bitmap and layer for the temp rastport
+    LocalRP^.Bitmap := AllocBitMap(DrawRect.Width, DrawRect.Height, 24, BMF_MINPLANES, nil);
+    LocalRP^.Layer := CreateUpFrontLayer(li, LocalRP^.Bitmap, 0, 0, DrawRect.Width - 1, DrawRect.Height - 1, LAYERSIMPLE, nil);
+    if Assigned(MUIObject) then
+    begin
+      RP := Obj_Rp(MUIObject);
+      if Assigned(RP) then
+        SetFont(LocalRP, RP^.Font);
+    end;
+    // initialize to background color
+    SetAPen(LocalRP, 0);
+    SetBPen(LocalRP, 0);
+    // fill with background color
+    RectFill(LocalRP, 0, 0, DrawRect.Right, DrawRect.Bottom);
+    // draw the actual Images to there
+    LOffset.X := MiddleCoord.Pixel.X - MoveOffset.X;
+    LOffset.Y := MiddleCoord.Pixel.Y - MoveOffset.Y;
+    WritePixelArray(FullBitmap.Data, 0, 0, FullBitmap.Width * SizeOf(LongWord), LocalRP, PTMid.X + ((0 + GPixOff.X)*256) - LOffset.X, PTMid.Y + ((0 + GPixOff.Y)*256) - LOffset.Y, FullBitmap.Width, FullBitmap.Height, RECTFMT_RGBA);
+    RedrawImage := False;
+    // Draw Tracks
+    if FShowTracks then
+      DrawTracks(LocalRP, DrawRect, False);
+    // Draw Routes
+    if FShowRoutes then
+      DrawRoutes(LocalRP, DrawRect, False);
+    if Assigned(CurRoute) then
+      DrawRoute(LocalRP, DrawRect, CurRoute, False);
+    // Draw Marker
+    if FShowMarker then
+      DrawMarker(LocalRP, DrawRect, False);
+    //
+    SavePict := TFPAMemImage.Create(RecordedSize.X, RecordedSize.Y);
+    ReadPixelArray(SavePict.Data, 0, 0, SavePict.Width * SizeOf(LongWord), LocalRP, 0, 0, SavePict.Width, SavePict.Height, RECTFMT_RGBA);
+    Writer := TFPWriterPNG.Create;
+    SavePict.SaveToFile(AFileName, Writer);
+
+  finally
+    Writer.Free;
+    SavePict.Free;
+    // delete the layer
+    DeleteLayer(0, LocalRP^.layer);
+    DisposeLayerInfo(li);
+    // delete the bitmap
+    FreeBitmap(LocalRP^.Bitmap);
+    LocalRP^.Layer := nil;
+    LocalRP^.Bitmap := nil;
+    // Destroy the temp rastport
+    FreeRastPort(LocalRP);
+  end;
+end;
+
+
 // Draw Event
 procedure TMapPanel.DrawEvent(Sender: TObject; Rp: PRastPort; DrawRect: TRect);
 var
@@ -285,6 +361,8 @@ begin
   // Draw Routes
   if FShowRoutes then
     DrawRoutes(LocalRP, DrawRect);
+  if Assigned(CurRoute) and (RouteList.IndexOf(CurRoute) < 0) then
+    DrawRoute(LocalRP, DrawRect, CurRoute);
   // Draw Marker
   if FShowMarker then
     DrawMarker(LocalRP, DrawRect);
@@ -339,7 +417,7 @@ begin
 end;
 
 // Draw the Waypoints
-procedure TMapPanel.DrawMarker(RP: PRastPort; DrawRange: TRect);
+procedure TMapPanel.DrawMarker(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
 const
   AREA_BYTES = 4000;
 var
@@ -369,14 +447,19 @@ begin
     if MarkerList[i].Visible then
     begin
       MarkerPen := -1;
-      case MarkerList[i].Color of
-        clRed: SetAPen(RP, RedPen);
-        clGreen: SetAPen(RP, GreenPen);
-        clBlue: SetAPen(RP, BluePen);
-        clBlack: SetAPen(RP, BlackPen);
-        else
-          MarkerPen := SetColor(RP, MarkerList[i].Color);
-      end;
+      if UsePens then
+      begin
+        case MarkerList[i].Color of
+          clRed: SetAPen(RP, RedPen);
+          clGreen: SetAPen(RP, GreenPen);
+          clBlue: SetAPen(RP, BluePen);
+          clBlack: SetAPen(RP, BlackPen);
+          else
+            MarkerPen := SetColor(RP, MarkerList[i].Color);
+        end;
+      end
+      else
+        MarkerPen := SetColor(RP, MarkerList[i].Color);
       //
       SetLength(Points, 4);
       pt := PosToPixel(MarkerList[i].Position);
@@ -416,7 +499,7 @@ begin
 end;
 
 // Draw the tracks
-procedure TMapPanel.DrawTracks(RP: PRastPort; DrawRange: TRect);
+procedure TMapPanel.DrawTracks(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
 const
   AREA_BYTES = 4000;
 var
@@ -441,16 +524,19 @@ begin
     if not TrackList[i].Visible then
       Continue;
     TrackPen := -1;
-    case TrackList[i].Color of
-      clRed: SetAPen(RP, RedPen);
-      clGreen: SetAPen(RP, GreenPen);
-      clBlue: SetAPen(RP, BluePen);
-      clBlack: SetAPen(RP, BlackPen);
-      else
-      begin
-        TrackPen := SetColor(RP, TrackList[i].Color);
+    if UsePens then
+    begin
+      case TrackList[i].Color of
+        clRed: SetAPen(RP, RedPen);
+        clGreen: SetAPen(RP, GreenPen);
+        clBlue: SetAPen(RP, BluePen);
+        clBlack: SetAPen(RP, BlackPen);
+        else
+          TrackPen := SetColor(RP, TrackList[i].Color);
       end;
-    end;
+    end
+    else
+      TrackPen := SetColor(RP, TrackList[i].Color);
     ShowActivePt := (TrackList[i] = CurTrack);
     Drawn := 0;
     LastWasDrawn := False;
@@ -496,7 +582,7 @@ begin
   //UnSetColor(Pen);
 end;
 
-procedure TMapPanel.DrawRoute(RP: PRastPort; DrawRange: TRect; ARoute: TRoute);
+procedure TMapPanel.DrawRoute(RP: PRastPort; DrawRange: TRect; ARoute: TRoute; UsePens: Boolean = True);
 const
   AREA_BYTES = 4000;
 var
@@ -516,16 +602,19 @@ begin
   SetDrMd(RP, JAM1);
   //
   RoutePen := -1;
-  case ARoute.Color of
-    clRed: SetAPen(RP, RedPen);
-    clGreen: SetAPen(RP, GreenPen);
-    clBlue: SetAPen(RP, BluePen);
-    clBlack: SetAPen(RP, BlackPen);
-    else
-    begin
-      RoutePen := SetColor(RP, ARoute.Color);
+  if UsePens then
+  begin
+    case ARoute.Color of
+      clRed: SetAPen(RP, RedPen);
+      clGreen: SetAPen(RP, GreenPen);
+      clBlue: SetAPen(RP, BluePen);
+      clBlack: SetAPen(RP, BlackPen);
+      else
+        RoutePen := SetColor(RP, ARoute.Color);
     end;
-  end;
+  end
+  else
+      RoutePen := SetColor(RP, ARoute.Color);
   ShowActivePt := (ARoute = CurRoute);
   Drawn := 0;
   LastWasDrawn := False;
@@ -576,23 +665,16 @@ end;
 
 // Route
 // Draw the Routes
-procedure TMapPanel.DrawRoutes(RP: PRastPort; DrawRange: TRect);
+procedure TMapPanel.DrawRoutes(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
 var
   i: Integer;
 begin
   // Draw Tracks
   for i := 0 to RouteList.Count - 1 do
   begin
-    DrawRoute(RP, DrawRange, RouteList[i]);
+    DrawRoute(RP, DrawRange, RouteList[i], UsePens);
   end;
-  //
-  if Assigned(CurRoute) and (RouteList.IndexOf(CurRoute) < 0) then
-    DrawRoute(RP, DrawRange, CurRoute);
 end;
-
-
-
-
 
 procedure TMapPanel.DrawGUI(RP: PRastPort; DrawRange: TRect);
 var

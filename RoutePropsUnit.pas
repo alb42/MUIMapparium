@@ -18,6 +18,7 @@ var
   CurOrder: TOrder = nil;
   FromPos, ToPos: TCoord;
 
+
 const
   YOURBASEURL = 'http://www.yournavigation.org/api/1.0/gosmore.php';
   OPENLSBASEURL = 'http://openls.geog.uni-heidelberg.de/route';
@@ -29,16 +30,17 @@ procedure CheckSearchButton;
 implementation
 
 uses
-  MUIMappariumlocale, classes, networkingunit, dom, xmlread;
+  MUIMappariumlocale, classes, networkingunit, dom, xmlread, versionunit,
+  ASL, MapPanelUnit;
 
 var
   RouteName, SaveButton, CloseButton, RouteCol, OrderListEntry, OrderList//,
   {WPLat, WPLon, CurPos}: PObject_;
   FromPS, FromBtn, FromEdit, FromLW, FromList, FromText: PObject_;
   ToPS, ToBtn, ToEdit, ToLW, ToList, ToText, DriveDevice, RouteType, CalcRoute, CalcRoutePanel: PObject_;
-  GetFromPos, GetToPos: PObject_;
+  GetFromPos, GetToPos, PopMenu, WM1: PObject_;
   SaveHook, DblOrderHook, DblFromHook, DblToHook, OpenHook, CalcRouteHook,
-  FromEnterHook, ToEnterHook, CloseHook, GetFromPosHook, GetToPosHook: THook;
+  FromEnterHook, ToEnterHook, CloseHook, GetFromPosHook, GetToPosHook, ExportHTMLHook: THook;
   FreeRoute: Boolean;
 
   DriveStrings: array[0..2] of string;
@@ -655,6 +657,100 @@ begin
   CheckSearchButton;
 end;
 
+const
+  HTMLTemplate = '<html>'#13#10 +
+  '<head><title>MUIMapparium Route: %ROUTENAME%</title></head>'#13#10 +
+  '<body>'#13#10 +
+  '<h2 align=center>%ROUTENAME%</h2>'#13#10 +
+  '<h5 align=center>%VERSION%</h5>'#13#10 +
+  '<img src="%PNG%"><br>'#13#10 +
+  '<table>'#13#10 +
+  '%ORDERS%'#13#10 +
+  '</table>'#13#10 +
+  '</body></html>';
+
+
+procedure SaveToHTML(AFileName: string);
+var
+  PngFile, HtmlFile: string;
+  SL: TStringList;
+  s, t: string;
+  i: Integer;
+  OldR, OldT, OldW: Boolean;
+begin
+  if not Assigned(CurRoute) then
+    Exit;
+  PngFile := ChangeFileExt(AFileName, '.png');
+  HtmlFile := ChangeFileExt(AFileName, '.html');
+  SL := TStringList.Create;
+  try
+    OldR := MUIMapPanel.ShowRoutes;
+    MUIMapPanel.ShowRoutes := False;
+    OldT := MUIMapPanel.ShowTracks;
+    MUIMapPanel.ShowTracks := False;
+    OldW := MUIMapPanel.ShowMarker;
+    MUIMapPanel.ShowMarker := False;
+    MUIMapPanel.SaveToFile(PngFile);
+    MUIMapPanel.ShowRoutes := OldR;
+    MUIMapPanel.ShowTracks := OldT;
+    MUIMapPanel.ShowMarker := OldW;
+
+    s := StringReplace(HTMLTemplate, '%VERSION%', Copy(VERSIONSTRING, 6, Length(VERSIONSTRING)), [rfReplaceAll]);
+    s := StringReplace(s, '%ROUTENAME%', CurRoute.Name, [rfReplaceAll]);
+    s := StringReplace(s, '%PNG%', ExtractFileName(PngFile), [rfReplaceAll]);
+    //
+    t := '';
+    for i := 0 to CurRoute.Orders.Count - 1 do
+    begin
+      t := t + '<tr><td>' + CurRoute.Orders[i].Order + '</td></tr>'#13#10;
+    end;
+    s := StringReplace(s, '%ORDERS%', t, [rfReplaceAll]);
+    SL.Text := s;
+    SL.SaveToFile(HTMLFile);
+  finally
+    SL.Free;
+  end;
+end;
+
+
+function ExportHTMLEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  fr: PFileRequester;
+  OldDrawer: string;
+  OldFileName: string;
+begin
+  Result := 0;
+{$R-}
+  OldFilename := stringreplace(Copy(CurRoute.Name, 1, 27) + '.html', '/', '', [rfReplaceAll]);
+  OldFilename := stringreplace(OldFilename, '\', '', [rfReplaceAll]);
+  OldFilename := stringreplace(OldFilename, ':', '', [rfReplaceAll]);
+  OldFilename := stringreplace(OldFilename, ';', '', [rfReplaceAll]);
+  OldFilename := stringreplace(OldFilename, ',', '', [rfReplaceAll]);
+  OldFilename := stringreplace(OldFilename, ' ', '_', [rfReplaceAll]);
+  OldDrawer := Prefs.LoadPath;
+  fr := AllocAslRequestTags(ASL_FileRequest, [
+    NativeUInt(ASLFR_TitleText),      NativeUInt(PChar('Choose name to save the route as HTML')),
+    NativeUInt(ASLFR_InitialFile),    NativeUInt(PChar(OldFileName)),
+    NativeUInt(ASLFR_InitialDrawer),  NativeUInt(PChar(OldDrawer)),
+    NativeUInt(ASLFR_InitialPattern), NativeUInt(PChar('#?.html')),
+    NativeUInt(ASLFR_DoSaveMode),     LTrue,
+    NativeUInt(ASLFR_DoPatterns),     LTrue,
+    TAG_END]);
+  if Assigned(fr) then
+  begin
+    //
+    if AslRequestTags(fr, [TAG_END]) then
+    begin
+      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
+      OldFilename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
+      {$else}
+      OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
+      {$endif}
+      SaveToHTML(OldFilename);
+    end;
+    FreeAslRequest(fr);
+  end;
+end;
 
 procedure CreateRoutePropsWin;
 var
@@ -674,6 +770,14 @@ begin
   for i := 0 to High(RouteStrings) do
     RouteTypes[i] := PChar(RouteStrings[i]);
   RouteTypes[High(RouteTypes)] := nil;
+
+  PopMenu := MH_Menustrip([
+    Child, AsTag(MH_Menu(GetLocString(MSG_ROUTEPOP_EXPORT), [                   // 'Export'
+      Child, AsTag(MH_MenuItem(WM1, [
+        MUIA_Menuitem_Title, AsTag(GetLocString(MSG_ROUTEPOP_EXPORTHTML)),     // 'Export as HTML'
+        TAG_DONE])),
+      TAG_DONE])),
+    TAG_DONE]);
 
   MH_SetHook(OpenHook, @FromOpenEvent, nil);
   RoutePropsWin := MH_Window([
@@ -765,6 +869,7 @@ begin
               MUIA_Frame, MUIV_Frame_ReadList,
               MUIA_Background, MUII_ReadListBack,
               MUIA_List_PoolThreshSize, 256,
+              MUIA_ContextMenu, AsTag(PopMenu),
               TAG_DONE])),
             TAG_DONE])),
       Child, AsTag(MH_HGroup([
@@ -789,6 +894,9 @@ begin
   //
   ConnectHookFunction(MUIA_Pressed, AsTag(False), GetFromPos, nil, @GetFromPosHook, @GetFromPosEvent);
   ConnectHookFunction(MUIA_Pressed, AsTag(False), GetToPos, nil, @GetToPosHook, @GetToPosEvent);
+  // Popupmenu
+  ConnectHookFunction(MUIA_Menuitem_Trigger, MUIV_EveryTime, WM1, nil, @ExportHTMLHook, @ExportHTMLEvent);
+
 
   // save the changes if any
   ConnectHookFunction(MUIA_Pressed, AsTag(False), SaveButton, nil, @SaveHook, @SaveEvent);
