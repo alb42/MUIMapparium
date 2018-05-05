@@ -31,8 +31,8 @@ echo "################# AROS ##########################" >>errmsg.log
 plat="i386-aros"
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
-fpc4aros.sh -B -Xs -FUunits/${plat} MUIMapparium.pas >>errmsg.log
-cp MUIMapparium Release.${plat}/MUIMapparium/
+fpc4aros.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
+chmod a+rwx Release.${plat}/MUIMapparium/MUIMapparium
 copyit
 
 # AROS ARM
@@ -43,8 +43,8 @@ echo "################# ARM AROS ##########################" >>errmsg.log
 plat="arm-aros"
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
-fpc4arosarm.sh -B -Xs -FUunits/${plat} MUIMapparium.pas >>errmsg.log
-cp MUIMapparium Release.${plat}/MUIMapparium/
+fpc4arosarm.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
+chmod a+rwx Release.${plat}/MUIMapparium/MUIMapparium
 copyit
 
 # AROS x64
@@ -55,8 +55,8 @@ echo "################# AROS64 ##########################" >>errmsg.log
 plat="x86_64-aros"
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
-fpc4aros64.sh -B -Xs -FUunits/${plat} MUIMapparium.pas >>errmsg.log
-cp MUIMapparium Release.${plat}/MUIMapparium/
+fpc4aros64.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
+chmod a+rwx Release.${plat}/MUIMapparium/MUIMapparium
 copyit
 
 # Amiga
@@ -67,15 +67,15 @@ echo "################# Amiga #########################" >>errmsg.log
 plat="m68k-amiga"
 mkdir -p units/m68k-amiga
 echo "  Compile ${plat}"
-fpc4amiga.sh -B -Xs -FUunits/${plat} MUIMapparium.pas >>errmsg.log
-m68k-amigaos-strip --strip-all MUIMapparium
-cp MUIMapparium Release.${plat}/MUIMapparium/MUIMapparium_NoFPU
+fpc4amiga.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium_NoFPU MUIMapparium.pas >>errmsg.log
+m68k-amigaos-strip --strip-all Release.${plat}/MUIMapparium/MUIMapparium_NoFPU
+chmod a+rwx Release.${plat}/MUIMapparium/MUIMapparium_NoFPU
 #noFPU version
 mkdir -p units/m68k-amiga-fpu
 echo "  Compile ${plat}-fpu"
-fpc4amigafpu.sh -B -Xs -FUunits/m68k-amiga-fpu MUIMapparium.pas >>errmsg.log
-m68k-amigaos-strip --strip-all MUIMapparium
-cp MUIMapparium Release.${plat}/MUIMapparium/MUIMapparium
+fpc4amigafpu.sh -B -Xs -FUunits/m68k-amiga-fpu -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
+m68k-amigaos-strip --strip-all Release.${plat}/MUIMapparium/MUIMapparium
+chmod a+rwx Release.${plat}/MUIMapparium/MUIMapparium
 # copy rest
 copyit
 
@@ -87,10 +87,9 @@ echo "################# MorphOS #######################" >>errmsg.log
 plat="powerpc-morphos"
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
-fpc4mos.sh -B -Xs -FUunits/${plat} MUIMapparium.pas >>errmsg.log
-powerpc-morphos-strip --strip-all MUIMapparium
-chmod a+x MUIMapparium
-cp MUIMapparium Release.${plat}/MUIMapparium/
+fpc4mos.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
+powerpc-morphos-strip --strip-all Release.${plat}/MUIMapparium/MUIMapparium
+chmod a+rwx Release.${plat}/MUIMapparium/MUIMapparium
 copyit
 
 # Amiga OS4
@@ -101,9 +100,9 @@ echo "################# AmigaOS4 ######################" >>errmsg.log
 plat="powerpc-amiga"
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
-fpc4os4.sh -B -Xs -FUunits/${plat} MUIMapparium.pas >>errmsg.log
-powerpc-amiga-strip --strip-all MUIMapparium
-cp MUIMapparium Release.${plat}/MUIMapparium/
+fpc4os4.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
+powerpc-amiga-strip --strip-all Release.${plat}/MUIMapparium/MUIMapparium
+chmod a+rwx Release.${plat}/MUIMapparium/MUIMapparium
 copyit
 
 echo "############### Finished"

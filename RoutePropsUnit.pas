@@ -660,7 +660,7 @@ end;
 const
   HTMLTemplate = '<html>'#13#10 +
   '<head><title>MUIMapparium Route: %ROUTENAME%</title></head>'#13#10 +
-  '<body>'#13#10 +
+  '<body bgcolor="#FFFFFF">'#13#10 +
   '<h2 align=center>%ROUTENAME%</h2>'#13#10 +
   '<h5 align=center>%VERSION%</h5>'#13#10 +
   '<img src="%PNG%"><br>'#13#10 +

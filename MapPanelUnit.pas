@@ -271,18 +271,19 @@ begin
     //
     PTMid.X := DrawRect.Width div 2;
     PTMid.Y := DrawRect.Height div 2;
+    // get the Rastport of the image
+    RP := nil;
+    if Assigned(MUIObject) then
+      RP := Obj_Rp(MUIObject);
+    if not Assigned(RP) then
+      Exit;
     // Make a temporary Rastport to draw to
     LocalRP := CreateRastPort;
     li := NewLayerInfo(); // Layerinfo we also need
     // Bitmap and layer for the temp rastport
-    LocalRP^.Bitmap := AllocBitMap(DrawRect.Width, DrawRect.Height, 24, BMF_MINPLANES, nil);
+    LocalRP^.Bitmap := AllocBitMap(DrawRect.Width, DrawRect.Height, rp^.Bitmap^.Depth, BMF_MINPLANES or BMF_DISPLAYABLE, RP^.Bitmap);
     LocalRP^.Layer := CreateUpFrontLayer(li, LocalRP^.Bitmap, 0, 0, DrawRect.Width - 1, DrawRect.Height - 1, LAYERSIMPLE, nil);
-    if Assigned(MUIObject) then
-    begin
-      RP := Obj_Rp(MUIObject);
-      if Assigned(RP) then
-        SetFont(LocalRP, RP^.Font);
-    end;
+    SetFont(LocalRP, RP^.Font);
     // initialize to background color
     SetAPen(LocalRP, 0);
     SetBPen(LocalRP, 0);
