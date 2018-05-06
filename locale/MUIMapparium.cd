@@ -217,6 +217,16 @@ Position Data
 MSG_PLOT_DATA (20504//)
 Curve Data
 ;
+MSG_PLOT_MARKER (20505//)
+Set Marker
+;
+MSG_PLOT_ASCII (20506//)
+Export as ASCII
+;
+MSG_PLOT_PNG (20507//)
+Export as PNG
+;
+;
 ; #### Route properties
 MSG_ROUTEPROP_TITLE (20600//)
 Route Properties
@@ -249,7 +259,7 @@ MSG_ROUTEPROP_FOOT (20609//)
 Foot
 ;
 MSG_ROUTEPROP_FASTEST (20610//)
-FASTEST
+Fastest
 ;
 MSG_ROUTEPROP_SHORTEST (20611//)
 Shortest

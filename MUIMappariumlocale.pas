@@ -213,6 +213,15 @@ const
   MSG_PLOT_DATA = 20504 ;
   MSG_PLOT_DATA_STR = 'Curve Data'#0;
 
+  MSG_PLOT_MARKER = 20505 ;
+  MSG_PLOT_MARKER_STR = 'Set Marker'#0;
+
+  MSG_PLOT_ASCII = 20506 ;
+  MSG_PLOT_ASCII_STR = 'Export as ASCII'#0;
+
+  MSG_PLOT_PNG = 20507 ;
+  MSG_PLOT_PNG_STR = 'Export as PNG'#0;
+
   MSG_ROUTEPROP_TITLE = 20600 ;
   MSG_ROUTEPROP_TITLE_STR = 'Route Properties'#0;
 
@@ -244,7 +253,7 @@ const
   MSG_ROUTEPROP_FOOT_STR = 'Foot'#0;
 
   MSG_ROUTEPROP_FASTEST = 20610 ;
-  MSG_ROUTEPROP_FASTEST_STR = 'FASTEST'#0;
+  MSG_ROUTEPROP_FASTEST_STR = 'Fastest'#0;
 
   MSG_ROUTEPROP_SHORTEST = 20611 ;
   MSG_ROUTEPROP_SHORTEST_STR = 'Shortest'#0;
@@ -409,7 +418,7 @@ type
      str: string;
   end;
 
-  TAppStringArray = array[0..125] of TAppString;
+  TAppStringArray = array[0..128] of TAppString;
 
 const
   AppStrings: TAppStringArray = (
@@ -479,6 +488,9 @@ const
     (id: MSG_PLOT_ZOOM ; str: MSG_PLOT_ZOOM_STR ),
     (id: MSG_PLOT_POSITION ; str: MSG_PLOT_POSITION_STR ),
     (id: MSG_PLOT_DATA ; str: MSG_PLOT_DATA_STR ),
+    (id: MSG_PLOT_MARKER ; str: MSG_PLOT_MARKER_STR ),
+    (id: MSG_PLOT_ASCII ; str: MSG_PLOT_ASCII_STR ),
+    (id: MSG_PLOT_PNG ; str: MSG_PLOT_PNG_STR ),
     (id: MSG_ROUTEPROP_TITLE ; str: MSG_ROUTEPROP_TITLE_STR ),
     (id: MSG_ROUTEPROP_NAME ; str: MSG_ROUTEPROP_NAME_STR ),
     (id: MSG_ROUTEPROP_NEW_NAME ; str: MSG_ROUTEPROP_NEW_NAME_STR ),

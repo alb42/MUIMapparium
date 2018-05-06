@@ -287,6 +287,19 @@ MSG_PLOT_DATA
 Kurvendaten
 ; Curve Data
 ;
+MSG_PLOT_MARKER
+Setze Marker
+; Set Marker
+;
+MSG_PLOT_ASCII
+Exportiere als ASCII
+; Export as ASCII
+;
+MSG_PLOT_PNG
+Exportiere als PNG
+; Export as PNG
+;
+;
 ; #### Route properties
 MSG_ROUTEPROP_TITLE
 Routeneigenschaften
@@ -330,7 +343,7 @@ Fuß
 ;
 MSG_ROUTEPROP_FASTEST
 Schnellste
-; FASTEST
+; Fastest
 ;
 MSG_ROUTEPROP_SHORTEST
 Kürzeste

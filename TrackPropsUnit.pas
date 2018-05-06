@@ -3,7 +3,7 @@ unit TrackPropsUnit;
 interface
 
 uses
-  SysUtils, exec, utility, intuition, agraphics, locale, mui, muihelper,
+  SysUtils, Classes, exec, utility, intuition, agraphics, locale, mui, muihelper,
   prefsunit, osmhelper, MUIWrap, imagesunit, positionunit, waypointunit,
   MUIPlotBoxUnit;
 
@@ -45,7 +45,7 @@ var
   OnTrackChanged: TProcedure = nil;
   OnTrackRedraw: TProcedure = nil;
   PlotPanel: TPlotPanel;
-  ChooseXAxis, ChooseYLeft, ChooseYRight, DrawButton, TrackCol: PObject_;
+  ChooseXAxis, ChooseYLeft, ChooseYRight, DrawButton, HTMLButton, TrackCol: PObject_;
   IsISO: Boolean;
   LengthUnits: array[0..1] of string;
   LengthFactors: array[0..1] of Single;
@@ -59,11 +59,11 @@ function DrawButtonEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 implementation
 
 uses
-  MUIMappariumLocale;
+  ASL, MUIMappariumLocale, MapPanelUnit, versionunit, Math;
 
 var
   TrackName, SaveButton, CloseButton: PObject_;
-  SaveHook, DrawButtonHook: THook;
+  SaveHook, DrawButtonHook, HTMLButtonHook: THook;
 
 procedure GetLengthUnit;
 begin
@@ -79,7 +79,7 @@ begin
     LengthUnits[0] := 'ft';
     LengthFactors[0] := 3.28084;
     LengthUnits[1] := 'ml';
-    LengthFactors[1] := 1.609344;
+    LengthFactors[1] := 0.621371;
   end;
 end;
 
@@ -183,12 +183,12 @@ begin
           AxUnit := 'h';
         end;
         XAXIS_DIST_METER: begin
-          Result[i] := TC.Data[i].Pos;            // Distance [m]
+          Result[i] := TC.Data[i].Pos * LengthFactors[0];            // Distance [m]
           Name := GetLocString(MSG_TRACKPROP_DISTANCE);
           AxUnit := LengthUnits[0];
         end;
         XAXIS_DIST_KM: begin
-          Result[i] := TC.Data[i].Pos / 1000;     // Distance [km]
+          Result[i] := (TC.Data[i].Pos / 1000) * LengthFactors[1];     // Distance [km]
           Name := GetLocString(MSG_TRACKPROP_DISTANCE);
           AxUnit := LengthUnits[1];
         end
@@ -219,26 +219,30 @@ begin
       case Idx of
         YAXIS_HEIGHT_METER:
         begin
-          Result[i] := (TC.Data[i].Height) * LengthFactors[0];         // Height [m]
+          Result[i] := TC.Data[i].Height * LengthFactors[0];         // Height [m]
         end;
         YAXIS_SLOPE_METER : begin
           if i > 0 then
           begin
-            Result[i] := (TC.Data[i].Height - TC.Data[i - 1].Height) * LengthFactors[0];
+            Result[i] := (TC.Data[i].Height - TC.Data[i - 1].Height) * LengthFactors[0]; // Slope [m]
           end;
         end;
-        YAXIS_SPEED_METERS: begin
+        YAXIS_SPEED_METERS: begin                                     // speed m/s
           if i > 0 then
           begin
             if (TC.Data[i].time - TC.Data[i - 1].time <> 0) then
-              Result[i] := ((TC.Data[i].Pos - TC.Data[i - 1].Pos) * LengthFactors[0]) / (TC.Data[i].time - TC.Data[i - 1].time);
+              Result[i] := ((TC.Data[i].Pos - TC.Data[i - 1].Pos) * LengthFactors[0]) / (TC.Data[i].time - TC.Data[i - 1].time)
+            else
+              Result[i] := 0;
           end;
         end;
-        YAXIS_SPEED_KMS: begin
+        YAXIS_SPEED_KMS: begin                                       // Speed km/h
           if i > 0 then
           begin
             if ((TC.Data[i].time - TC.Data[i - 1].time) / 60 / 60) <> 0 then
-              Result[i] := (((TC.Data[i].Pos - TC.Data[i - 1].Pos) / 1000) * LengthFactors[1]) / ((TC.Data[i].time - TC.Data[i - 1].time) / 60 / 60);
+              Result[i] := (((TC.Data[i].Pos - TC.Data[i - 1].Pos) / 1000) * LengthFactors[1]) / ((TC.Data[i].time - TC.Data[i - 1].time) / 60 / 60)
+            else
+              Result[i] := 0;
           end;
         end;
         else
@@ -323,6 +327,185 @@ begin
   end;
 end;
 
+const
+  HTMLTemplate = '<html>'#13#10 +
+  '<head><title>MUIMapparium Track: %TRACKNAME%</title></head>'#13#10 +
+  '<body bgcolor="#FFFFFF">'#13#10 +
+  '<h2 align=center>%TRACKNAME%</h2>'#13#10 +
+  '<h5 align=center>%VERSION%</h5>'#13#10 +
+  '%DESC%<BR>'#13#10 +
+  '<table>'#13#10 +
+  '<tr><td>Time</td><td>%DATE%</td></tr>'#13#10 +
+  '<tr><td>Distance</td><td>%LENGTH%</td></tr>'#13#10 +
+  '<tr><td>Track Time</td><td>%TIME%</td></tr>'#13#10 +
+  '<tr><td>Move Time</td><td>%MTIME%</td></tr>'#13#10 +
+  '<tr><td>Average Speed</td><td>%ASPEED%</td></tr>'#13#10 +
+  '<tr><td>Average Moving Speed</td><td>%MSPEED%</td></tr>'#13#10 +
+  '<tr><td>Max Speed</td><td>%MAXSPEED%</td></tr>'#13#10 +
+  '<tr><td>Height Diff</td><td>%HEIGHT%</td></tr>'#13#10 +
+  '</table><br>'#13#10 +
+  '<table><tr><td><img src="%PNG1%"></td></tr><tr><td align=center>Map of the track</td><br>'#13#10 +
+  '<table><tr><td><img src="%PNG2%"></td></tr><tr><td align=center>Plot: %X% - %Y%</td><br>'#13#10 +
+  '</body></html>';
+
+
+procedure SaveToHTML(AFileName: string);
+var
+  PngFile1, PngFile2, HtmlFile: string;
+  SL: TStringList;
+  s, l: string;
+  OldR, OldT, OldW: Boolean;
+  M, H, t, i: Integer;
+  StopTime: Double;
+  Len, MaxSpeed, MinHeight, MaxHeight: Double;
+begin
+  if not Assigned(CurTrack) then
+    Exit;
+  PngFile1 := ChangeFileExt(AFileName, '') + '_map.png';
+  PngFile2 := ChangeFileExt(AFileName, '') + '_plot.png';
+  HtmlFile := ChangeFileExt(AFileName, '.html');
+  SL := TStringList.Create;
+  try
+    OldR := MUIMapPanel.ShowRoutes;
+    MUIMapPanel.ShowRoutes := False;
+    OldT := MUIMapPanel.ShowTracks;
+    MUIMapPanel.ShowTracks := False;
+    OldW := MUIMapPanel.ShowMarker;
+    MUIMapPanel.ShowMarker := False;
+    MUIMapPanel.SaveToFile(PngFile1);
+    MUIMapPanel.ShowRoutes := OldR;
+    MUIMapPanel.ShowTracks := OldT;
+    MUIMapPanel.ShowMarker := OldW;
+    //
+    PlotPanel.ExportPNG(PngFile2);
+    //
+    s := StringReplace(HTMLTemplate, '%VERSION%', Copy(VERSIONSTRING, 6, Length(VERSIONSTRING)), [rfReplaceAll]);
+    s := StringReplace(s, '%DESC%', CurTrack.Desc, [rfReplaceAll]);
+    s := StringReplace(s, '%TRACKNAME%', CurTrack.Name, [rfReplaceAll]);
+    s := StringReplace(s, '%PNG1%', ExtractFileName(PngFile1), [rfReplaceAll]);
+    s := StringReplace(s, '%PNG2%', ExtractFileName(PngFile2), [rfReplaceAll]);
+
+    i := Min(High(XAxisStrings), Max(0, MH_Get(ChooseXAxis, MUIA_Cycle_Active)));
+    s := StringReplace(s, '%X%', XAxisStrings[i], [rfReplaceAll]);
+
+    i := Min(High(YAxisStrings), Max(0, MH_Get(ChooseYLeft, MUIA_Cycle_Active)));
+    l := '<font color=#0000FF>' + YAxisStrings[i] + '</font>';
+    i := Min(High(YAxisStrings), Max(0, MH_Get(ChooseYRight, MUIA_Cycle_Active)));
+    l := l + ', <font color=#FF0000>' + YAxisStrings[i] + '</font>';
+    s := StringReplace(s, '%Y%', l, [rfReplaceAll]);
+
+    // Time
+    t := Round(TC.Data[High(TC.Data)].Time);
+    M := t div 60;
+    t := t mod 60;
+    H := M div 60;
+    M := M mod 60;
+    s := StringReplace(s, '%TIME%', Format('%2.2d:%2.2d:%2.2d',[H,M,T]), [rfReplaceAll]);
+    // Length
+    Len := (TC.Data[High(TC.Data)].Pos / 1000) * LengthFactors[1];
+    s := StringReplace(s, '%LENGTH%', FloatToStrF(Len, ffFixed, 8,2) + ' ' + LengthUnits[1], [rfReplaceAll]);
+    // Average Speed
+    if TC.Data[High(TC.Data)].Time > 0 then
+      Len := Len / (TC.Data[High(TC.Data)].Time / 3600)
+    else
+      Len := 0;
+    s := StringReplace(s, '%ASPEED%', FloatToStrF(Len, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h', [rfReplaceAll]);
+    MaxSpeed := 0;
+    StopTime := 0;
+    for i := 0 to High(TC.Data) do
+    begin
+      if (i > 0) and ((TC.Data[i].time - TC.Data[i - 1].time) > 0) then
+      begin
+        Len := (((TC.Data[i].Pos - TC.Data[i - 1].Pos) / 1000) * LengthFactors[1]) / ((TC.Data[i].time - TC.Data[i - 1].time) / 60 / 60);
+        if Len > MaxSpeed then
+          MaxSpeed := Len;
+        // Less than 3 hm/h -> stopped
+        if Len < 3 then
+          StopTime := StopTime + (TC.Data[i].time - TC.Data[i - 1].time);
+      end;
+      if i = 0 then
+      begin
+        MinHeight := TC.Data[i].Height;
+        MaxHeight := TC.Data[i].Height;
+      end
+      else
+      begin
+        if TC.Data[i].Height < MinHeight then
+          MinHeight := TC.Data[i].Height;
+        if TC.Data[i].Height > MaxHeight then
+          MaxHeight := TC.Data[i].Height;
+      end;
+    end;
+    s := StringReplace(s, '%MAXSPEED%', FloatToStrF(MaxSpeed, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h', [rfReplaceAll]);
+    l := FloatToStrF((MaxHeight - MinHeight) * LengthFactors[0] , ffFixed, 8,2) + ' ' + LengthUnits[0] + ' ('+FloatToStrF(MinHeight * LengthFactors[0] , ffFixed, 8,2) + ' ' + LengthUnits[0] + ' - '+FloatToStrF(MaxHeight * LengthFactors[0] , ffFixed, 8,2) + ' ' + LengthUnits[0] + ')';
+    s := StringReplace(s, '%HEIGHT%', l, [rfReplaceAll]);
+    //
+    // Average Speed without stopping time
+    Len := (TC.Data[High(TC.Data)].Pos / 1000) * LengthFactors[1];
+    if TC.Data[High(TC.Data)].Time - StopTime > 0 then
+      Len := Len / ((TC.Data[High(TC.Data)].Time - StopTime) / 3600)
+    else
+      Len := 0;
+    s := StringReplace(s, '%MSPEED%', FloatToStrF(Len, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h', [rfReplaceAll]);
+    t := Round(TC.Data[High(TC.Data)].Time - StopTime);
+    M := t div 60;
+    t := t mod 60;
+    H := M div 60;
+    M := M mod 60;
+    s := StringReplace(s, '%MTIME%', Format('%2.2d:%2.2d:%2.2d',[H,M,T]), [rfReplaceAll]);
+    //
+    l := '-';
+    if Length(CurTrack.Pts) > 0 then
+      l:= FormatDateTime('yyyy-mm-dd hh:nn:ss',CurTrack.Pts[0].Time);
+    s := StringReplace(s, '%DATE%', l, [rfReplaceAll]);
+    //
+    SL.Text := s;
+    SL.SaveToFile(HTMLFile);
+  finally
+    SL.Free;
+  end;
+end;
+
+
+function HTMLButtonEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  fr: PFileRequester;
+  OldDrawer: string;
+  OldFileName: string;
+begin
+  Result := 0;
+{$R-}
+  OldFilename := stringreplace(Copy(CurTrack.Name, 1, 27) + '.html', '/', '', [rfReplaceAll]);
+  OldFilename := stringreplace(OldFilename, '\', '', [rfReplaceAll]);
+  OldFilename := stringreplace(OldFilename, ':', '', [rfReplaceAll]);
+  OldFilename := stringreplace(OldFilename, ';', '', [rfReplaceAll]);
+  OldFilename := stringreplace(OldFilename, ',', '', [rfReplaceAll]);
+  OldFilename := stringreplace(OldFilename, ' ', '_', [rfReplaceAll]);
+  OldDrawer := Prefs.LoadPath;
+  fr := AllocAslRequestTags(ASL_FileRequest, [
+    NativeUInt(ASLFR_TitleText),      NativeUInt(PChar('Choose name to save the route as HTML')),
+    NativeUInt(ASLFR_InitialFile),    NativeUInt(PChar(OldFileName)),
+    NativeUInt(ASLFR_InitialDrawer),  NativeUInt(PChar(OldDrawer)),
+    NativeUInt(ASLFR_InitialPattern), NativeUInt(PChar('#?.html')),
+    NativeUInt(ASLFR_DoSaveMode),     LTrue,
+    NativeUInt(ASLFR_DoPatterns),     LTrue,
+    TAG_END]);
+  if Assigned(fr) then
+  begin
+    //
+    if AslRequestTags(fr, [TAG_END]) then
+    begin
+      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
+      OldFilename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
+      {$else}
+      OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
+      {$endif}
+      SaveToHTML(OldFilename);
+    end;
+    FreeAslRequest(fr);
+  end;
+end;
+
 procedure CheckLocale;
 var
   Loc: PLocale;
@@ -367,6 +550,9 @@ begin
   Menutitle_Zoom := GetLocString(MSG_PLOT_ZOOM);
   Menutitle_Position := GetLocString(MSG_PLOT_POSITION);
   Menutitle_Data := GetLocString(MSG_PLOT_DATA);
+  Menutitle_Marker := GetLocString(MSG_PLOT_MARKER);
+  Menutitle_ASCII := GetLocString(MSG_PLOT_ASCII);
+  Menutitle_PNG := GetLocString(MSG_PLOT_PNG);
   //
   HintText_XAxis1 := GetLocString(MSG_TRACKPROP_XAXIS);
   HintText_XAxis2 := GetLocString(MSG_TRACKPROP_XAXIS);
@@ -431,6 +617,7 @@ begin
           TAG_DONE])),
         Child, AsTag(MH_Cycle(ChooseYLeft, [
           MUIA_Cycle_Entries, AsTag(@(YAxisTitles[0])),
+          MUIA_Cycle_Active, 1,
           TAG_DONE])),
         Child, AsTag(MH_HSpace(0)),
         Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_RIGHTAXIS)))),
@@ -439,9 +626,11 @@ begin
           TAG_DONE])),
         Child, AsTag(MH_Cycle(ChooseYRight, [
           MUIA_Cycle_Entries, AsTag(@(YAxisTitles[0])),
+          MUIA_Cycle_Active, 4,
           TAG_DONE])),
         Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Button(DrawButton, GetLocString(MSG_TRACKPROP_DRAW))),
+        Child, AsTag(MH_Button(DrawButton, GetLocString(MSG_TRACKPROP_DRAW))), // Draw
+        Child, AsTag(MH_Button(HTMLButton, GetLocString(MSG_ROUTEPOP_EXPORT))), // Export
         TAG_END])),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
@@ -454,6 +643,7 @@ begin
   // save the changes if any
   ConnectHookFunction(MUIA_Pressed, AsTag(False), SaveButton, nil, @SaveHook, @SaveEvent);
   ConnectHookFunction(MUIA_Pressed, AsTag(False), DrawButton, nil, @DrawButtonHook, @DrawButtonEvent);
+  ConnectHookFunction(MUIA_Pressed, AsTag(False), HTMLButton, nil, @HTMLButtonHook, @HTMLButtonEvent);
 
   ConnectHookFunction(MUIA_Pressed, AsTag(False), CloseButton, nil, @CloseHook, @CloseEvent);
   ConnectHookFunction(MUIA_Window_CloseRequest, AsTag(True), TrackPropsWin, nil, @CloseHook, @CloseEvent);

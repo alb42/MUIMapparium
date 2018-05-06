@@ -40,6 +40,7 @@ type
   protected
     procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
     procedure DrawMarker(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
+    procedure DrawTrack(TC: TTrack;RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
     procedure DrawTracks(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
     procedure DrawRoute(RP: PRastPort; DrawRange: TRect; ARoute: TRoute; UsePens: Boolean = True);
     procedure DrawRoutes(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
@@ -296,7 +297,10 @@ begin
     RedrawImage := False;
     // Draw Tracks
     if FShowTracks then
-      DrawTracks(LocalRP, DrawRect, False);
+      DrawTracks(LocalRP, DrawRect, False)
+    else
+      if Assigned(CurTrack) and (TrackList.IndexOf(CurTrack) >= 0) then
+        DrawTrack(CurTrack, LocalRP, DrawRect, False);
     // Draw Routes
     if FShowRoutes then
       DrawRoutes(LocalRP, DrawRect, False);
@@ -499,13 +503,12 @@ begin
   FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
 end;
 
-// Draw the tracks
-procedure TMapPanel.DrawTracks(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
+procedure TMapPanel.DrawTrack(TC: TTrack; RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
 const
   AREA_BYTES = 4000;
 var
   PT: Classes.TPoint;
-  i, j: Integer;
+  j: Integer;
   LastWasDrawn: Boolean;
   TrackPtSize: Integer;
   Drawn: Integer;
@@ -517,6 +520,70 @@ var
   TrackPen: LongInt;
 begin
   TrackPtSize := Max(2, CurZoom - 10);
+  TrackPen := -1;
+  if UsePens then
+  begin
+    case TC.Color of
+      clRed: SetAPen(RP, RedPen);
+      clGreen: SetAPen(RP, GreenPen);
+      clBlue: SetAPen(RP, BluePen);
+      clBlack: SetAPen(RP, BlackPen);
+      else
+        TrackPen := SetColor(RP, TC.Color);
+    end;
+  end
+  else
+    TrackPen := SetColor(RP, TC.Color);
+  ShowActivePt := (TC = CurTrack);
+  Drawn := 0;
+  LastWasDrawn := False;
+  TC.CalcCoords(CurZoom);
+  for j := 0 to High(TC.Pts) do
+  begin
+    if (TC.Coords[j].Tile.X < 0) and (TC.Coords[j].Tile.Y < 0) then
+      Continue;
+    Pt := CoordToPixel(TC.Coords[j]);
+    if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
+    begin
+      Inc(Drawn);
+      RectFill(RP, Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
+      if not LastWasDrawn then
+        GfxMove(RP, PT.X, PT.Y)
+      else
+        Draw(RP, Pt.X, PT.Y);
+      LastWasDrawn := True;
+    end
+    else
+      LastWasDrawn := False;
+    UnSetColor(TrackPen);
+  end;
+  if ShowActivePt and (ActiveTrackPt >=0) and (ActiveTrackPt <= High(TC.Pts)) then
+  begin
+    SetAPen(Rp, RedPen);
+    Pt := PosToPixel(TC.Pts[ActiveTrackPt].Position);
+    if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
+    begin
+      Points[0].X := Pt.X;
+      Points[0].Y := Pt.Y;
+      Points[1].X := Points[0].X - 5;
+      Points[1].Y := Points[0].Y - 20;
+      Points[2].X := Points[0].X + 5;
+      Points[2].Y := Points[0].Y - 20;
+      Points[3].X := Pt.X;
+      Points[3].Y := Pt.Y;
+      GfxMove(Rp, Pt.X, Pt.Y);
+      PolyDraw(RP, 4, @Points[0]);
+    end;
+  end;
+  if TrackPen > 0 then
+    UnSetColor(TrackPen);
+end;
+
+// Draw the tracks
+procedure TMapPanel.DrawTracks(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
+var
+  i: Integer;
+begin
   SetAPen(RP, RedPen);
   SetDrMd(RP, JAM1);
   // Draw Tracks
@@ -524,61 +591,7 @@ begin
   begin
     if not TrackList[i].Visible then
       Continue;
-    TrackPen := -1;
-    if UsePens then
-    begin
-      case TrackList[i].Color of
-        clRed: SetAPen(RP, RedPen);
-        clGreen: SetAPen(RP, GreenPen);
-        clBlue: SetAPen(RP, BluePen);
-        clBlack: SetAPen(RP, BlackPen);
-        else
-          TrackPen := SetColor(RP, TrackList[i].Color);
-      end;
-    end
-    else
-      TrackPen := SetColor(RP, TrackList[i].Color);
-    ShowActivePt := (TrackList[i] = CurTrack);
-    Drawn := 0;
-    LastWasDrawn := False;
-    TrackList[i].CalcCoords(CurZoom);
-    for j := 0 to High(TrackList[i].Pts) do
-    begin
-      if (TrackList[i].Coords[j].Tile.X < 0) and (TrackList[i].Coords[j].Tile.Y < 0) then
-        Continue;
-      Pt := CoordToPixel(TrackList[i].Coords[j]);
-      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
-      begin
-        Inc(Drawn);
-        RectFill(RP, Pt.X - TrackPtSize, Pt.Y - TrackPtSize, Pt.X + TrackPtSize, Pt.Y + TrackPtSize);
-        if not LastWasDrawn then
-          GfxMove(RP, PT.X, PT.Y)
-        else
-          Draw(RP, Pt.X, PT.Y);
-        LastWasDrawn := True;
-      end
-      else
-        LastWasDrawn := False;
-      UnSetColor(TrackPen);
-    end;
-    if ShowActivePt and (ActiveTrackPt >=0) and (ActiveTrackPt <= High(TrackList[i].Pts)) then
-    begin
-      SetAPen(Rp, RedPen);
-      Pt := PosToPixel(TrackList[i].Pts[ActiveTrackPt].Position);
-      if (Pt.X >= -100) and (Pt.Y >= -100) and (Pt.X <= DrawRange.Width + 100) and (Pt.Y <= DrawRange.Height + 100) then
-      begin
-        Points[0].X := Pt.X;
-        Points[0].Y := Pt.Y;
-        Points[1].X := Points[0].X - 5;
-        Points[1].Y := Points[0].Y - 20;
-        Points[2].X := Points[0].X + 5;
-        Points[2].Y := Points[0].Y - 20;
-        Points[3].X := Pt.X;
-        Points[3].Y := Pt.Y;
-        GfxMove(Rp, Pt.X, Pt.Y);
-        PolyDraw(RP, 4, @Points[0]);
-      end;
-    end;
+    DrawTrack(TrackList[i], RP, DrawRange, UsePens);
   end;
   //UnSetColor(Pen);
 end;
