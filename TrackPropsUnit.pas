@@ -644,6 +644,7 @@ begin
         TAG_END])),
       Child, AsTag(PlotPanel.MUIObject),
       Child, AsTag(MH_HGroup([
+        MUIA_Group_Rows, 2,
         Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_XAXIS)))),
         Child, AsTag(MH_Cycle(ChooseXAxis, [
           MUIA_Cycle_Entries, AsTag(@(XAxisTitles[0])),
@@ -658,6 +659,13 @@ begin
           MUIA_Cycle_Active, 1,
           TAG_DONE])),
         Child, AsTag(MH_HSpace(0)),
+        Child, AsTag(MH_Button(DrawButton, GetLocString(MSG_TRACKPROP_DRAW))), // Draw
+        Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_SMOOTHING)))),
+        Child, AsTag(MH_Cycle(ChooseSmooth, [
+          MUIA_Cycle_Entries, AsTag(@(SmoothTitles[0])),
+          MUIA_Cycle_Active, 0,
+          TAG_DONE])),
+        Child, AsTag(MH_HSpace(0)),
         Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_RIGHTAXIS)))),
         Child, AsTag(MH_Image([
           MUIA_Image_Spec, AsTag('2:ffffffff,00000000,00000000'),
@@ -667,18 +675,9 @@ begin
           MUIA_Cycle_Active, 4,
           TAG_DONE])),
         Child, AsTag(MH_HSpace(0)),
-        Child, AsTag(MH_Button(DrawButton, GetLocString(MSG_TRACKPROP_DRAW))), // Draw
         Child, AsTag(MH_Button(HTMLButton, GetLocString(MSG_ROUTEPOP_EXPORT))), // Export
         TAG_END])),
-      Child, AsTag(MH_HGroup([
-        Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_SMOOTHING)))),
-        Child, AsTag(MH_Cycle(ChooseSmooth, [
-          MUIA_FixWidthTxt, AsTag('XXXXXXX'),
-          MUIA_Cycle_Entries, AsTag(@(SmoothTitles[0])),
-          MUIA_Cycle_Active, 0,
-          TAG_DONE])),
-        Child, AsTag(MH_HSpace(0)),
-        TAG_END])),
+
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,
         Child, AsTag(MH_Button(SaveButton, GetLocString(MSG_GENERAL_SAVE))), // 'Save'
