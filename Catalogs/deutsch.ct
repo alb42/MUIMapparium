@@ -267,6 +267,10 @@ MSG_TRACKPROP_SPEED
 Geschwindigkeit
 ; Speed
 ;
+MSG_TRACKPROP_SMOOTHING
+Glätten
+; Smoothing
+;
 MSG_PLOT_TITLE
 Kurve
 ; Plot

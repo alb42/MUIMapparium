@@ -27,6 +27,7 @@ var
     ('None'#0, 'Height [m]'#0, 'Slope [m]', 'Speed [m/s]', 'Speed [km/h]');
   XAxisTitles: array of PChar;
   YAxisTitles: array of PChar;
+  SmoothTitles: array[0..20] of PChar = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20');
 type
   TTrackPoint = record
     Time: Double;
@@ -45,7 +46,8 @@ var
   OnTrackChanged: TProcedure = nil;
   OnTrackRedraw: TProcedure = nil;
   PlotPanel: TPlotPanel;
-  ChooseXAxis, ChooseYLeft, ChooseYRight, DrawButton, HTMLButton, TrackCol: PObject_;
+  ChooseXAxis, ChooseYLeft, ChooseYRight, DrawButton, HTMLButton,
+  TrackCol, ChooseSmooth: PObject_;
   IsISO: Boolean;
   LengthUnits: array[0..1] of string;
   LengthFactors: array[0..1] of Single;
@@ -99,6 +101,8 @@ begin
     MUIRGB.Green := NewTrack.Color shl 16;
     MUIRGB.Blue := NewTrack.Color shl 24;
     MH_Set(TrackCol, MUIA_Pendisplay_RGBcolor, AsTag(@MUIRGB));
+    //
+    MH_Set(ChooseSmooth, MUIA_Cycle_Active, 0);
     //
     SetLength(TC.Data, 0);
     DrawButtonEvent(nil, nil, nil);
@@ -259,6 +263,38 @@ begin
   end;
 end;
 
+procedure SmoothAxis(var a: TDoubleArray);
+var
+  Radius, i, j, Len, Start, Ende: Integer;
+  B: TDoubleArray;
+  Val: Double;
+  Num: Integer;
+begin
+  if Length(a) = 0 then
+    Exit;
+  Radius := MH_Get(ChooseSmooth, MUIA_Cycle_Active);
+  if Radius < 1 then
+    Exit;
+  b := Copy(a);
+  Len := High(a);
+  for i := 0 to Len do
+  begin
+    Start := Min(Max(i - Radius, 0), Len);
+    Ende := Min(Max(i + Radius, 0), Len);
+    Val := 0;
+    Num := 0;
+    for j := Start to Ende do
+    begin
+      Val := Val + b[j];
+      Inc(Num);
+    end;
+    //writeln(i, ' Value: ', b[j], ' Start: ', Start, ' ende: ', Ende, ' Num ', Num, ' val ', val);
+    if Num > 0 then
+      Val := Val / Num;
+    a[i] := Val;
+  end;
+end;
+
 // Save the Values
 function DrawButtonEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 var
@@ -279,6 +315,8 @@ begin
     XAxis := GetXAxis(CurTrack, XIdx, XName, XUnit);
     YAxis1 := GetYAxis(CurTrack, YIdx1);
     YAxis2 := GetYAxis(CurTrack, YIdx2);
+    SmoothAxis(YAxis1);
+    SmoothAxis(YAxis2);
     PlotPanel.Clear;
     PlotPanel.AxisLeft.Color := clBlack;
     PlotPanel.AxisRight.Color := clBlack;
@@ -631,6 +669,15 @@ begin
         Child, AsTag(MH_HSpace(0)),
         Child, AsTag(MH_Button(DrawButton, GetLocString(MSG_TRACKPROP_DRAW))), // Draw
         Child, AsTag(MH_Button(HTMLButton, GetLocString(MSG_ROUTEPOP_EXPORT))), // Export
+        TAG_END])),
+      Child, AsTag(MH_HGroup([
+        Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_SMOOTHING)))),
+        Child, AsTag(MH_Cycle(ChooseSmooth, [
+          MUIA_FixWidthTxt, AsTag('XXXXXXX'),
+          MUIA_Cycle_Entries, AsTag(@(SmoothTitles[0])),
+          MUIA_Cycle_Active, 0,
+          TAG_DONE])),
+        Child, AsTag(MH_HSpace(0)),
         TAG_END])),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,

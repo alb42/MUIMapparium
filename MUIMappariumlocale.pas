@@ -198,6 +198,9 @@ const
   MSG_TRACKPROP_SPEED = 20411 ;
   MSG_TRACKPROP_SPEED_STR = 'Speed'#0;
 
+  MSG_TRACKPROP_SMOOTHING = 20412 ;
+  MSG_TRACKPROP_SMOOTHING_STR = 'Smoothing'#0;
+
   MSG_PLOT_TITLE = 20500 ;
   MSG_PLOT_TITLE_STR = 'Plot'#0;
 
@@ -418,7 +421,7 @@ type
      str: string;
   end;
 
-  TAppStringArray = array[0..128] of TAppString;
+  TAppStringArray = array[0..129] of TAppString;
 
 const
   AppStrings: TAppStringArray = (
@@ -483,6 +486,7 @@ const
     (id: MSG_TRACKPROP_HEIGHT ; str: MSG_TRACKPROP_HEIGHT_STR ),
     (id: MSG_TRACKPROP_SLOPE ; str: MSG_TRACKPROP_SLOPE_STR ),
     (id: MSG_TRACKPROP_SPEED ; str: MSG_TRACKPROP_SPEED_STR ),
+    (id: MSG_TRACKPROP_SMOOTHING ; str: MSG_TRACKPROP_SMOOTHING_STR ),
     (id: MSG_PLOT_TITLE ; str: MSG_PLOT_TITLE_STR ),
     (id: MSG_PLOT_RESCALE ; str: MSG_PLOT_RESCALE_STR ),
     (id: MSG_PLOT_ZOOM ; str: MSG_PLOT_ZOOM_STR ),
