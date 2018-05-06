@@ -88,6 +88,7 @@ begin
   MH_Set(RouteName, MUIA_String_Contents, AsTag(PChar(GetLocString(MSG_ROUTEPROP_NEW_NAME)))); //'New Route'
   UpdateCurRouteOrder;
   CheckSearchButton;
+  MH_Set(SaveButton, MUIA_Disabled, AsTag(True));
 end;
 
 // Open Properties Window
@@ -111,6 +112,7 @@ begin
     //
     UpdateCurRouteOrder;
     CheckSearchButton;
+    MH_Set(SaveButton, MUIA_Disabled, AsTag(False));
   end;
 end;
 
@@ -290,12 +292,15 @@ var
   MUIRGB: PMUI_RGBcolor;
 begin
   Result := 0;
-  if RouteList.IndexOf(CurRoute) < 0 then
-    RouteList.Add(CurRoute);
-  CurRoute.Name := PChar(MH_Get(RouteName, MUIA_String_Contents));
-  MUIRGB := PMUI_RGBcolor(MH_Get(RouteCol, MUIA_Pendisplay_RGBcolor));
-  if Assigned(MUIRGB) then
-    CurRoute.Color := (MUIRGB^.Red shr 8 and $ff0000) or (MUIRGB^.Green shr 16 and $FF00) or (MUIRGB^.Blue shr 24 and $FF);
+  if Assigned(CurRoute) then
+  begin
+    if RouteList.IndexOf(CurRoute) < 0 then
+      RouteList.Add(CurRoute);
+    CurRoute.Name := PChar(MH_Get(RouteName, MUIA_String_Contents));
+    MUIRGB := PMUI_RGBcolor(MH_Get(RouteCol, MUIA_Pendisplay_RGBcolor));
+    if Assigned(MUIRGB) then
+      CurRoute.Color := (MUIRGB^.Red shr 8 and $ff0000) or (MUIRGB^.Green shr 16 and $FF00) or (MUIRGB^.Blue shr 24 and $FF);
+  end;
   FreeRoute := False;
   CurOrder := nil;
   CurRoute := nil;
@@ -620,6 +625,7 @@ begin
         end;
       end;
     end;
+    MH_Set(SaveButton, MUIA_Disabled, AsTag(False));
   finally
     StrStream.Free;
     XmlDoc.Free;
