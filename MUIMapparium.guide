@@ -99,9 +99,14 @@ you experience slow map movement, with the NoFPU version, don't blame me
 
 0.7
 
+* BugFix: Saving Route without calculating a Route
 * Set current maps position and zoom as start position for the program
 * Remember open status and active page of Side Panel
 * Configure Color of WayPoints
+* Export Map as PNG Image
+* Export Route as HTML File
+* Export TrackPlot as PNG Image
+* Export Track as HTML File
 
 0.6
 
