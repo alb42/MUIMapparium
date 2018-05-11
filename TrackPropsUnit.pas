@@ -484,14 +484,14 @@ const
   '<h5 align=center>%VERSION%</h5>'#13#10 +
   '%DESC%<BR>'#13#10 +
   '<table>'#13#10 +
-  '<tr><td>Time</td><td>%DATE%</td></tr>'#13#10 +
-  '<tr><td>Distance</td><td>%LENGTH%</td></tr>'#13#10 +
-  '<tr><td>Track Time</td><td>%TIME%</td></tr>'#13#10 +
-  '<tr><td>Move Time</td><td>%MTIME%</td></tr>'#13#10 +
-  '<tr><td>Average Speed</td><td>%ASPEED%</td></tr>'#13#10 +
-  '<tr><td>Average Moving Speed</td><td>%MSPEED%</td></tr>'#13#10 +
-  '<tr><td>Max Speed</td><td>%MAXSPEED%</td></tr>'#13#10 +
-  '<tr><td>Height Diff</td><td>%HEIGHT%</td></tr>'#13#10 +
+  '<tr><td>%DATELABEL%</td><td>%DATE%</td></tr>'#13#10 +
+  '<tr><td>%DISTLABEL%</td><td>%LENGTH%</td></tr>'#13#10 +
+  '<tr><td>%TIMELABEL%</td><td>%TIME%</td></tr>'#13#10 +
+  '<tr><td>%MTIMELABEL%</td><td>%MTIME%</td></tr>'#13#10 +
+  '<tr><td>%ASPEEDLABEL%</td><td>%ASPEED%</td></tr>'#13#10 +
+  '<tr><td>%MSPEEDLABEL%</td><td>%MSPEED%</td></tr>'#13#10 +
+  '<tr><td>%MAXSPEEDLABEL%</td><td>%MAXSPEED%</td></tr>'#13#10 +
+  '<tr><td>%HEIGHTLABEL%</td><td>%HEIGHT%</td></tr>'#13#10 +
   '</table><br>'#13#10 +
   '<table><tr><td><img src="%PNG1%"></td></tr><tr><td align=center>Map of the track</td><br>'#13#10 +
   '<table><tr><td><img src="%PNG2%"></td></tr><tr><td align=center>Plot: %X% - %Y%</td><br>'#13#10 +
@@ -533,6 +533,18 @@ begin
     s := StringReplace(s, '%TRACKNAME%', CurTrack.Name, [rfReplaceAll]);
     s := StringReplace(s, '%PNG1%', ExtractFileName(PngFile1), [rfReplaceAll]);
     s := StringReplace(s, '%PNG2%', ExtractFileName(PngFile2), [rfReplaceAll]);
+
+    // Labels
+    s := StringReplace(s, '%DATELABEL%', GetLocString(MSG_TRACKPROP_DATE), [rfReplaceAll]);
+    s := StringReplace(s, '%DISTLABEL%', GetLocString(MSG_TRACKPROP_DISTANCE), [rfReplaceAll]);
+    s := StringReplace(s, '%TIMELABEL%', GetLocString(MSG_TRACKPROP_TIME), [rfReplaceAll]);
+    s := StringReplace(s, '%MTIMELABEL%', GetLocString(MSG_TRACKPROP_MOVETIME), [rfReplaceAll]);
+    s := StringReplace(s, '%ASPEEDLABEL%', GetLocString(MSG_TRACKPROP_AVGSPEED), [rfReplaceAll]);
+    s := StringReplace(s, '%MSPEEDLABEL%', GetLocString(MSG_TRACKPROP_MOVESPEED), [rfReplaceAll]);
+    s := StringReplace(s, '%MAXSPEEDLABEL%', GetLocString(MSG_TRACKPROP_MAXSPEED), [rfReplaceAll]);
+    s := StringReplace(s, '%HEIGHTLABEL%', GetLocString(MSG_TRACKPROP_HEIGHTDIFF), [rfReplaceAll]);
+
+
 
     i := Min(High(XAxisStrings), Max(0, MH_Get(ChooseXAxis, MUIA_Cycle_Active)));
     s := StringReplace(s, '%X%', XAxisStrings[i], [rfReplaceAll]);
