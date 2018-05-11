@@ -27,7 +27,7 @@ var
     ('None'#0, 'Height [m]'#0, 'Slope [m]', 'Speed [m/s]', 'Speed [km/h]');
   XAxisTitles: array of PChar;
   YAxisTitles: array of PChar;
-  SmoothTitles: array[0..20] of PChar = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20');
+  SmoothTitles: array[0..21] of PChar = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', nil);
 type
   TTrackPoint = record
     Time: Double;
@@ -49,6 +49,7 @@ var
   ChooseXAxis, ChooseYLeft, ChooseYRight, DrawButton, HTMLButton,
   TrackCol, ChooseSmooth: PObject_;
   IsISO: Boolean;
+  GMTOffset: Integer = 0;
   LengthUnits: array[0..1] of string;
   LengthFactors: array[0..1] of Single;
   CurTrack: TTrack = nil; // current showed track
@@ -64,8 +65,14 @@ uses
   ASL, MUIMappariumLocale, MapPanelUnit, versionunit, Math;
 
 var
-  TrackName, SaveButton, CloseButton: PObject_;
-  SaveHook, DrawButtonHook, HTMLButtonHook: THook;
+  TrackName, SaveButton, CloseButton, StatListEntry: PObject_;
+  SaveHook, DrawButtonHook, HTMLButtonHook, DispHook: THook;
+  // for CalcStats
+  TrackTime, TrackDate: TDateTime;
+  TrackLen, AvgSpeed, MoveSpeed, MaxSpeed,
+  DiffHeight, MinHeight, MaxHeight: Double;
+  StopTime: Double;
+  StatEntries: array[0..1, 0..7] of string;
 
 procedure GetLengthUnit;
 begin
@@ -84,6 +91,109 @@ begin
     LengthFactors[1] := 0.621371;
   end;
 end;
+
+function GMTDateToString(d: TDateTime): string;
+begin
+  d := d - (GMTOffset / 60 / 24);
+  Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', d);
+end;
+
+function SecToString(s: Double): string;
+var
+  t, m, h: Integer;
+begin
+  t := Round(s);
+  M := t div 60;
+  t := t mod 60;
+  H := M div 60;
+  M := M mod 60;
+  Result := Format('%2.2d:%2.2d:%2.2d',[H,M,T])
+end;
+
+procedure CalcStats;
+var
+  i: Integer;
+  Len: Double;
+begin
+  TrackTime := 0;
+  TrackLen := 0;
+  AvgSpeed := 0;
+  MaxSpeed := 0;
+  StopTime := 0;
+  if Length(CurTrack.Pts) > 0 then
+    TrackDate := CurTrack.Pts[0].Time
+  else
+    TrackDate := Now();
+  if Length(TC.Data) > 0 then
+  begin
+    TrackTime := TC.Data[High(TC.Data)].Time;
+    TrackLen := (TC.Data[High(TC.Data)].Pos / 1000) * LengthFactors[1];
+    if TC.Data[High(TC.Data)].Time > 0 then
+      AvgSpeed := TrackLen / (TC.Data[High(TC.Data)].Time / 3600);
+    //
+    for i := 0 to High(TC.Data) do
+    begin
+      if (i > 0) and ((TC.Data[i].time - TC.Data[i - 1].time) > 0) then
+      begin
+        Len := (((TC.Data[i].Pos - TC.Data[i - 1].Pos) / 1000) * LengthFactors[1]) / ((TC.Data[i].time - TC.Data[i - 1].time) / 60 / 60);
+        if Len > MaxSpeed then
+          MaxSpeed := Len;
+        // Less than 3 hm/h -> stopped
+        if Len < 3 then
+          StopTime := StopTime + Max(1, (TC.Data[i].time - TC.Data[i - 1].time));
+      end;
+      if i = 0 then
+      begin
+        MinHeight := TC.Data[i].Height;
+        MaxHeight := TC.Data[i].Height;
+      end
+      else
+      begin
+        if TC.Data[i].Height < MinHeight then
+          MinHeight := TC.Data[i].Height;
+        if TC.Data[i].Height > MaxHeight then
+          MaxHeight := TC.Data[i].Height;
+      end;
+    end;
+    MaxHeight := MaxHeight * LengthFactors[0];
+    MinHeight := MinHeight * LengthFactors[0];
+    DiffHeight := MaxHeight - MinHeight;
+  end;
+
+  if TC.Data[High(TC.Data)].Time - StopTime > 0 then
+    MoveSpeed := TrackLen / ((TC.Data[High(TC.Data)].Time - StopTime) / 3600)
+  else
+    MoveSpeed := 0;
+
+  StatEntries[0, 0] := GetLocString(MSG_TRACKPROP_DATE); // Date
+  StatEntries[1, 0] := GMTDateToString(TrackDate);
+
+  StatEntries[0, 1] := GetLocString(MSG_TRACKPROP_DISTANCE);  // Distance
+  StatEntries[1, 1] := FloatToStrF(TrackLen, ffFixed, 8,2) + ' ' + LengthUnits[1];
+
+  StatEntries[0, 2] := GetLocString(MSG_TRACKPROP_TIME);
+  StatEntries[1, 2] := SecToString(TC.Data[High(TC.Data)].Time);
+
+  StatEntries[0, 3] := GetLocString(MSG_TRACKPROP_MOVETIME);
+  StatEntries[1, 3] := SecToString(TC.Data[High(TC.Data)].Time - StopTime);
+
+  StatEntries[0, 4] := GetLocString(MSG_TRACKPROP_AVGSPEED);
+  StatEntries[1, 4] := FloatToStrF(AvgSpeed, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h';
+
+  StatEntries[0, 5] := GetLocString(MSG_TRACKPROP_MOVESPEED);
+  StatEntries[1, 5] := FloatToStrF(MoveSpeed, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h';
+
+  StatEntries[0, 6] := GetLocString(MSG_TRACKPROP_MAXSPEED);
+  StatEntries[1, 6] := FloatToStrF(MaxSpeed, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h';
+
+  StatEntries[0, 7] := GetLocString(MSG_TRACKPROP_HEIGHTDIFF);
+  StatEntries[1, 7] := FloatToStrF(DiffHeight, ffFixed, 8,2) + ' ' + LengthUnits[0] + ' ('+FloatToStrF(MinHeight , ffFixed, 8,2) + ' ' + LengthUnits[0] + ' - '+FloatToStrF(MaxHeight , ffFixed, 8,2) + ' ' + LengthUnits[0] + ')';
+
+  DoMethod(StatListEntry, [MUIM_List_Clear]);
+  for i := 0 to 7 do
+    DoMethod(StatListEntry, [MUIM_List_InsertSingle, AsTag(PChar(StatEntries[0, i])), AsTag(MUIV_List_Insert_Bottom)]);
+end;
+
 
 // Open Properties Window
 procedure ShowTrackProps(NewTrack: TTrack);
@@ -152,6 +262,7 @@ begin
     for j := 0 to High(CurTrack.AddFields) do
       TC.Data[i].AddValues[j] := CurTrack.Pts[i].AddFields[j];
   end;
+  CalcStats;
 end;
 
 function GetXAxis(CurTrack: TTrack; Idx: Integer; out Name: string; out AxUnit: string): TDoubleArray;
@@ -393,9 +504,7 @@ var
   SL: TStringList;
   s, l: string;
   OldR, OldT, OldW: Boolean;
-  M, H, t, i: Integer;
-  StopTime: Double;
-  Len, MaxSpeed, MinHeight, MaxHeight: Double;
+  i: Integer;
 begin
   if not Assigned(CurTrack) then
     Exit;
@@ -417,6 +526,8 @@ begin
     //
     PlotPanel.ExportPNG(PngFile2);
     //
+    CalcStats;
+    //
     s := StringReplace(HTMLTemplate, '%VERSION%', Copy(VERSIONSTRING, 6, Length(VERSIONSTRING)), [rfReplaceAll]);
     s := StringReplace(s, '%DESC%', CurTrack.Desc, [rfReplaceAll]);
     s := StringReplace(s, '%TRACKNAME%', CurTrack.Name, [rfReplaceAll]);
@@ -433,69 +544,22 @@ begin
     s := StringReplace(s, '%Y%', l, [rfReplaceAll]);
 
     // Time
-    t := Round(TC.Data[High(TC.Data)].Time);
-    M := t div 60;
-    t := t mod 60;
-    H := M div 60;
-    M := M mod 60;
-    s := StringReplace(s, '%TIME%', Format('%2.2d:%2.2d:%2.2d',[H,M,T]), [rfReplaceAll]);
+    s := StringReplace(s, '%TIME%', SecToString(TrackTime), [rfReplaceAll]);
     // Length
-    Len := (TC.Data[High(TC.Data)].Pos / 1000) * LengthFactors[1];
-    s := StringReplace(s, '%LENGTH%', FloatToStrF(Len, ffFixed, 8,2) + ' ' + LengthUnits[1], [rfReplaceAll]);
+    s := StringReplace(s, '%LENGTH%', FloatToStrF(TrackLen, ffFixed, 8,2) + ' ' + LengthUnits[1], [rfReplaceAll]);
     // Average Speed
-    if TC.Data[High(TC.Data)].Time > 0 then
-      Len := Len / (TC.Data[High(TC.Data)].Time / 3600)
-    else
-      Len := 0;
-    s := StringReplace(s, '%ASPEED%', FloatToStrF(Len, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h', [rfReplaceAll]);
-    MaxSpeed := 0;
-    StopTime := 0;
-    for i := 0 to High(TC.Data) do
-    begin
-      if (i > 0) and ((TC.Data[i].time - TC.Data[i - 1].time) > 0) then
-      begin
-        Len := (((TC.Data[i].Pos - TC.Data[i - 1].Pos) / 1000) * LengthFactors[1]) / ((TC.Data[i].time - TC.Data[i - 1].time) / 60 / 60);
-        if Len > MaxSpeed then
-          MaxSpeed := Len;
-        // Less than 3 hm/h -> stopped
-        if Len < 3 then
-          StopTime := StopTime + (TC.Data[i].time - TC.Data[i - 1].time);
-      end;
-      if i = 0 then
-      begin
-        MinHeight := TC.Data[i].Height;
-        MaxHeight := TC.Data[i].Height;
-      end
-      else
-      begin
-        if TC.Data[i].Height < MinHeight then
-          MinHeight := TC.Data[i].Height;
-        if TC.Data[i].Height > MaxHeight then
-          MaxHeight := TC.Data[i].Height;
-      end;
-    end;
+    s := StringReplace(s, '%ASPEED%', FloatToStrF(AvgSpeed, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h', [rfReplaceAll]);
+    //
     s := StringReplace(s, '%MAXSPEED%', FloatToStrF(MaxSpeed, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h', [rfReplaceAll]);
-    l := FloatToStrF((MaxHeight - MinHeight) * LengthFactors[0] , ffFixed, 8,2) + ' ' + LengthUnits[0] + ' ('+FloatToStrF(MinHeight * LengthFactors[0] , ffFixed, 8,2) + ' ' + LengthUnits[0] + ' - '+FloatToStrF(MaxHeight * LengthFactors[0] , ffFixed, 8,2) + ' ' + LengthUnits[0] + ')';
+
+    l := FloatToStrF(DiffHeight, ffFixed, 8,2) + ' ' + LengthUnits[0] + ' ('+FloatToStrF(MinHeight , ffFixed, 8,2) + ' ' + LengthUnits[0] + ' - '+FloatToStrF(MaxHeight , ffFixed, 8,2) + ' ' + LengthUnits[0] + ')';
     s := StringReplace(s, '%HEIGHT%', l, [rfReplaceAll]);
     //
     // Average Speed without stopping time
-    Len := (TC.Data[High(TC.Data)].Pos / 1000) * LengthFactors[1];
-    if TC.Data[High(TC.Data)].Time - StopTime > 0 then
-      Len := Len / ((TC.Data[High(TC.Data)].Time - StopTime) / 3600)
-    else
-      Len := 0;
-    s := StringReplace(s, '%MSPEED%', FloatToStrF(Len, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h', [rfReplaceAll]);
-    t := Round(TC.Data[High(TC.Data)].Time - StopTime);
-    M := t div 60;
-    t := t mod 60;
-    H := M div 60;
-    M := M mod 60;
-    s := StringReplace(s, '%MTIME%', Format('%2.2d:%2.2d:%2.2d',[H,M,T]), [rfReplaceAll]);
+    s := StringReplace(s, '%MSPEED%', FloatToStrF(MoveSpeed, ffFixed, 8,2) + ' ' + LengthUnits[1] + '/h', [rfReplaceAll]);
+    s := StringReplace(s, '%MTIME%', SecToString(TC.Data[High(TC.Data)].Time - StopTime), [rfReplaceAll]);
     //
-    l := '-';
-    if Length(CurTrack.Pts) > 0 then
-      l:= FormatDateTime('yyyy-mm-dd hh:nn:ss',CurTrack.Pts[0].Time);
-    s := StringReplace(s, '%DATE%', l, [rfReplaceAll]);
+    s := StringReplace(s, '%DATE%', GMTDateToString(TrackDate), [rfReplaceAll]);
     //
     SL.Text := s;
     SL.SaveToFile(HTMLFile);
@@ -553,6 +617,7 @@ begin
   if Assigned(Loc) then
   begin
     IsISO := Loc^.loc_MeasuringSystem = MS_ISO;
+    GMTOffset := Loc^.loc_GMTOffset;
     CloseLocale(Loc);
   end;
   GetLengthUnit;
@@ -574,6 +639,22 @@ begin
     ActiveTrackPt := -1;
   if Assigned(OnTrackRedraw) then
     OnTrackRedraw();
+end;
+
+function DisplayFunc(Hook: PHook; Columns: PPChar; Entry: Pointer): Integer;
+var
+  Idx: Integer;
+  P: PLongInt;
+begin
+  P := PLongInt(Columns);
+  Dec(P);
+  Idx := P^;
+  if Entry <> nil then
+  begin
+    Columns[0] := PChar(StatEntries[0, Idx]);
+    Columns[1] := PChar(StatEntries[1, Idx]);
+  end;
+  Result := 0;
 end;
 
 procedure CreateTrackPropsWin;
@@ -624,6 +705,8 @@ begin
   end;
   YAxisTitles[High(YAxisTitles)] := nil;
   //
+  MH_SetHook(DispHook, THookFunc(@DisplayFunc), nil);
+
   // make plotpanel
   PlotPanel := TPlotPanel.Create([TAG_DONE]);
   TrackPropsWin := MH_Window([
@@ -642,7 +725,18 @@ begin
           TAG_END])),
         Child, AsTag(MH_Poppen(TrackCol, [MUIA_Weight, 20, TAG_END])),
         TAG_END])),
-      Child, AsTag(PlotPanel.MUIObject),
+      Child, AsTag(MH_HGroup([
+        Child, AsTag(PlotPanel.MUIObject),
+        Child, AsTag(MH_Balance([TAG_END])),
+        Child, AsTag(MH_List(StatListEntry, [
+          MUIA_Weight, 50,
+          MUIA_Background, MUII_ReadListBack,
+          MUIA_Frame, MUIV_Frame_ReadList,
+          MUIA_List_DisplayHook, AsTag(@DispHook),
+          MUIA_List_Format, AsTag('BAR,'),
+          MUIA_List_Title, AsTag(False),
+          TAG_DONE])),
+        TAG_DONE])),
       Child, AsTag(MH_HGroup([
         MUIA_Group_Rows, 2,
         Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_XAXIS)))),
@@ -653,6 +747,10 @@ begin
         Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_LEFTAXIS)))),
         Child, AsTag(MH_Image([
           MUIA_Image_Spec, AsTag('2:00000000,00000000,ffffffff'),
+          MUIA_Image_FreeVert, AsTag(True),
+          MUIA_Image_FreeHoriz, AsTag(True),
+          MUIA_FixWidthTxt, AsTag('W'),
+          MUIA_FixHeightTxt, AsTag('W'),
           TAG_DONE])),
         Child, AsTag(MH_Cycle(ChooseYLeft, [
           MUIA_Cycle_Entries, AsTag(@(YAxisTitles[0])),
@@ -669,6 +767,10 @@ begin
         Child, AsTag(MH_Text(PChar(MUIX_R + GetLocString(MSG_TRACKPROP_RIGHTAXIS)))),
         Child, AsTag(MH_Image([
           MUIA_Image_Spec, AsTag('2:ffffffff,00000000,00000000'),
+          MUIA_Image_FreeVert, AsTag(True),
+          MUIA_Image_FreeHoriz, AsTag(True),
+          MUIA_FixWidthTxt, AsTag('W'),
+          MUIA_FixHeightTxt, AsTag('W'),
           TAG_DONE])),
         Child, AsTag(MH_Cycle(ChooseYRight, [
           MUIA_Cycle_Entries, AsTag(@(YAxisTitles[0])),
@@ -699,6 +801,30 @@ begin
       AsTag(TrackPropsWin), 3, MUIM_SET, MUIA_Window_Open, AsTag(False)]);
   DoMethod(TrackPropsWin, [MUIM_Notify, MUIA_Window_CloseRequest, AsTag(True),
       AsTag(TrackPropsWin), 3, MUIM_SET, MUIA_Window_Open, AsTag(False)]);
+
+  StatEntries[0, 0] := GetLocString(MSG_TRACKPROP_DATE); // Date
+  StatEntries[1, 0] := '0';
+
+  StatEntries[0, 1] := GetLocString(MSG_TRACKPROP_DISTANCE);  // Distance
+  StatEntries[1, 1] := '0 m';
+
+  StatEntries[0, 2] := GetLocString(MSG_TRACKPROP_TIME); // Time
+  StatEntries[1, 2] := '00:00:00';
+
+  StatEntries[0, 3] := GetLocString(MSG_TRACKPROP_MOVETIME); // Time in Movement
+  StatEntries[1, 3] := '00:00:00';
+
+  StatEntries[0, 4] := GetLocString(MSG_TRACKPROP_AVGSPEED); // Average Speed
+  StatEntries[1, 4] := '0 km/h';
+
+  StatEntries[0, 5] := GetLocString(MSG_TRACKPROP_MOVESPEED); // Move Speed
+  StatEntries[1, 5] := '0 km/h';
+
+  StatEntries[0, 6] := GetLocString(MSG_TRACKPROP_MAXSPEED); // Max Speed
+  StatEntries[1, 6] := '0 km/h';
+
+  StatEntries[0, 7] := GetLocString(MSG_TRACKPROP_HEIGHTDIFF); // Height Difference
+  StatEntries[1, 7] := '0 m (0 m - 0 m)';
 
   PlotPanel.OnMarkerChange := @MarkerChangeEvent;
 end;

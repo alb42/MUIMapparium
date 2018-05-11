@@ -271,6 +271,30 @@ MSG_TRACKPROP_SMOOTHING
 Glätten
 ; Smoothing
 ;
+MSG_TRACKPROP_DATE
+Datum
+; Date
+;
+MSG_TRACKPROP_MOVETIME
+Zeit in Bewegung
+; Time moving
+;
+MSG_TRACKPROP_AVGSPEED
+Durchschnittsgeschwindigkeit
+; Average Speed
+;
+MSG_TRACKPROP_MOVESPEED
+Geschwindigkeit ohne Stops
+; Move Speed
+;
+MSG_TRACKPROP_MAXSPEED
+Höchstgeschwindigkeit
+; Max Speed
+;
+MSG_TRACKPROP_HEIGHTDIFF
+Höhendifference
+; Height Difference
+;
 MSG_PLOT_TITLE
 Kurve
 ; Plot

@@ -151,6 +151,7 @@ end;
 
 function SetStartEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 begin
+  Result := 0;
   StartPos := MiddlePos;
   StartZoom := CurZoom;
 end;
