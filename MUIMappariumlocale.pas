@@ -345,6 +345,9 @@ const
   MSG_MENU_MAP_DRAWROUTES = 30206 ;
   MSG_MENU_MAP_DRAWROUTES_STR = 'Draw Routes'#0;
 
+  MSG_MENU_MAP_DRAWPHOTOS = 30207 ;
+  MSG_MENU_MAP_DRAWPHOTOS_STR = 'Draw Photos'#0;
+
   MSG_MENU_WINDOW = 30300 ;
   MSG_MENU_WINDOW_STR = 'Window'#0;
 
@@ -439,7 +442,7 @@ type
      str: string;
   end;
 
-  TAppStringArray = array[0..135] of TAppString;
+  TAppStringArray = array[0..136] of TAppString;
 
 const
   AppStrings: TAppStringArray = (
@@ -553,6 +556,7 @@ const
     (id: MSG_MENU_MAP_DRAWMARKER ; str: MSG_MENU_MAP_DRAWMARKER_STR ),
     (id: MSG_MENU_MAP_DRAWTRACKS ; str: MSG_MENU_MAP_DRAWTRACKS_STR ),
     (id: MSG_MENU_MAP_DRAWROUTES ; str: MSG_MENU_MAP_DRAWROUTES_STR ),
+    (id: MSG_MENU_MAP_DRAWPHOTOS ; str: MSG_MENU_MAP_DRAWPHOTOS_STR ),
     (id: MSG_MENU_WINDOW ; str: MSG_MENU_WINDOW_STR ),
     (id: MSG_MENU_WINDOW_SIDEPANEL ; str: MSG_MENU_WINDOW_SIDEPANEL_STR ),
     (id: MSG_MENU_WINDOW_PREFS ; str: MSG_MENU_WINDOW_PREFS_STR ),

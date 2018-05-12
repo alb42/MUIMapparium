@@ -354,6 +354,9 @@ Draw Tracks
 MSG_MENU_MAP_DRAWROUTES (30206//)
 Draw Routes
 ;
+MSG_MENU_MAP_DRAWPHOTOS (30207//)
+Draw Photos
+;
 MSG_MENU_WINDOW (30300//)
 Window
 ;

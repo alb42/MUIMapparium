@@ -468,6 +468,10 @@ MSG_MENU_MAP_DRAWROUTES
 Zeige Routen
 ; Draw Routes
 ;
+MSG_MENU_MAP_DRAWPHOTOS
+Zeige Fotos
+; Draw Photos
+;
 MSG_MENU_WINDOW
 Fenster
 ; Window

@@ -94,11 +94,38 @@ type
 
   TRouteList = specialize TFPGObjectList<TRoute>;
 
+  TPhoto = class(TMapFeature)
+    Path: string;
+    Position: TCoord;
+    ClickRect: TRect;
+    Date: String;
+    Time: String;
+  end;
+  TDefPhotoList = specialize TFPGObjectList<TPhoto>;
+
+  TVisEntry = class
+    VisEntry: TPhoto;
+    Idx: Integer;
+    Caption: string;
+  end;
+  TVisList = specialize TFPGObjectList<TVisEntry>;
+
+  TPhotoList = class(TDefPhotoList)
+  public
+    VisList: TVisList;
+    constructor Create; virtual;
+    destructor Destroy; override;
+    function AddPhoto(Path: string; Lat: Double = NaN; Lon: Double = NaN): Integer;
+    procedure UpdateVisList;
+  end;
+
 var
   UnPacker: TUnPacker;
   MarkerList: TMarkerList;
   TrackList: TTrackList;
   RouteList: TRouteList;
+  PhotoList: TPhotoList;
+  CurPhoto: TPhoto = nil;
 
 procedure LoadWayPoints(Filename: string);
 procedure SaveWayPoints(Filename: string);
@@ -109,10 +136,12 @@ procedure LoadFITWayPoints(Filename: string);
 function LoadWayFile: boolean;
 procedure SaveWayFile;
 
+
+
 implementation
 
 uses
-  Prefsunit, fitfileunit;
+  Prefsunit, fitfileunit, exif;
 
 var
   OldFilename: string = '';
@@ -1042,6 +1071,120 @@ begin
   Visible := True;
 end;
 
+{ Photos }
+
+function PhotoCompareFunc(const Item1, Item2: TPhoto): Integer;
+begin
+  Result := ansicomparestr(Item1.Date, Item2.Date);
+  if Result = 0 then
+    Result := ansicomparestr(Item1.Time, Item2.Time);
+end;
+
+constructor TPhotoList.Create;
+begin
+  inherited Create(True);
+  VisList := TVisList.Create(True);
+end;
+
+destructor TPhotoList.Destroy;
+begin
+  VisList.Free;
+  inherited;
+end;
+
+function TPhotoList.AddPhoto(Path: string; Lat: Double = NaN; Lon: Double = NaN): Integer;
+var
+  UseFilePos: Boolean;
+  EXIF: TExif;
+  Photo: TPhoto;
+  P1: SizeInt;
+begin
+  Result := -1;
+  if not FileExists(Path) then
+    Exit;
+  EXIF := TExif.Create;
+  ExIf.FLatDir := '';
+  ExIf.FLonDir := '';
+  UseFilePos := IsNan(Lat) or IsNan(Lon);
+  try
+    ExIf.ReadFromFile(Path);
+  except
+    {$ifdef HASAMIGA}
+    on E:Exception do
+      sysdebugln('Exception in Read Exif File from ' + Path + ': ' + E.Message);
+    {$endif}
+  end;
+  if UseFilePos and ((EXIF.FLatDir = '') or (EXIF.FLonDir = '')) then
+  begin
+    Result := -2;
+    {$ifdef HASAMIGA}
+      sysdebugln('No GPS Exif found in File ' + Path);
+    {$endif}
+  end
+  else
+  begin
+    Photo := TPhoto.Create;
+    Self.Add(Photo);
+    //
+    Photo.Path := Path;
+    Photo.Name := ExtractFileName(Photo.Path);
+    if UseFilePos then
+    begin
+      Photo.Position.Lat := (EXIF.FLat[2]/60 + EXIF.FLat[1])/60 + EXIF.FLat[0];
+      if UpperCase(EXIF.FLatDir) = 'S' then
+        Photo.Position.Lat := -Photo.Position.Lat;
+      Photo.Position.Lon := (EXIF.FLon[2]/60 + EXIF.FLon[1])/60 + EXIF.FLon[0];
+      if UpperCase(EXIF.FLatDir) = 'W' then
+        Photo.Position.Lon := -Photo.Position.Lon;
+    end
+    else
+    begin
+      Photo.Position.Lat := Lat;
+      Photo.Position.Lon := Lon;
+    end;
+    P1 := Pos(' ', EXIF.DateTime);
+    if P1 > 0 then
+    begin
+      Photo.Date := StringReplace(Copy(EXIF.DateTime, 1, P1 - 1), ':', '.', [rfReplaceAll]);
+      Photo.Time := Copy(EXIF.DateTime, P1 + 1, Length(EXIF.DateTime));
+    end;
+    Result := 0;
+  end;
+  Exif.Free;
+end;
+
+procedure TPhotoList.UpdateVisList;
+var
+//  MainNode, TreeNode: TTreeNode;
+  i: Integer;
+  Str: string;
+  LastDay: string;
+  NEntry: TVisEntry;
+begin
+  Sort(@PhotoCompareFunc);
+  VisList.Clear;
+  LastDay := '-';
+  for i := 0 to Self.Count - 1 do
+  begin
+    if Self[i].Date = '' then
+      Self[i].Date := 'Unknown';
+    if LastDay <> Self[i].Date then
+    begin
+      NEntry := TVisEntry.Create;
+      NEntry.VisEntry := nil;
+      NEntry.Idx := -1;
+      NEntry.Caption := Self[i].Date;
+      VisList.Add(NEntry);
+      LastDay := Self[i].Date;
+    end;
+    Str := AnsiToUTF8(Self[i].Name);
+    NEntry := TVisEntry.Create;
+    NEntry.VisEntry := Self[i];
+    NEntry.Idx := i;
+    NEntry.Caption := '      ' + Str;
+    VisList.Add(NEntry);
+  end;
+end;
 
 initialization
   Unpacker := TUnpacker.Create;
@@ -1051,6 +1194,9 @@ initialization
   MarkerList := TMarkerList.Create(True);
   // Routes
   RouteList := TRouteList.Create(True);
+  // Photo
+  PhotoList := TPhotoList.Create;
+  //
   // load defaults.gpx
   LoadWayPoints(AppDir + DirectorySeparator + DEFAULTGPX);
 finalization
@@ -1060,5 +1206,7 @@ finalization
   TrackList.Free;
   MarkerList.Free;
   RouteList.Free;
+  PhotoList.Free;
+  //
   UnPacker.Free;
 end.

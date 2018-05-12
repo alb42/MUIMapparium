@@ -26,6 +26,7 @@ type
     FShowMarker: Boolean;
     FShowTracks: Boolean;
     FShowRoutes: Boolean;
+    FShowPhotos: Boolean;
     //
     SidePanelBtn: TMapButton;
     ZoomPanelBtn: TMapButton;
@@ -37,9 +38,12 @@ type
     procedure SetShowMarker(AValue: Boolean);
     procedure SetShowTracks(AValue: Boolean);
     procedure SetShowRoutes(AValue: Boolean);
+    procedure SetShowPhotos(AValue: Boolean);
   protected
     procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
     procedure DrawMarker(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
+    procedure DrawPhoto(Ph: TPhoto; RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
+    procedure DrawPhotos(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
     procedure DrawTrack(TC: TTrack;RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
     procedure DrawTracks(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
     procedure DrawRoute(RP: PRastPort; DrawRange: TRect; ARoute: TRoute; UsePens: Boolean = True);
@@ -82,6 +86,7 @@ type
     property ShowMarker: Boolean read FShowMarker write SetShowMarker;
     property ShowTracks: Boolean read FShowTracks write SetShowTracks;
     property ShowRoutes: Boolean read FShowRoutes write SetShowRoutes;
+    property ShowPhotos: Boolean read FShowPhotos write SetShowPhotos;
   end;
 
 var
@@ -112,6 +117,7 @@ begin
   FShowMarker:= True;
   FShowTracks := True;
   FShowRoutes := True;
+  FShowPhotos := True;
   // connect the events
   OnDrawObject := @DrawEvent;
   OnMUIDblClick := @MouseDblClick;
@@ -371,6 +377,10 @@ begin
   // Draw Marker
   if FShowMarker then
     DrawMarker(LocalRP, DrawRect);
+  // Draw Photos
+  if FShowPhotos then
+    DrawPhotos(LocalRP, DrawRect);
+
   // Draw Middle Marker
   DrawMiddleMarker(LocalRP, DrawRect);
   // Draw Zoom and Position GUI
@@ -419,6 +429,93 @@ begin
     end;
   end;
   //UnSetColor(Pen);
+end;
+
+procedure TMapPanel.DrawPhoto(Ph: TPhoto; RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
+const
+  AREA_BYTES = 4000;
+var
+  j: Integer;
+  Points: packed array of packed record
+    x,y: SmallInt;
+  end;
+  pt: Classes.TPoint;
+  Ras: TPlanePtr;
+  TRas: TTmpRas;
+  WarBuff: array[0..AREA_BYTES] of Word;
+  ari: TAreaInfo;
+  TE: TTextExtent;
+  PhotoText: string;
+begin
+  Ras := AllocRaster(DrawRange.Width, DrawRange.Height);
+  InitTmpRas(@TRas, ras, DrawRange.Width * DrawRange.Height * 3);
+  if Ph = CurPhoto then
+    SetAPen(RP, RedPen)
+  else
+    SetAPen(RP, WhitePen);
+  SetLength(Points, 4);
+  pt := PosToPixel(Ph.Position);
+  Points[0].X := pt.x;
+  Points[0].Y := pt.y;
+  if (Points[0].X >= -20) and (Points[0].Y >= -20) and (Points[0].X <= DrawRange.Width + 20) and (Points[0].Y <= DrawRange.Height + 20) then
+  begin
+    Points[1].X := Max(0, Points[0].X - 5);
+    Points[1].Y := Max(0, Points[0].Y - 20);
+    Points[2].X := Max(0, Points[0].X + 5);
+    Points[2].Y := Max(0, Points[0].Y - 20);
+    Points[3].X := Points[0].X;
+    Points[3].Y := Points[0].Y;
+
+    InitArea(@ari, @WarBuff[0], AREA_BYTES div 5);
+    RP^.TmpRas := @TRas;
+    RP^.AreaInfo := @Ari;
+    AreaMove(RP, Points[0].X, Points[0].Y);
+    for j := 0 to High(Points) do
+      AreaDraw(RP, Points[j].X, Points[j].Y);
+    AreaEnd(RP);
+
+    SetAPen(RP, BlackPen);
+    GfxMove(RP, Points[0].X, Points[0].Y);
+    for j := 0 to High(Points) do
+      Draw(RP, Points[j].X, Points[j].Y);
+
+    PhotoText := Ph.Name;
+    TextExtent(Rp, PChar(PhotoText), Length(PhotoText), @TE);
+
+    GFXMove(RP, Points[0].X - (TE.te_Width div 2), Points[1].Y - TE.te_Height div 2);
+    if Ph = CurPhoto then
+    begin
+      SetAPen(RP, WhitePen);
+      SetBPen(RP, BlackPen);
+    end
+    else
+    begin
+      SetAPen(RP, BlackPen);
+      SetBPen(RP, WhitePen);
+    end;
+    GfxText(Rp, PChar(PhotoText), Length(PhotoText));
+  end;
+  RP^.TmpRas := nil;
+  RP^.AreaInfo := nil;
+  FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
+end;
+
+procedure TMapPanel.DrawPhotos(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
+var
+  i: Integer;
+begin
+  SetAPen(RP, BluePen);
+  SetDrMd(RP, JAM2);
+  // make tmprast
+
+  for i := 0 to PhotoList.Count - 1 do
+  begin
+    if CurPhoto <> PhotoList[i] then
+      DrawPhoto(PhotoList[i], RP, DrawRange, UsePens);
+  end;
+  i := PhotoList.IndexOf(CurPhoto);
+  if i >= 0 then
+    DrawPhoto(PhotoList[i], RP, DrawRange, UsePens);
 end;
 
 // Draw the Waypoints
@@ -887,6 +984,14 @@ begin
   if AValue = FShowRoutes then
     Exit;
   FShowRoutes := AValue;
+  RedrawObject;
+end;
+
+procedure TMapPanel.SetShowPhotos(AValue: Boolean);
+begin
+  if AValue = FShowPhotos then
+    Exit;
+  FShowPhotos := AValue;
   RedrawObject;
 end;
 

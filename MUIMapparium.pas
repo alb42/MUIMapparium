@@ -10,7 +10,7 @@ uses
   Statisticsunit, waypointunit, WPPropsUnit, TrackPropsUnit, RoutePropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math, versionunit,
-  MapPanelUnit, UpdateUnit, aboutwinunit, ASL;
+  MapPanelUnit, UpdateUnit, aboutwinunit, ASL, workbench;
 
 const
   NM_BarLabel: LongInt = -1;
@@ -27,15 +27,16 @@ const
   MID_DrawMarker  = 10;
   MID_DrawTracks  = 11;
   MID_DrawRoutes  = 12;
-  MID_UpdateCheck = 13;
-  MID_Help        = 14;
-  MID_About       = 15;
-  MID_AboutMUI    = 16;
-  MID_ExportPNG   = 17;
+  MID_DrawPhotos  = 13;
+  MID_UpdateCheck = 14;
+  MID_Help        = 15;
+  MID_About       = 16;
+  MID_AboutMUI    = 17;
+  MID_ExportPNG   = 18;
 
 var
-  TabStrings: array[0..4] of string = ('Search', 'WayPoints', 'Tracks', 'Routes', 'Images');
-  TabTitles: array[0..5] of PChar = ('Search'#0, 'WayPoints'#0, 'Tracks'#0, 'Routes'#0, 'Images'#0, nil);
+  TabStrings: array[0..5] of string = ('Search', 'WayPoints', 'Tracks', 'Routes', 'Photos', 'Photos');
+  TabTitles: array[0..6] of PChar = ('Search'#0, 'WayPoints'#0, 'Tracks'#0, 'Routes'#0, 'Photos'#0, 'Photos'#0, nil);
 
 var
   Running: Boolean = False;
@@ -49,13 +50,15 @@ var
   TracksList, TracksListEntry,
   //Routes
   RoutesList, RoutesListEntry,
+  //Photos
+  PhotosList, PhotosListEntry,
   // Basic
   App, Window: PObject_;
   // MainWindow
   ListTabs,
   SidePanel, MainBalance, MainMenu: PObject_;
   // Menu
-  MenuSidePanel, MenuDrawMarker, MenuDrawTracks, MenuDrawRoutes: PObject_;
+  MenuSidePanel, MenuDrawMarker, MenuDrawTracks, MenuDrawRoutes, MenuDrawPhotos: PObject_;
   //
   SRes: TSearchResults;
   SearchTitleStr: string;
@@ -115,6 +118,7 @@ procedure UpdateWayPoints;
 var
   i: Integer;
 begin
+  MH_Set(WaypointListEntry, MUIA_List_Quiet, LTrue);
   DoMethod(WaypointListEntry, [MUIM_List_Clear]);
   for i := 0 to MarkerList.Count - 1 do
   begin
@@ -122,6 +126,7 @@ begin
     DoMethod(WaypointListEntry, [MUIM_List_InsertSingle, AsTag(PChar(MarkerList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
   RedrawImage := True;
+  MH_Set(WaypointListEntry, MUIA_List_Quiet, LFalse);
 end;
 
 // Update Tracks;
@@ -129,6 +134,7 @@ procedure UpdateTracks;
 var
   i: Integer;
 begin
+  MH_Set(TracksListEntry, MUIA_List_Quiet, LTrue);
   DoMethod(TracksListEntry, [MUIM_List_Clear]);
   for i := 0 to TrackList.Count - 1 do
   begin
@@ -136,6 +142,7 @@ begin
     DoMethod(TracksListEntry, [MUIM_List_InsertSingle, AsTag(PChar(TrackList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
   RedrawImage := True;
+  MH_Set(TracksListEntry, MUIA_List_Quiet, LFalse);
 end;
 
 // Update Routes
@@ -143,6 +150,7 @@ procedure UpdateRoutes;
 var
   i: Integer;
 begin
+  MH_Set(RoutesListEntry, MUIA_List_Quiet, LTrue);
   DoMethod(RoutesListEntry, [MUIM_List_Clear]);
   for i := 0 to RouteList.Count - 1 do
   begin
@@ -150,6 +158,7 @@ begin
     DoMethod(RoutesListEntry, [MUIM_List_InsertSingle, AsTag(PChar(RouteList[i].FullName)), AsTag(MUIV_List_Insert_Bottom)]);
   end;
   RedrawImage := True;
+  MH_Set(RoutesListEntry, MUIA_List_Quiet, LFalse);
 end;
 
 // Search for SearchTerm -> show in sidepanel, open Sidepanel
@@ -462,6 +471,7 @@ begin
     MID_DrawMarker: MUIMapPanel.ShowMarker := Boolean(MH_Get(MenuDrawMarker, MUIA_Menuitem_Checked));
     MID_DrawTracks: MUIMapPanel.ShowTracks := Boolean(MH_Get(MenuDrawTracks, MUIA_Menuitem_Checked));
     MID_DrawRoutes: MUIMapPanel.ShowRoutes := Boolean(MH_Get(MenuDrawRoutes, MUIA_Menuitem_Checked));
+    MID_DrawPhotos: MUIMapPanel.ShowPhotos := Boolean(MH_Get(MenuDrawPhotos, MUIA_Menuitem_Checked));
     MID_FINDME: SearchIP('');
     MID_PREFS: OpenPrefs();
     MID_Statistics: MH_Set(StatWin, MUIA_Window_Open, AsTag(True));
@@ -494,6 +504,39 @@ begin
     end;
   end;
 end;
+
+//###################################
+// Double Click to Photo
+function DblPhotoEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Active: Integer;
+begin
+  Result := 0;
+  Active := MH_Get(PhotosListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < PhotoList.Count) then
+  begin
+    CurPhoto := PhotoList[Active];
+    MiddlePos.Lat := PhotoList[Active].Position.Lat;
+    MiddlePos.Lon := PhotoList[Active].Position.Lon;
+    MUIMapPanel.RefreshImage;
+  end;
+end;
+
+function PhotoActiveEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  Active: Integer;
+begin
+  Result := 0;
+  Active := MH_Get(PhotosListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active < PhotoList.Count) then
+  begin
+    CurPhoto := PhotoList[Active];
+  end
+  else
+    CurPhoto := nil;
+  MUIMapPanel.RefreshImage;
+end;
+
 
 //###################################
 // Double Click to WayPoint
@@ -784,6 +827,81 @@ begin
     ShowRouteProps(Ro);
     MUIMapPanel.RedrawObject;
   end;
+end;
+
+
+function GetFilename(FDir, FName: string): string;
+begin
+  FDir := Trim(FDir);
+  if Length(FDir) = 0 then
+    Result := FName
+  else
+  begin
+    if (FDir[Length(FDir)] = DIRECTORYSEPARATOR) or (FDir[Length(FDir)] = ':') then
+      Result := FDir + FName
+    else
+      Result := FDir + DIRECTORYSEPARATOR + FName;
+  end;
+end;
+
+procedure UpdatePhotosList;
+var
+  i: Integer;
+begin
+  MH_Set(PhotosListEntry, MUIA_List_Quiet, LTrue);
+  DoMethod(PhotosListEntry, [MUIM_List_Clear]);
+  PhotoList.UpdateVisList;
+  for i := 0 to PhotoList.VisList.Count - 1 do
+  begin
+    DoMethod(PhotosListEntry, [MUIM_List_InsertSingle, AsTag(PChar(PhotoList.VisList[i].Caption)), AsTag(MUIV_List_Insert_Bottom)]);
+  end;
+  RedrawImage := True;
+  MUIMapPanel.RedrawObject;
+  MH_Set(PhotosListEntry, MUIA_List_Quiet, LFalse);
+end;
+
+// Add Photos
+function AddPhotoEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+var
+  OldDrawer: string;
+  fr: PFileRequester;
+  i: Integer;
+begin
+  Result := 0;
+  OldDrawer := Prefs.LoadPath;
+  fr := AllocAslRequestTags(ASL_FileRequest, [
+    NativeUInt(ASLFR_TitleText),      NativeUInt(PChar('Choose Photos to add')),
+    NativeUInt(ASLFR_InitialDrawer),  NativeUInt(PChar(OldDrawer)),
+    NativeUInt(ASLFR_InitialPattern), NativeUInt(PChar('(#?.jpg|#?.jpeg)')),
+    NativeUInt(ASLFR_DoPatterns),     LTrue,
+    NativeUInt(ASLFR_DoMultiSelect),  LTrue,
+    TAG_END]);
+  if Assigned(fr) then
+  begin
+    //
+    if AslRequestTags(fr, [TAG_END]) then
+    begin
+      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
+      for i := 1 to  fr^.rf_NumArgs do
+      begin
+        PhotoList.AddPhoto(GetFilename(string(fr^.rf_Dir), string(PWBArgList(fr^.rf_ArgList)^[i].wa_Name)));
+      end;
+      {$else}
+      for i := 1 to  fr^.fr_NumArgs do
+      begin
+        PhotoList.AddPhoto(GetFilename(string(fr^.fr_Drawer), string(PWBArgList(fr^.fr_ArgList)^[i].wa_Name)));
+      end;
+      //OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
+      {$endif}
+      UpdatePhotosList;
+    end;
+    FreeAslRequest(fr);
+  end;
+end;
+
+function RemPhotoEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
+begin
+  Result := 0;
 end;
 
 //###################################
@@ -1245,13 +1363,15 @@ procedure StartMe;
 var
   Sigs: LongInt;
   StrCoord: string;
-  MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook: THook;
+  MenuHook, SearchAckHook, DblSearchHook,DblWayPointHook, DblPhotoHook, PhotoActiveHook: THook;
   RemTrack, EditTrack: PObject_;
   RemTrackHook, DblTrackHook, EditTrackHook: Thook;
   RemRoute, EditRoute, AddRoute: PObject_;
   AddRouteHook, RemRouteHook, DblRouteHook, EditRouteHook: Thook;
   AddWay, RemWay, EditWay: PObject_;
   AddWayHook, RemWayHook, EditWayHook: Thook;
+  RemPhoto, AddPhoto: PObject_;
+  AddPhotoHook, RemPhotoHook: Thook;
   StartTime: Int64;
   WayMenuHooks: array[0..3] of THook;
   RexxHook: THook;
@@ -1381,9 +1501,24 @@ begin
               Child, AsTag(MH_Button(EditRoute, GetLocString(MSG_BUTTON_WAYPOINT_EDIT))),  //  'Edit'
             TAG_DONE])),
           TAG_DONE])),
-        //#### Images
-        //Child, AsTag(MH_VGroup([
-        //  TAG_DONE])),
+        //#### Photos
+        Child, AsTag(MH_VGroup([
+          Child, AsTag(MH_ListView(PhotosList, [
+            MUIA_Weight, 100,
+            MUIA_Listview_Input, MUI_TRUE,
+            MUIA_Listview_List, AsTag(MH_List(PhotosListEntry, [
+              MUIA_Frame, MUIV_Frame_ReadList,
+              MUIA_Background, MUII_ReadListBack,
+              //MUIA_ContextMenu, AsTag(MapFeatureMenu),
+              MUIA_List_PoolThreshSize, 256,
+              TAG_DONE])),
+            TAG_DONE])),
+          Child, AsTag(MH_HGroup([
+              Child, AsTag(MH_Button(AddPhoto, GetLocString(MSG_BUTTON_WAYPOINT_ADD))),    // 'Add'
+              Child, AsTag(MH_Button(RemPhoto, GetLocString(MSG_BUTTON_WAYPOINT_REMOVE))),    // 'Remove'
+            TAG_DONE])),
+          TAG_DONE])),
+        //
         TAG_DONE])),
       TAG_DONE]);
     if not Assigned(SidePanel) then
@@ -1450,6 +1585,13 @@ begin
         Child, AsTag(MH_MenuItem(MenuDrawRoutes, [
           MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAP_DRAWROUTES)),  //  'Draw Routes'
           MUIA_UserData, MID_DrawRoutes,
+          MUIA_Menuitem_Checkit, AsTag(True),
+          MUIA_Menuitem_Toggle, AsTag(True),
+          MUIA_Menuitem_Checked, AsTag(True),
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem(MenuDrawPhotos, [
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAP_DRAWPHOTOS)),  //  'Draw Photos'
+          MUIA_UserData, MID_DrawPhotos,
           MUIA_Menuitem_Checkit, AsTag(True),
           MUIA_Menuitem_Toggle, AsTag(True),
           MUIA_Menuitem_Checked, AsTag(True),
@@ -1586,6 +1728,11 @@ begin
     ConnectHookFunction(MUIA_Pressed, AsTag(False), RemRoute, nil, @RemRouteHook, @RemRouteEvent);
     ConnectHookFunction(MUIA_Pressed, AsTag(False), EditRoute, nil, @EditRouteHook, @EditRouteEvent);
     ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, RoutesList, nil, @DblRouteHook, @DblRouteEvent);
+    // Photo Action
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), AddPhoto, nil, @AddPhotoHook, @AddPhotoEvent);
+    ConnectHookFunction(MUIA_Pressed, AsTag(False), RemPhoto, nil, @RemPhotoHook, @RemPhotoEvent);
+    ConnectHookFunction(MUIA_Listview_DoubleClick, MUIV_EveryTime, PhotosList, nil, @DblPhotoHook, @DblPhotoEvent);
+    ConnectHookFunction(MUIA_List_Active, MUIV_EveryTime, PhotosListEntry, nil, @PhotoActiveHook, @PhotoActiveEvent);
 
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_CloseRequest, MUI_TRUE,
       AsTag(PrefsWin), 3, MUIM_SET, MUIA_Window_Open, AsTag(False)]);
