@@ -5,7 +5,7 @@ unit Exif;
 interface
 
 uses
-  Classes, SysUtils, FileUtil;
+  Classes, SysUtils;
 
 type
   TIfdTag = packed record

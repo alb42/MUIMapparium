@@ -780,6 +780,7 @@ procedure TMapPanel.DrawRoutes(RP: PRastPort; DrawRange: TRect; UsePens: Boolean
 var
   i: Integer;
 begin
+  SetDrMd(RP, JAM1);
   // Draw Tracks
   for i := 0 to RouteList.Count - 1 do
   begin
@@ -792,6 +793,7 @@ var
   ButtonSize: Classes.TPoint;
   //Pen: LongWord;
 begin
+  SetDrMd(RP, JAM1);
   ButtonSize.X := Round(TW(RP, 'W') * 1.2);
   ButtonSize.Y := Round(TH(RP, '|') * 1.2);
   //

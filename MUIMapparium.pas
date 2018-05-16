@@ -10,7 +10,8 @@ uses
   Statisticsunit, waypointunit, WPPropsUnit, TrackPropsUnit, RoutePropsUnit,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math, versionunit,
-  MapPanelUnit, UpdateUnit, aboutwinunit, ASL, workbench;
+  MapPanelUnit, UpdateUnit, aboutwinunit, ASL, workbench,
+  PhotoShowUnit;
 
 const
   NM_BarLabel: LongInt = -1;
@@ -172,6 +173,9 @@ var
   sr: TSearchResult;
   SText: string;
 begin
+  try
+  Doc := nil;
+  Mem := nil;
   DoMethod(SearchListEntry, [MUIM_List_Clear]);
   if not IsOnline then
   begin
@@ -180,7 +184,6 @@ begin
     ShowSidePanel(True);
     Exit;
   end;
-
   SearchTerm := StringReplace(SearchTerm, '/', ' ', [rfReplaceAll]);
   SearchTerm := StringReplace(SearchTerm, '?', ' ', [rfReplaceAll]);
   SearchTerm := StringReplace(SearchTerm, '#', ' ', [rfReplaceAll]);
@@ -190,7 +193,9 @@ begin
   EncStr := '';
   for i := 1 to Length(SearchTerm) do
     EncStr := EncStr + '%' + IntToHex(Ord(SearchTerm[i]),2);
-  Url := SEARCHURL + EncStr + '?format=xml&accept-language=' + Prefs.SearchLang;
+  Url := SEARCHURL + EncStr + '&format=xml&accept-language=' + Prefs.SearchLang;
+  //Url := SEARCHURL + EncStr + '?format=xml&accept-language=' + Prefs.SearchLang;
+  sysdebugln(URL);
   Mem := TMemoryStream.Create;
   SText := '';
   try
@@ -258,7 +263,13 @@ begin
     Mem.Free;
     Doc.Free;
   end;
-  MH_Set(SearchListEntry, MUIA_Floattext_Text, AsTag(PChar(SText)));
+  except
+    on E: Exception do
+    begin
+      SearchTitleStr :=  GetLocString(MSG_ERROR_NETWORK) + ': ' + E.Message; //'Network error'
+      MH_Set(SearchListEntry, MUIA_List_Title, AsTag(@SearchTitleStr[1]));
+    end;
+  end;
   if SRes.Count <> 1 then
     ShowSidePanel(True);
 end;
@@ -513,12 +524,16 @@ var
 begin
   Result := 0;
   Active := MH_Get(PhotosListEntry, MUIA_List_Active);
-  if (Active >= 0) and (Active < PhotoList.Count) then
+  if (Active >= 0) and (Active < PhotoList.VisList.Count) then
   begin
-    CurPhoto := PhotoList[Active];
-    MiddlePos.Lat := PhotoList[Active].Position.Lat;
-    MiddlePos.Lon := PhotoList[Active].Position.Lon;
-    MUIMapPanel.RefreshImage;
+    CurPhoto := PhotoList.VisList[Active].VisEntry;
+    if Assigned(CurPhoto) then
+    begin
+      MiddlePos.Lat := CurPhoto.Position.Lat;
+      MiddlePos.Lon := CurPhoto.Position.Lon;
+      MUIMapPanel.RefreshImage;
+      PhotoPanel.ShowImage(CurPhoto.Path);
+    end;
   end;
 end;
 
@@ -528,9 +543,9 @@ var
 begin
   Result := 0;
   Active := MH_Get(PhotosListEntry, MUIA_List_Active);
-  if (Active >= 0) and (Active < PhotoList.Count) then
+  if (Active >= 0) and (Active < PhotoList.VisList.Count) then
   begin
-    CurPhoto := PhotoList[Active];
+    CurPhoto := PhotoList.VisList[Active].VisEntry;
   end
   else
     CurPhoto := nil;
@@ -1687,6 +1702,7 @@ begin
       SubWindow, AsTag(TrackPropsWin),
       SubWindow, AsTag(RoutePropsWin),
       SubWindow, AsTag(AboutWin),
+      SubWindow, AsTag(PhotoShowWin),
       TAG_DONE]);
     if not Assigned(app) then
     begin
