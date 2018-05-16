@@ -380,7 +380,8 @@ begin
         ie.ie_Code := Code;
         ie.ie_Qualifier := Qual and (not (IEQUALIFIER_CONTROL or IEQUALIFIER_LALT));
         ie.ie_NextEvent := nil;
-        MapRawKey(@ie, @Buff[0], 1, nil);
+        if Assigned(KeymapBase) then
+          MapRawKey(@ie, @Buff[0], 1, nil);
         // send message
         if IsKeyUp then
         begin

@@ -66,7 +66,8 @@ var
 
   WM1, WM2, WM3, WM4: PObject_;
 
-  SidePanelOpen: Boolean = FALSE;
+  SidePanelOpen: Boolean = False;
+  LockImgList: Boolean = False;
 
 procedure UpdateLocationLabel; forward;
 procedure SidePanelOpenEvent; forward;
@@ -1159,7 +1160,7 @@ begin
           Result := 0;
           MH_Set(Window, MUIA_Window_Activate, AsTag(True));
         end;
-      {
+
       'ADDJPG': // Add Jpg
         begin
           if SL.Count < 2 then
@@ -1172,9 +1173,9 @@ begin
           NName := SL[1];
           for i := 2 to SL.Count - 1 do
             NName := NName + ' ' + SL[i];
-          Result := ImageWin.AddImage(NName);
-          if Result = 0 then
-            ImageWin.UpdateImagesAfterAdd;
+          Result := PhotoList.AddPhoto(NName);
+          if (Result = 0) and not LockImgList then
+            UpdatePhotosList;
         end;
       'ADDJPGPOS': // Add Jpg with position
         begin
@@ -1189,9 +1190,9 @@ begin
           NName := SL[3];
           for i := 4 to SL.Count - 1 do
             NName := NName + ' ' + SL[i];
-          Result := ImageWin.AddImage(NName, NLat, NLon);
-          if Result = 0 then
-            ImageWin.UpdateImagesAfterAdd;
+          Result := PhotoList.AddPhoto(NName, NLat, NLon);
+          if (Result = 0) and not LockImgList then
+            UpdatePhotosList;
         end;
        'LOCKIMAGELIST':
          begin
@@ -1201,7 +1202,7 @@ begin
              Result := 10;
              Exit;
            end;
-           ImageWin.LockImgList := True;
+           LockImgList := True;
            Result := 0;
          end;
        'UNLOCKIMAGELIST':
@@ -1212,10 +1213,10 @@ begin
              Result := 10;
              Exit;
            end;
-           ImageWin.LockImgList := False;
-           ImageWin.UpdateImagesAfterAdd;
+           LockImgList := False;
+           UpdatePhotosList;
            Result := 0;
-         end}
+         end
       else
         begin
           ReturnMsg := GetLocString(MSG_ERROR_REXX_UNKNOWN) + '''' + SL[0]+ '''';
@@ -1369,6 +1370,29 @@ begin
 end;
 
 
+procedure NextPhotoEvent(Dir: Integer);
+var
+  Active, Idx, i: Integer;
+begin
+  Active := MH_Get(PhotosListEntry, MUIA_List_Active);
+  if (Active >= 0) and (Active <= PhotoList.VisList.Count) then
+  begin
+    Idx := PhotoList.VisList[Active].Idx;
+    Idx := Min(PhotoList.Count - 1, Max(0, Idx + Dir));
+    if (Idx < 0) or (Idx = PhotoList.VisList[Active].Idx) then
+      Exit;
+    for i := 0 to PhotoList.VisList.Count - 1 do
+    begin
+      if PhotoList.VisList[i].Idx = Idx then
+      begin
+        MH_Set(PhotosListEntry, MUIA_List_Active, i);
+        DblPhotoEvent(nil, nil, nil);
+        Exit;
+      end;
+    end;
+  end;
+end;
+
 
 // *********************************************************************
 // ####################################
@@ -1416,6 +1440,7 @@ begin
   OnTrackRedraw := @TrackRedrawEvent;
   OnRouteGoToPos := @GoToPosEvent;
   OnRouteChanged := @RouteChangedEvent;
+  OnNextPhoto := @NextPhotoEvent;
   try
     SearchTitleStr :=  GetLocString(MSG_SEARCH_RESULTS_TITLE); // 'Search Results';
     //
@@ -1816,7 +1841,10 @@ begin
         if not Running then
           Break;
       end;
-    end;
+    end
+    else
+      writeln('Failed to open Window.');
+    //
     Prefs.StatWinOpen := LongBool(MH_Get(StatWin, MUIA_Window_Open));
     if Prefs.StatWinOpen then
       DoMethod(StatWin, [MUIM_Window_Snapshot, 1]);
