@@ -9,7 +9,7 @@ uses
   {$ifdef HASAMIGA}
   sockets,
   {$endif}
-  Dos, versionunit;
+  Dos, versionunit, muiwrap, muimappariumlocale;
 
 function GetFile(hp: TFPHTTPClient; address: string; AStream: TStream): Boolean;
 function GetFile(address: string; AStream: TStream): Boolean; overload;
@@ -138,7 +138,7 @@ initialization
   {$ifdef HASAMIGA}
   IsOnline := Assigned(SocketBase);
   if not IsOnline then
-    writeln('Warning no internet connection found, Offline mode.');
+    writeln('Warning, no internet connection found, Offline mode.');
   {$endif}
 finalization
 end.

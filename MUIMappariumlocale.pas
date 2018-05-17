@@ -61,7 +61,7 @@ const
   MSG_FRAME_ROUTES_STR = 'Routes'#0;
 
   MSG_FRAME_IMAGES = 20006 ;
-  MSG_FRAME_IMAGES_STR = 'Images'#0;
+  MSG_FRAME_IMAGES_STR = 'Photos'#0;
 
   MSG_PREFS_TITLE = 20101 ;
   MSG_PREFS_TITLE_STR = 'Preferences'#0;

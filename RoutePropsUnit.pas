@@ -419,14 +419,12 @@ begin
   XmlDoc := nil;
   SL := TStringList.Create;
   StrStream := TStringStream.Create('');
-  //writeln(URL);
   try
   if UseOpenls then
   begin
     if GetFile(URL, StrStream) then
     begin
       //StrStream.Position:=0;
-      //Writeln(StrStream.ReadString(StrStream.Size));
       StrStream.Position:=0;
       ReadXMLFile(XmlDoc, StrStream);
       KmlNode := XmlDoc.FindNode('xls:XLS');
@@ -557,7 +555,6 @@ begin
     if GetYourFile(URL, StrStream) then
     begin
       //StrStream.Position:=0;
-      //Writeln(StrStream.ReadString(StrStream.Size));
       StrStream.Position:=0;
       ReadXMLFile(XmlDoc, StrStream);
       KmlNode := XmlDoc.FindNode('kml');

@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, dos, fgl, osmhelper, syncobjs, Math, mui,
-  fpreadpng, fpimage, FPImgCanv, fpcanvas, prefsunit, fphttpclient;
+  fpreadpng, fpimage, FPImgCanv, fpcanvas, prefsunit, fphttpclient,
+  MUIWrap, MUIMappariumLocale;
 
 const
   MINPLOTDIST = 5;
@@ -118,7 +119,6 @@ function LoadBitmap(FName: string; Pic: TFPAMemImage): Boolean;
 var
   Reader: TFPReaderPNG;
 begin
-  //writeln('-->load bitmap');
   Result := False;
   if not FileExists(FName) then
     Exit;
@@ -127,7 +127,6 @@ begin
   Reader.Free;
   InterLockedIncrement(LNumLoadedHD);
   Result := True;
-  //writeln('<--load Bitmap');
 end;
 
 function LoadFromWeb(HTTPClient: TFPHTTPClient; AZoom: Integer; MPos: Classes.TPoint; Pic: TFPAMemImage): Boolean;
@@ -138,7 +137,6 @@ var
   //t1: Int64;
   Reader: TFPReaderPNG;
 begin
-  //writeln('-->load from web');
   Result := False;
   if not IsOnline then
     Exit;
@@ -159,9 +157,6 @@ begin
     Mem.Free;
     Reader.Free;
   end;
-  {$ifdef HASAMIGA}
-  //writeln('<--GetFromWeb: ' + IntToStr(GetMsCount - t1) + ' ms');
-  {$endif}
 end;
 
 { TImageLoadThread }
@@ -229,9 +224,7 @@ begin
                   IsOnline := False;
                   OfflineMsg := True;
                   OfflineErrText := E.Message;
-                  writeln(OfflineErrText);
-                  writeln('Unable to load File from WEB: osm_' + IntToStr(Img.Zoom) + '_' + IntToStr(Img.Posi.X) + '_' + IntToStr(Img.Posi.Y) + '.png');
-                  writeln('Going offline!');
+                  ShowMessage('Error', GetLocString(MSG_GENERAL_OK), OfflineErrText + #10'Unable to load File from WEB: osm_' + IntToStr(Img.Zoom) + '_' + IntToStr(Img.Posi.X) + '_' + IntToStr(Img.Posi.Y) + '.png'#10'Going Offline!');
                 end;
               end;
             end;
@@ -239,7 +232,10 @@ begin
             Img.ReadyToUse := True;
             UpdateImage := True;
           except
-            writeln('Exception Load');
+            on E:Exception do
+            begin
+              SysDebugLn('Excpetion Loading File: osm_' + IntToStr(Img.Zoom) + '_' + IntToStr(Img.Posi.X) + '_' + IntToStr(Img.Posi.Y) + '.png');
+            end;
           end;
           Mutex.Enter;
           Dec(ImagesToLoad);
@@ -270,7 +266,7 @@ begin
             t1 := GetMsCount;
           end;
         except
-          writeln('Exception in Remove');
+          sysdebugln('Exception in Remove');
         end;
       end;
       Mutex.Leave;
@@ -413,7 +409,7 @@ begin
     except
       On E:Exception do
       begin
-        writeln('Cannot create directory for image data: ', DataDir, ' Message: ', E.Message);
+        ShowMessage('Error', GetLocString(MSG_GENERAL_OK), 'Cannot create directory for image data: ' + DataDir + ' Message: ' + E.Message);
         halt(5);
       end;
     end;

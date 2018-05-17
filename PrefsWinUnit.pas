@@ -14,7 +14,7 @@ var
   PrefsWin: PObject_ = nil;
   CountButton, ClearButton, FilesLabel, ToLevel,
   SaveButton, CancelButton, MarkerType, MarkerSize,
-  DblMode, SetStart,
+  DblMode, SetStart, UseData,
   LangSel, TilesHD: PObject_;
   Bytes, Counter: Int64;
   StartPos: TCoord;
@@ -40,6 +40,7 @@ begin
   MH_Set(LangSel, MUIA_String_Contents, AsTag(PChar(Prefs.SearchLang)));
   MH_Set(TilesHD, MUIA_String_Integer, Prefs.MaxTiles);
   MH_Set(DblMode, MUIA_Cycle_Active, Ord(Prefs.DClickMode));
+  MH_Set(UseData, MUIA_Selected, AsTag(Prefs.UseDataTypes));
   StartPos.Lat := Prefs.StartPosLat;
   StartPos.Lon := Prefs.StartPosLon;
   StartZoom := Prefs.StartZoom;
@@ -57,6 +58,7 @@ begin
   Prefs.SearchLang := PChar(MH_Get(LangSel, MUIA_String_Contents));
   Prefs.MaxTiles := MH_Get(TilesHD, MUIA_String_Integer);
   Prefs.DClickMode := TDClickMode(MH_Get(DblMode, MUIA_Cycle_Active));
+  Prefs.UseDataTypes := Boolean(MH_Get(UseData, MUIA_Selected));
   Prefs.StartPosLat := StartPos.Lat;
   Prefs.StartPosLon := StartPos.Lon;
   Prefs.StartZoom := StartZoom;
@@ -197,7 +199,7 @@ begin
   end;
   PrefsWin := MH_Window([
     MUIA_Window_Title,     AsTag(GetLocString(MSG_PREFS_TITLE)),  // 'Preferences'
-    MUIA_Window_ID,        AsTag(MAKE_ID('M','P','R','E')),
+    //MUIA_Window_ID,        AsTag(MAKE_ID('M','P','R','E')),
     MUIA_HelpNode,         AsTag('PrefsWin'),
     WindowContents, AsTag(MH_VGroup([
       Child, AsTag(MH_HGroup([
@@ -241,6 +243,13 @@ begin
           MUIA_FrameTitle, AsTag(GetLocString(MSG_PREFS_STARTPOSITION)), // 'Start Position'
           Child, AsTag(MH_Button(SetStart, GetLocString(MSG_PREFS_USECURRENT))),    // 'Use current'
           TAG_DONE])),
+        TAG_DONE])),
+      Child, AsTag(MH_HGroup([
+        MUIA_Frame, MUIV_Frame_Group,
+        MUIA_FrameTitle, AsTag(GetLocString(MSG_FRAME_IMAGES)), // 'Photos'
+        Child, AsTag(MH_HSpace(0)),
+        Child, AsTag(MH_Text('Use DataTypes'{GetLocString(MSG_PREFS_DEFLANG)})),    // 'Default search result language'
+        Child, AsTag(MH_CheckMark(UseData, False)),
         TAG_DONE])),
       Child, AsTag(MH_HGroup([
         MUIA_Frame, MUIV_Frame_Group,

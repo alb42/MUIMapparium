@@ -296,7 +296,6 @@ begin
     if GetCurlFile(Url, St) then
     begin
       //St.Position := 0;
-      //writeln(ST.DataString);
       ST.Position := 0;
       jData := GetJSON(St);
       jObject := TJSONObject(jData);
@@ -327,7 +326,7 @@ begin
     end;
   except
     on E: Exception do
-      writeln('Error Getting IP Position: ', E.Message);
+      ShowMessage('Error', GetLocString(MSG_GENERAL_OK), 'Error Getting IP Position: ' + e.Message);
   end;
   St.Free;
 end;
@@ -467,7 +466,6 @@ end;
 // Menu Event
 function MenuEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 begin
-  //writeln('menu event');
   case MH_Get(App, MUIA_Application_MenuAction) of
     MID_Load: if LoadWayFile then
       begin
@@ -521,7 +519,12 @@ end;
 // Double Click to Photo
 function DblPhotoEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 var
-  Active: Integer;
+  Active, i: Integer;
+  MinPos,MaxPos: TCoord;
+  s: TPhoto;
+  DiffLat, DiffLon: Double;
+  Pt: TPoint;
+  Rec: TRectCoord;
 begin
   Result := 0;
   Active := MH_Get(PhotosListEntry, MUIA_List_Active);
@@ -534,6 +537,47 @@ begin
       MiddlePos.Lon := CurPhoto.Position.Lon;
       MUIMapPanel.RefreshImage;
       PhotoPanel.ShowImage(CurPhoto.Path);
+    end
+    else
+    begin
+      MinPos.Lat := NaN;
+      for i := Active + 1 to PhotoList.VisList.Count - 1 do
+      begin
+        s := PhotoList.VisList[i].VisEntry;
+        if not Assigned(s) then
+          Break;
+        if i = (Active + 1) then
+        begin
+          MinPos := s.Position;
+          MaxPos := s.Position;
+        end
+        else
+        begin
+          MaxPos.Lat := Max(MaxPos.Lat, s.Position.Lat);
+          MaxPos.Lon := Max(MaxPos.Lon, s.Position.Lon);
+          //
+          MinPos.Lat := Min(MinPos.Lat, s.Position.Lat);
+          MinPos.Lon := Min(MinPos.Lon, s.Position.Lon);
+        end;
+      end;
+      //
+      if not IsNan(MinPos.Lat) then
+      begin
+        DiffLat := Abs(MaxPos.Lat - MinPos.Lat);
+        DiffLon := Abs(MaxPos.Lon - MinPos.Lon);
+        MiddlePos.Lat:= (MaxPos.Lat + MinPos.Lat) / 2;
+        MiddlePos.Lon:= (MaxPos.Lon + MinPos.Lon) / 2;
+
+        for i := 0 to 18 do
+        begin
+          Pt := GetTileCoord(i, MiddlePos);
+          Rec := GetTileRect(i, Pt);
+          if (Abs(Rec.MaxLat - Rec.MinLat) >= DiffLat) and (Abs(Rec.MaxLon - Rec.MinLon) >= DiffLon) then
+            CurZoom := i;
+        end;
+        CurZoom := CurZoom + 1;
+        MUIMapPanel.RefreshImage;
+      end;
     end;
   end;
 end;
@@ -881,7 +925,7 @@ function AddPhotoEvent(Hook: PHook; Obj: PObject_; Msg: Pointer): NativeInt;
 var
   OldDrawer: string;
   fr: PFileRequester;
-  i: Integer;
+  i, Added, NotAdded: Integer;
 begin
   Result := 0;
   OldDrawer := Prefs.LoadPath;
@@ -897,19 +941,28 @@ begin
     //
     if AslRequestTags(fr, [TAG_END]) then
     begin
+      Added := 0;
+      NotAdded := 0;
       {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
       for i := 1 to  fr^.rf_NumArgs do
       begin
-        PhotoList.AddPhoto(GetFilename(string(fr^.rf_Dir), string(PWBArgList(fr^.rf_ArgList)^[i].wa_Name)));
+        if PhotoList.AddPhoto(GetFilename(string(fr^.rf_Dir), string(PWBArgList(fr^.rf_ArgList)^[i].wa_Name))) = 0 then
+          Inc(Added)
+        else
+          Inc(NotAdded);
       end;
       {$else}
       for i := 1 to  fr^.fr_NumArgs do
       begin
-        PhotoList.AddPhoto(GetFilename(string(fr^.fr_Drawer), string(PWBArgList(fr^.fr_ArgList)^[i].wa_Name)));
+        if PhotoList.AddPhoto(GetFilename(string(fr^.fr_Drawer), string(PWBArgList(fr^.fr_ArgList)^[i].wa_Name))) = 0 then
+          Inc(Added)
+        else
+          Inc(NotAdded);
       end;
       //OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
       {$endif}
       UpdatePhotosList;
+      ShowMessage('Message', GetLocString(MSG_GENERAL_OK), IntToStr(Added) + ' Photos added'#10 + IntToStr(NotAdded) +  ' Photos not added (no GPS informations)');
     end;
     FreeAslRequest(fr);
   end;
@@ -1286,6 +1339,11 @@ begin
     MUIMapPanel.MiddleMarkerSize := Prefs.MarkerSize;
     MUIMapPanel.RedrawObject;
   end;
+  // Photos
+  if Assigned(PhotoShowWin) then
+  begin
+    PhotoPanel.UseDataType := Prefs.UseDataTypes;
+  end;
 end;
 
 // WayPoint Property edit changed something ;-)
@@ -1562,7 +1620,7 @@ begin
         TAG_DONE])),
       TAG_DONE]);
     if not Assigned(SidePanel) then
-      writeln(GetLocString(MSG_ERROR_SIDEPANEL)); //  'Failed to create SidePanel.'
+      ShowMessage('Error', GetLocString(MSG_GENERAL_OK), GetLocString(MSG_ERROR_SIDEPANEL));  //  'Failed to create SidePanel.'
     //
     // Main Menu +++++++++++++++++++++++++++++++++++++++++++++++++++++++
     MainMenu := MH_Menustrip([
@@ -1681,6 +1739,8 @@ begin
     MUIMapPanel.OnSidePanelOpen := @SidePanelOpenEvent;
     MUIMapPanel.ShowSidePanelBtn := not SidePanelOpen;
 
+    PhotoPanel.UseDataType := Prefs.UseDataTypes;
+
     // Application +++++++++++++++++++++++++++++++++++++++++++++++++++++
     MH_SetHook(RexxHook, @RexxHookEvent, nil);
     //
@@ -1731,7 +1791,7 @@ begin
       TAG_DONE]);
     if not Assigned(app) then
     begin
-      writeln(GetLocString(MSG_ERROR_APPLICATION));           // 'Failed to create Application'
+      ShowMessage('Error', GetLocString(MSG_GENERAL_OK), GetLocString(MSG_ERROR_APPLICATION));   // 'Failed to create Application'
       Exit;
     end;
     // version app set
@@ -1809,13 +1869,11 @@ begin
           MUIMapPanel.RefreshImage;
           UpdateImage := False;
           UpdateLocationLabel;
-          //writeln(7);
         end;
         if RedrawImage then
         begin
           MUIMapPanel.RedrawObject;
           ReDrawImage := False;
-          //writeln(8);
         end;
         if GetMUITime - StartTime > 20 then
         begin
@@ -1843,7 +1901,11 @@ begin
       end;
     end
     else
-      writeln('Failed to open Window.');
+    begin
+      ShowMessage('Error', GetLocString(MSG_GENERAL_OK), 'Failed to open Window.');
+      Exit;
+    end;
+
     //
     Prefs.StatWinOpen := LongBool(MH_Get(StatWin, MUIA_Window_Open));
     if Prefs.StatWinOpen then
@@ -1873,7 +1935,7 @@ begin
   a := 5;
   if Round(a*1.3) = 0 then
   begin
-    writeln('Your FPU is not IEEE 754 compatible, please use the NoFPU Version');
+    ShowMessage('Error', GetLocString(MSG_GENERAL_OK), 'Your FPU is not IEEE 754 compatible, please use the NoFPU Version');
     halt(5);
   end;
 end;

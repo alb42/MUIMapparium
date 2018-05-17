@@ -57,6 +57,7 @@ type
     function GetDblMode: TDClickMode;
     function GetSidePanelOpen: Boolean;
     function GetSidePage: Integer;
+    function GetUseDataTypes: Boolean;
 
     procedure SetActiveImageColor(AValue: TColor);
     procedure SetActiveRouteColor(AValue: TColor);
@@ -83,6 +84,7 @@ type
     procedure SetDblMode(AValue: TDClickMode);
     procedure SetSidePanelOpen(AValue: Boolean);
     procedure SetSidePage(AValue: Integer);
+    procedure SetUseDataTypes(AValue: Boolean);
 
   public
     IniFile: TIniFile;
@@ -117,6 +119,8 @@ type
     property SidePage: Integer read GetSidePage write SetSidePage;
     //
     property DClickMode: TDClickMode read GetDblMode write SetDblMode;
+    // Photo Settings
+    property UseDataTypes: Boolean read GetUseDataTypes write SetUseDataTypes;
   end;
 
 var
@@ -251,6 +255,13 @@ begin
   Result := TDClickMode(IniFile.ReadInteger(SECTION_GENERAL, 'DblClickMode', 0));
 end;
 
+function TPrefs.GetUseDataTypes: Boolean;
+begin
+  Result := IniFile.ReadBool(SECTION_GENERAL, 'UseDataTypes', True);
+end;
+
+//##########################################################
+
 procedure TPrefs.SetActiveImageColor(AValue: TColor);
 begin
   IniFile.WriteInteger(SECTION_GENERAL, 'ActiveImageColor', AValue);
@@ -375,6 +386,13 @@ procedure TPrefs.SetDblMode(AValue: TDClickMode);
 begin
   IniFile.WriteInteger(SECTION_GENERAL, 'DblClickMode', Ord(AValue));
 end;
+
+procedure TPrefs.SetUseDataTypes(AValue: Boolean);
+begin
+  IniFile.WriteBool(SECTION_GENERAL, 'UseDataTypes', AValue);
+end;
+
+//###############################################################
 
 constructor TPrefs.Create;
 begin
