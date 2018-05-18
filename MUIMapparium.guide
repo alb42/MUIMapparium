@@ -28,6 +28,8 @@ completly written in FreePascal and uses MUI/Zune as GUI toolkit.
   6) @{" Track Properties " LINK TrackWin}
   7) @{" Route Properties " LINK RouteWin}
 
+  @{"AREXX commands" LINK ArexxCmds}
+
 The map tiles are downloaded from OpenStreetMap as PNG files and cached
 onto the Harddisk. By default the images are saved to the "Data" folder
 in the MUIMapparium directory. This behavior can be changed by setting a
@@ -99,6 +101,7 @@ you experience slow map movement, with the NoFPU version, don't blame me
 
 0.7
 
+* BugFix: Search Function
 * BugFix: Saving Route without calculating a Route
 * Set current maps position and zoom as start position for the program
 * Remember open status and active page of Side Panel
@@ -107,6 +110,11 @@ you experience slow map movement, with the NoFPU version, don't blame me
 * Export Route as HTML File
 * Export TrackPlot as PNG Image
 * Export Track as HTML File
+* Load EXIF of Photos
+* Show Photo position on Map
+* Simple Photo viewer
+* AREXX commands for adding photos to list
+* Help for AREXX commands
 
 0.6
 
@@ -500,6 +508,46 @@ saved to the route. (Not for YOURS routes)
   @{u}Save/Close@{uu}
 Save:  Save the changes done in the window and close the properties
 Close: Close the window without saving.
+
+@ENDNODE
+
+@NODE ArexxCmds "AREXX Commands"
+
+  @{b}Route Properties Window@{ub}
+
+MUIMapparium has a usable AREXX port. The port is named "MAPPARIUM.1"
+currently this commands are defined
+
+@{b}Goto@{ub} <lat> <lon> <zoom>
+  go to a position
+  <lat> <lon> position in degree for example 53.000 14.234
+  <zoom> zoom level 0-19 0 overview, 19 highest zoom, if left out
+    the current zoom is used
+
+@{b}AddWaypoint@{ub} <lat> <lon> "<Name for waypoint>"
+  Adds a waypoint to list and show on map
+  <lat> <lon> position in degree for example 53.000 14.234
+  "Name for Waypoint" Text the waypoint is shown on map, do not forget the
+    parenthesis
+
+@{b}AddJPG@{ub} "<Filename>"
+  Add a photo to photo list, read position from the photo
+  <Filename> Filename and path of the Photo contains EXIF position data
+
+@{b}AddJPGPos@{ub} <lat> <lon> "<Filename>"
+  Add Photo to photo list and supply the position of it
+  <lat> <lon> position in degree for example 53.000 14.234
+  <Filename>  Filename and path of the Photo
+
+@{b}LockPhotoList@{ub}
+@{b}UnlockPhotoList@{ub}
+  If you want to add a lot of photos, LockPhotoList prevents the update
+  of the photo list when adding the photos with AddJPG or AddJPGPos.
+  Do not forget to unlock the photolist or you can experience strange
+  effects in the GUI.
+
+in 'rexx' folder you can find a test.rexx script.
+NOTE: Rexx is not supported for AROS currently (due missing AREXX support in Zune)
 
 @ENDNODE
 

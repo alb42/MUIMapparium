@@ -224,7 +224,7 @@ begin
                   IsOnline := False;
                   OfflineMsg := True;
                   OfflineErrText := E.Message;
-                  ShowMessage('Error', GetLocString(MSG_GENERAL_OK), OfflineErrText + #10'Unable to load File from WEB: osm_' + IntToStr(Img.Zoom) + '_' + IntToStr(Img.Posi.X) + '_' + IntToStr(Img.Posi.Y) + '.png'#10'Going Offline!');
+                  writeln(OfflineErrText + #10'Unable to load File from WEB: osm_' + IntToStr(Img.Zoom) + '_' + IntToStr(Img.Posi.X) + '_' + IntToStr(Img.Posi.Y) + '.png'#10'Going Offline!');
                 end;
               end;
             end;
@@ -409,7 +409,8 @@ begin
     except
       On E:Exception do
       begin
-        ShowMessage('Error', GetLocString(MSG_GENERAL_OK), 'Cannot create directory for image data: ' + DataDir + ' Message: ' + E.Message);
+        writeln('Cannot create directory for image data: ' + DataDir + ' Message: ' + E.Message);
+        //ShowMessage('Error', GetLocString(MSG_GENERAL_OK), 'Cannot create directory for image data: ' + DataDir + ' Message: ' + E.Message);
         halt(5);
       end;
     end;

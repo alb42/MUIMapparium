@@ -1,6 +1,6 @@
 program MUIMapparium;
 {$mode objfpc}{$H+}
-
+{$NOTES OFF}
 uses
   athreads,
   MUIMappariumlocale, MUIPaintBoxUnit,
@@ -11,7 +11,7 @@ uses
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson,
   SysUtils, StrUtils, Types, Classes, Math, versionunit,
   MapPanelUnit, UpdateUnit, aboutwinunit, ASL, workbench,
-  PhotoShowUnit;
+  PhotoShowUnit, fgl;
 
 const
   NM_BarLabel: LongInt = -1;
@@ -1247,29 +1247,36 @@ begin
           if (Result = 0) and not LockImgList then
             UpdatePhotosList;
         end;
-       'LOCKIMAGELIST':
+       'LOCKIMAGELIST',
+       'LOCKPHOTOLIST':
          begin
            if SL.Count > 1 then
            begin
-             ReturnMsg := 'wrong number of parameter: LOCKIMAGELIST';
+             ReturnMsg := 'wrong number of parameter: ' + UpperCase(SL[0]);
              Result := 10;
              Exit;
            end;
            LockImgList := True;
            Result := 0;
          end;
-       'UNLOCKIMAGELIST':
+       'UNLOCKIMAGELIST',
+       'UNLOCKPHOTOLIST':
          begin
            if SL.Count > 1 then
            begin
-             ReturnMsg := 'wrong number of parameter: UNLOCKIMAGELIST';
+             ReturnMsg := 'wrong number of parameter: ' + UpperCase(SL[0]);
              Result := 10;
              Exit;
            end;
            LockImgList := False;
            UpdatePhotosList;
            Result := 0;
-         end
+         end;
+       'QUIT':
+         begin
+           Running := False;
+           Result := 0;
+         end;
       else
         begin
           ReturnMsg := GetLocString(MSG_ERROR_REXX_UNKNOWN) + '''' + SL[0]+ '''';
@@ -1279,7 +1286,6 @@ begin
   finally
     SL.Free;
   end;
-
 end;
 
 
@@ -1475,6 +1481,7 @@ var
   ThisAppDiskIcon: Pointer;
   i: Integer;
 begin
+  {$ifdef AmigaOS4}sysdebugln('1');{$endif}
   SidePanelOpen := Prefs.SidePanelOpen;
   //Initialize Frame titles 'Search', 'WayPoints', 'Tracks'
   TabStrings[0] := string(GetLocString(MSG_FRAME_SEARCH));
@@ -1487,10 +1494,9 @@ begin
     TabTitles[i] := PChar(TabStrings[i]);
   // remove Fotos for now
   TabTitles[High(TabStrings)] := nil;
-
+  {$ifdef AmigaOS4}sysdebugln('2');{$endif}
   SRes := TSearchResults.Create;
   // Prefs
-  UpdatePrefs;
   OnUpdatePrefs := @UpdatePrefs;
   //
   OnWPChanged := @WPChangedEvent;
@@ -1499,12 +1505,14 @@ begin
   OnRouteGoToPos := @GoToPosEvent;
   OnRouteChanged := @RouteChangedEvent;
   OnNextPhoto := @NextPhotoEvent;
+  {$ifdef AmigaOS4}sysdebugln('3');{$endif}
   try
     SearchTitleStr :=  GetLocString(MSG_SEARCH_RESULTS_TITLE); // 'Search Results';
     //
     StrCoord := FloatToStrF(MiddlePos.Lat, ffFixed, 8,6) + ' ; ' + FloatToStrF(MiddlePos.Lon, ffFixed, 8,6) + ' ; ' + IntToStr(CurZoom) + '  ';
     StrCoord := Format('%25s', [StrCoord]);
     //
+    {$ifdef AmigaOS4}sysdebugln('4');{$endif}
     // Popupmenu for Lists ++++++++++++++++++++++++++++++++++++++
     MapFeatureMenu := MH_Menustrip([
       Child, AsTag(MH_Menu(GetLocString(MSG_POPUP_FEATURE), [                   // 'Map Feature'
@@ -1524,6 +1532,7 @@ begin
         TAG_DONE])),
       TAG_DONE]);
     //
+    {$ifdef AmigaOS4}sysdebugln('5');{$endif}
     // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //
     // Side Panel
@@ -1619,8 +1628,9 @@ begin
         //
         TAG_DONE])),
       TAG_DONE]);
+    {$ifdef AmigaOS4}sysdebugln('6');{$endif}
     if not Assigned(SidePanel) then
-      ShowMessage('Error', GetLocString(MSG_GENERAL_OK), GetLocString(MSG_ERROR_SIDEPANEL));  //  'Failed to create SidePanel.'
+      writeln(GetLocString(MSG_ERROR_SIDEPANEL));  //  'Failed to create SidePanel.'
     //
     // Main Menu +++++++++++++++++++++++++++++++++++++++++++++++++++++++
     MainMenu := MH_Menustrip([
@@ -1733,18 +1743,19 @@ begin
         TAG_DONE])),
       TAG_DONE]);
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+    {$ifdef AmigaOS4}sysdebugln('7');{$endif}
     MUIMapPanel := TMapPanel.Create([MUIA_Weight, 200, TAG_DONE]);
     MUIMapPanel.OnUpdateLocationLabel := @UpdateLocationLabel;
     MUIMapPanel.OnSidePanelOpen := @SidePanelOpenEvent;
     MUIMapPanel.ShowSidePanelBtn := not SidePanelOpen;
-
-    PhotoPanel.UseDataType := Prefs.UseDataTypes;
-
+    {$ifdef AmigaOS4}sysdebugln('8');{$endif}
+    UpdatePrefs;
+    {$ifdef AmigaOS4}sysdebugln('9');{$endif}
     // Application +++++++++++++++++++++++++++++++++++++++++++++++++++++
     MH_SetHook(RexxHook, @RexxHookEvent, nil);
     //
     ThisAppDiskIcon := GetDiskObject(PChar(ParamStr(0)));
+    {$ifdef AmigaOS4}sysdebugln('10');{$endif}
     //
     App := MH_Application([
       MUIA_Application_Title,       AsTag('MUIMapparium'),
@@ -1789,11 +1800,13 @@ begin
       SubWindow, AsTag(AboutWin),
       SubWindow, AsTag(PhotoShowWin),
       TAG_DONE]);
+    {$ifdef AmigaOS4}sysdebugln('11');{$endif}
     if not Assigned(app) then
     begin
-      ShowMessage('Error', GetLocString(MSG_GENERAL_OK), GetLocString(MSG_ERROR_APPLICATION));   // 'Failed to create Application'
+      writeln(GetLocString(MSG_ERROR_APPLICATION));   // 'Failed to create Application'
       Exit;
     end;
+    {$ifdef AmigaOS4}sysdebugln('12');{$endif}
     // version app set
     WrapApp := App;
     WrapWin := Window;
@@ -1840,23 +1853,27 @@ begin
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_Open, MUI_FALSE,
       AsTag(Window), 3, MUIM_SET, MUIA_Window_Sleep, AsTag(False)]);
     //
-
+    {$ifdef AmigaOS4}sysdebugln('13');{$endif}
     // Update waypoints before open the window first time
     UpdateWayPoints;
     UpdateTracks;
     UpdateRoutes;
     //
+    {$ifdef AmigaOS4}sysdebugln('14');{$endif}
     // open additionally the stat window if needed
     if Prefs.StatWinOpen then
       MH_Set(StatWin, MUIA_Window_Open, AsTag(True));
+    {$ifdef AmigaOS4}sysdebugln('15');{$endif}
     // open the window
     MH_Set(Window, MUIA_Window_Open, AsTag(True));
+    {$ifdef AmigaOS4}sysdebugln('16');{$endif}
     //
     if Prefs.StatWinOpen then
       DoMethod(StatWin, [MUIM_Window_ToFront]);
-
+    {$ifdef AmigaOS4}sysdebugln('17');{$endif}
     if MH_Get(Window, MUIA_Window_Open) <> 0 then
     begin
+      {$ifdef AmigaOS4}sysdebugln('18');{$endif}
       Running := True;
       // first drawing of the image
       MUIMapPanel.RefreshImage;
@@ -1902,10 +1919,10 @@ begin
     end
     else
     begin
-      ShowMessage('Error', GetLocString(MSG_GENERAL_OK), 'Failed to open Window.');
+      writeln('Failed to open Window.');
       Exit;
     end;
-
+    {$ifdef AmigaOS4}sysdebugln('19');{$endif}
     //
     Prefs.StatWinOpen := LongBool(MH_Get(StatWin, MUIA_Window_Open));
     if Prefs.StatWinOpen then
@@ -1914,17 +1931,23 @@ begin
     Prefs.SidePage := MH_Get(ListTabs, MUIA_Group_ActivePage);
     // end of main loop, close window if still open
     MH_Set(Window, MUIA_Window_Open, AsTag(False));
-
+    {$ifdef AmigaOS4}sysdebugln('20');{$endif}
   finally
+    {$ifdef AmigaOS4}sysdebugln('21');{$endif}
     if Assigned(MapFeatureMenu) then
       MUI_DisposeObject(MapFeatureMenu);
+    {$ifdef AmigaOS4}sysdebugln('22');{$endif}
     if Assigned(App) then
       MUI_DisposeObject(app);
+    {$ifdef AmigaOS4}sysdebugln('23');{$endif}
     if Assigned(ThisAppDiskIcon) then
       FreeDiskObject(ThisAppDiskIcon);
+    {$ifdef AmigaOS4}sysdebugln('24');{$endif}
     SRes.Free;
+    {$ifdef AmigaOS4}sysdebugln('25');{$endif}
     MUIMapPanel.Free;
   end;
+  {$ifdef AmigaOS4}sysdebugln('26');{$endif}
 end;
 
 {$ifdef AMIGA68k}
@@ -1935,7 +1958,7 @@ begin
   a := 5;
   if Round(a*1.3) = 0 then
   begin
-    ShowMessage('Error', GetLocString(MSG_GENERAL_OK), 'Your FPU is not IEEE 754 compatible, please use the NoFPU Version');
+    writeln('Your FPU is not IEEE 754 compatible, please use the NoFPU Version');
     halt(5);
   end;
 end;
