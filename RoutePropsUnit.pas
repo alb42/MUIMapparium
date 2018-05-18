@@ -147,7 +147,7 @@ begin
   EncStr := '';
   for i := 1 to Length(SearchTerm) do
     EncStr := EncStr + '%' + IntToHex(Ord(SearchTerm[i]),2);
-  Url := SEARCHURL + EncStr + '?format=xml&accept-language=' + Prefs.SearchLang;
+  Url := SEARCHURL + EncStr + '&format=xml&accept-language=' + Prefs.SearchLang;
   Mem := TMemoryStream.Create;
   try
     if GetFile(Url, Mem) then
