@@ -24,6 +24,7 @@ const
   SECTION_GENERAL = 'General';
   SECTION_STATISTICS = 'Statistics';
   SECTION_WINDOW = 'Window';
+  SECTION_GPS = 'GPS';
 type
   TDClickMode = (dmCenter, dmProperty, dmVisible);
 
@@ -58,6 +59,12 @@ type
     function GetSidePanelOpen: Boolean;
     function GetSidePage: Integer;
     function GetUseDataTypes: Boolean;
+		function GetUseGPS: Boolean;
+		function GetGPSDevice: string;
+    function GetGPSUnit: Integer;
+		function GetGPSBaud: Integer;
+
+		
 
     procedure SetActiveImageColor(AValue: TColor);
     procedure SetActiveRouteColor(AValue: TColor);
@@ -85,6 +92,10 @@ type
     procedure SetSidePanelOpen(AValue: Boolean);
     procedure SetSidePage(AValue: Integer);
     procedure SetUseDataTypes(AValue: Boolean);
+		procedure SetUseGPS(AValue: Boolean);
+		procedure SetGPSDevice(AValue: string);
+    procedure SetGPSUnit(AValue: Integer);
+    procedure SetGPSBaud(AValue: Integer);
 
   public
     IniFile: TIniFile;
@@ -121,6 +132,12 @@ type
     property DClickMode: TDClickMode read GetDblMode write SetDblMode;
     // Photo Settings
     property UseDataTypes: Boolean read GetUseDataTypes write SetUseDataTypes;
+		// GPS Settings
+		property UseGPS: boolean read GetUseGPS write SetUseGPS;
+		property GPSDevice: string read GetGPSDevice write SetGPSDevice;
+		property GPSUnit: Integer read GetGPSUnit write SetGPSUnit;
+		property GPSBaud: Integer read GetGPSBaud write SetGPSBaud;
+
   end;
 
 var
@@ -260,6 +277,27 @@ begin
   Result := IniFile.ReadBool(SECTION_GENERAL, 'UseDataTypes', True);
 end;
 
+function TPrefs.GetUseGPS: Boolean;
+begin
+  Result := IniFile.ReadBool(SECTION_GPS, 'UseGPS', False);
+end;
+
+function TPrefs.GetGPSDevice: string;
+begin
+  Result := IniFile.ReadString(SECTION_GPS, 'Device', 'usbmodem.device');
+end;
+
+function TPrefs.GetGPSUnit: Integer;
+begin
+  Result := IniFile.ReadInteger(SECTION_GPS, 'Unit', 0);
+end;
+
+function TPrefs.GetGPSBaud: Integer;
+begin
+  Result := IniFile.ReadInteger(SECTION_GPS, 'Baud', 4800);
+end;
+
+
 //##########################################################
 
 procedure TPrefs.SetActiveImageColor(AValue: TColor);
@@ -391,6 +429,28 @@ procedure TPrefs.SetUseDataTypes(AValue: Boolean);
 begin
   IniFile.WriteBool(SECTION_GENERAL, 'UseDataTypes', AValue);
 end;
+
+procedure TPrefs.SetUseGPS(AValue: Boolean);
+begin
+  IniFile.WriteBool(SECTION_GPS, 'UseGPS', AValue);
+end;
+
+procedure TPrefs.SetGPSDevice(AValue: string);
+begin
+  IniFile.WriteString(SECTION_GPS, 'Device', AValue);
+end;
+
+procedure TPrefs.SetGPSUnit(AValue: Integer);
+begin
+  IniFile.WriteInteger(SECTION_GPS, 'Unit', AValue);
+end;
+
+procedure TPrefs.SetGPSBaud(AValue: Integer);
+begin
+  IniFile.WriteInteger(SECTION_GPS, 'Baud', AValue);
+end;
+
+
 
 //###############################################################
 

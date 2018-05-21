@@ -5,6 +5,8 @@ UNITSDIR=units/$(CPU)-$(OS)
 MUIMapp: $(UNITSDIR) MUIMapparium.pas
 	@echo Create units in $<
 	@fpc -g- -FU$< MUIMapparium.pas
+	@echo Units created in $<
+	
 
 $(UNITSDIR):
 	@echo Create units dir $@
@@ -21,6 +23,7 @@ source:
 	@flexcat locale/MUIMapparium.cd MUIMappariumlocale.pas=locale/FPCUnit.sd
 
 all: ctfile locale MUIMapp
+	@echo done.
 
 clean:
 	@delete $(UNITSDIR)/#?.ppu
