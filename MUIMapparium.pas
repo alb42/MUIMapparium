@@ -68,9 +68,9 @@ var
 
   SidePanelOpen: Boolean = False;
   LockImgList: Boolean = False;
-	
-	SerThread: TSerThread = nil;
-	GPSData: TGPSData;
+
+  SerThread: TSerThread = nil;
+  GPSData: TGPSData;
 
 procedure UpdateLocationLabel; forward;
 procedure SidePanelOpenEvent; forward;
@@ -87,37 +87,37 @@ procedure UpdateWayPoints; forward;
 procedure CloseGPS;
 begin
   if Assigned(SerThread) then
-	begin
-		SerThread.Terminate;
-		SerThread.WaitFor;
-		SerThread.Free;
-		SerThread := nil;			
-	end;		
+  begin
+    SerThread.Terminate;
+    SerThread.WaitFor;
+    SerThread.Free;
+    SerThread := nil;
+  end;
 end;
 
 procedure InitGPS;
 var
   ReDo: Boolean;
 begin
-	if not Prefs.UseGPS then
-	begin
-    CloseGPS;		
-		Exit;
-  end;		
-	// should start gps, check settings
-	ReDo := True;
-	if Assigned(SerThread) then
-	begin
-		if (SerThread.Device = Prefs.GPSDevice) and
-		   (SerThread.UnitNum = Prefs.GPSUnit) and
-		   (SerThread.Baud = Prefs.GPSBaud) then
-		  ReDo := False;
-	end; 		
+  if not Prefs.UseGPS then
+  begin
+    CloseGPS;
+    Exit;
+  end;
+  // should start gps, check settings
+  ReDo := True;
+  if Assigned(SerThread) then
+  begin
+    if (SerThread.Device = Prefs.GPSDevice) and
+       (SerThread.UnitNum = Prefs.GPSUnit) and
+       (SerThread.Baud = Prefs.GPSBaud) then
+      ReDo := False;
+  end;
   if ReDo then
-	begin
-		CloseGPS;
-		SerThread := TSerThread.Create(Prefs.GPSDevice, Prefs.GPSUnit, Prefs.GPSBaud);
-  end;		
+  begin
+    CloseGPS;
+    SerThread := TSerThread.Create(Prefs.GPSDevice, Prefs.GPSUnit, Prefs.GPSBaud);
+  end;
 end;
 
 
@@ -1388,7 +1388,7 @@ begin
   begin
     PhotoPanel.UseDataType := Prefs.UseDataTypes;
   end;
-	InitGPS;
+  InitGPS;
 end;
 
 // WayPoint Property edit changed something ;-)
@@ -1519,7 +1519,7 @@ var
   RexxHook: THook;
   ThisAppDiskIcon: Pointer;
   i: Integer;
-	OldDate: TDateTime;
+  OldDate: TDateTime;
 begin
   {$ifdef AmigaOS4}sysdebugln('1');{$endif}
   SidePanelOpen := Prefs.SidePanelOpen;
@@ -1915,8 +1915,8 @@ begin
     begin
       {$ifdef AmigaOS4}sysdebugln('18');{$endif}
       Running := True;
-			InitGPS;
-					
+      InitGPS;
+
       // first drawing of the image
       MUIMapPanel.RefreshImage;
       // main cycle
@@ -1942,25 +1942,25 @@ begin
         // Update Status things
         if GetMUITime - StartTime > 500 then
         begin
-					// Update Position
-					if Assigned(SerThread) and SerThread.InitDone then
-				  begin		
-						OldDate := GPSData.Date;
-						SerThread.GetData(GPSData);
-						if Abs(GPSData.Date - OldDate) * 24 * 60 * 60 > 1 then
-					  begin		
-						  sysdebugln(DateTimeToStr(GPSData.Date) + ' Num Sat: ' + IntToStr(GPSData.NumSatelites) + ' / 12   Pos: ' +
-                FloatToStrF(GPSData.Lan, ffFixed, 8,6) + ';' + FloatToStrF(GPSData.Lon, ffFixed, 8,6));
-						  MiddlePos.Lat := GPSData.Lan;
-							MiddlePos.Lon := GPSData.Lon;
-							MUIMapPanel.RefreshImage;
-						end
-						else
-					  begin		
-							GPSData.Date := OldDate;
-						end;
-            StartTime := GetMUITime;						
-          end;						
+          // Update Position
+          if Assigned(SerThread) and SerThread.InitDone then
+          begin
+            OldDate := GPSData.Date;
+            SerThread.GetData(GPSData);
+            if Abs(GPSData.Date - OldDate) * 24 * 60 * 60 > 1 then
+            begin
+              sysdebugln(DateTimeToStr(GPSData.Date) + ' Num Sat: ' + IntToStr(GPSData.NumSatelites) + ' / 12   Pos: ' +
+                FloatToStrF(GPSData.Lat, ffFixed, 8,6) + ';' + FloatToStrF(GPSData.Lon, ffFixed, 8,6));
+              MiddlePos.Lat := GPSData.Lat;
+              MiddlePos.Lon := GPSData.Lon;
+              MUIMapPanel.RefreshImage;
+            end
+            else
+            begin
+              GPSData.Date := OldDate;
+            end;
+            StartTime := GetMUITime;
+          end;
           SetTilesToLoad(ImagesToLoad);
           SetNumTiles(ImageList.Count);
           SetNumFromNet(LNumLoaded);
@@ -1994,7 +1994,7 @@ begin
     MH_Set(Window, MUIA_Window_Open, AsTag(False));
     {$ifdef AmigaOS4}sysdebugln('20');{$endif}
   finally
-		CloseGPS;			
+    CloseGPS;
     {$ifdef AmigaOS4}sysdebugln('21');{$endif}
     if Assigned(MapFeatureMenu) then
       MUI_DisposeObject(MapFeatureMenu);

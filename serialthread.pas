@@ -26,13 +26,13 @@ const
   SDCMD_BREAK = CMD_NONSTD + 1; // $0A
   SDCMD_SETPARAMS = CMD_NONSTD + 2; // $0B
 
-  SERB_XDISABLED = 7;	    // xOn-xOff feature disabled bit
-  SERF_XDISABLED = 1 shl 7;	// xOn-xOff feature disabled mask
+  SERB_XDISABLED = 7;     // xOn-xOff feature disabled bit
+  SERF_XDISABLED = 1 shl 7; // xOn-xOff feature disabled mask
   SERB_EOFMODE = 6;         // EOF mode enabled bit
   SERF_EOFMODE = 1 shl 6;   // EOF mode enabled mask
-  SERB_PARTY_ON	= 0;	    // parity-enabled bit
-  SERF_PARTY_ON	= 1 shl 0;  // parity-enabled mask
-  
+  SERB_PARTY_ON = 0;      // parity-enabled bit
+  SERF_PARTY_ON = 1 shl 0;  // parity-enabled mask
+
 type
   TIOTArray = record
     TermArray0: LongWord;
@@ -54,7 +54,7 @@ type
     io_SerFlags: Byte;    //;   /* serial device flags */
     io_Status: Word;    //;     /* status of serial port and lines */
   end;
-  PIOExtSer = ^TIOExtSer; 
+  PIOExtSer = ^TIOExtSer;
   {$endif}
 
   TGPSData = record
@@ -112,15 +112,15 @@ type
     constructor Create(ADeviceName: string; AUnitNumber: Integer; ABaudRate: Integer); reintroduce;
     destructor Destroy; override;
     procedure GetData(var ExData: TGPSData);
-	  property Device: string read DeviceName;
-	  property UnitNum: Integer read UnitNumber;
-	  property Baud: Integer read BaudRate;
+    property Device: string read DeviceName;
+    property UnitNum: Integer read UnitNumber;
+    property Baud: Integer read BaudRate;
   end;
 
   procedure DebugOut(Msg: String);
 
 var
-	GPSData: TGPSData;
+  GPSData: TGPSData;
 
 implementation
 
@@ -145,7 +145,7 @@ begin
     Result^.io_Message.mn_Node.ln_Type := NT_REPLYMSG;
     Result^.io_Message.mn_ReplyPort := Mp;
     Result^.io_Message.mn_Length := Size;
-  end;  
+  end;
 end;
 
 procedure DeleteExtIO(ioReq: PIORequest);
@@ -218,7 +218,7 @@ begin
   begin
     AbortIO(iod);
     WaitIO(iod);
-  end;  
+  end;
   if DevOpen then
     CloseDevice(iod);
   if Assigned(io) then
@@ -318,7 +318,7 @@ begin
     begin
       DebugOut('speed ' + SL[6]);
       Exit;
-    end;  
+    end;
     Data.Speed := sp;
     DebugOut('Speed: ' + FloatToStrF(sp, ffFixed, 8,2) + ' km/h');
   end;
@@ -427,7 +427,7 @@ begin
       Data.Height := Hei;
     if (Sat >= 0) and (not isNan(Hei)) then
       DebugOut('Height: ' + FloatToStrF(Hei, ffFixed, 8,1) + 'm ; NumSat: ' + IntToStr(Sat) + '/12');
-      
+
   end;
 end;
 
@@ -466,7 +466,7 @@ begin
   begin
     // Number
     Num := StrToIntDef(SL[Idx], -1);
-    Inc(Idx);    
+    Inc(Idx);
     // Elevation
     Elevation := StrToIntDef(SL[Idx], -1);
     Inc(Idx);
@@ -500,7 +500,7 @@ begin
       P1 := Pos('*', Msg);
       if P1 > 0 then
         Delete(Msg, P1, Length(Msg)); // Remove Checksum
-      //  
+      //
       //ExtractStrings([','], [], PChar(Msg), SL);
       SL.Text := StringReplace(Msg, ',', #13#10, [rfReplaceAll]);
       if SL.Count = 0 then
@@ -540,7 +540,7 @@ begin
   begin
     Terminate;
     Exit;
-  end;  
+  end;
   try
     repeat
       {$ifdef HASAMIGA}
@@ -556,7 +556,7 @@ begin
       begin
         Sleep(10);
         if Terminated then
-	  Break;
+    Break;
       end;
       IORunning := False;
       WaitIO(iod);
@@ -615,8 +615,8 @@ end;
 initialization
   FormatSettings.DecimalSeparator := '.';
   GPSData.Valid := False;
-  GPSData.Position.Lat := 0;
-  GPSData.Position.Lon := 0;
+  GPSData.Lat := 0;
+  GPSData.Lon := 0;
 finalization
 
 end.

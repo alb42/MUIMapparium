@@ -4,7 +4,7 @@ interface
 uses
   SysUtils, StrUtils;
 const
-  VERSIONSTRING = '$VER: MUIMapparium 0.7 (16.05.2018)';
+  VERSIONSTRING = '$VER: MUIMapparium 0.8 (16.05.2018)';
 var
   WindowTitleTemplate: string;
   VersionMajor: Integer;
