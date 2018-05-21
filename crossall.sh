@@ -11,6 +11,7 @@ rm -f errmsg.log
 
 
 function copyit {
+  mkdir -p Release.${plat}/MUIMapparium/Catalogs/deutsch/
   cp Catalogs/deutsch/MUIMapparium.catalog Release.${plat}/MUIMapparium/Catalogs/deutsch/
   cp locale/MUIMapparium.cd Release.${plat}/MUIMapparium/Catalogs/
   cp MUIMapparium.guide Release.${plat}/MUIMapparium/
