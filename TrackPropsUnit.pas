@@ -609,11 +609,7 @@ begin
     //
     if AslRequestTags(fr, [TAG_END]) then
     begin
-      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
-      OldFilename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
-      {$else}
       OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
-      {$endif}
       SaveToHTML(OldFilename);
     end;
     FreeAslRequest(fr);

@@ -215,7 +215,18 @@ text to search for into the edit and press Enter to start the search.
 The search results are shown in the @{i}Search@{ui} Tab of the
 @{i}Side Panel@{ui} see there. If there is only one search result the
 map will automatically jump to that position.
-The search bar also supports some other inputs.
+
+Tips for searching:
+always divide the parts of the address by a comma and keep the ordering
+number, street, city, post code, country
+e.g.
+103, Friedrichstrasse, Berlin
+or
+103, Friedrichstrasse, Berlin, 10117
+or
+103, Friedrichstrasse, Berlin, 10117, Germany
+
+The search bar also supports some other inputs:
 
 IP Location:
 You can search for a location of an IP (geo ip localization). Currently

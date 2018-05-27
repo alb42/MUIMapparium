@@ -488,11 +488,7 @@ begin
     //
     if AslRequestTags(fr, [TAG_END]) then
     begin
-      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
-      OldFilename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
-      {$else}
       OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
-      {$endif}
       OldFilename := ChangeFileExt(OldFilename, '.png');
       MUIMapPanel.SaveToFile(OldFilename);
     end;
@@ -981,15 +977,6 @@ begin
     begin
       Added := 0;
       NotAdded := 0;
-      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
-      for i := 1 to  fr^.rf_NumArgs do
-      begin
-        if PhotoList.AddPhoto(GetFilename(string(fr^.rf_Dir), string(PWBArgList(fr^.rf_ArgList)^[i].wa_Name))) = 0 then
-          Inc(Added)
-        else
-          Inc(NotAdded);
-      end;
-      {$else}
       for i := 1 to  fr^.fr_NumArgs do
       begin
         if PhotoList.AddPhoto(GetFilename(string(fr^.fr_Drawer), string(PWBArgList(fr^.fr_ArgList)^[i].wa_Name))) = 0 then
@@ -998,7 +985,6 @@ begin
           Inc(NotAdded);
       end;
       //OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
-      {$endif}
       UpdatePhotosList;
       ShowMessage('Message', GetLocString(MSG_GENERAL_OK), IntToStr(Added) + ' Photos added'#10 + IntToStr(NotAdded) +  ' Photos not added (no GPS informations)');
     end;

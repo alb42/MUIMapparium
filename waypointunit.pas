@@ -166,11 +166,7 @@ begin
     //
     if AslRequestTags(fr, [TAG_END]) then
     begin
-      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
-      OldFilename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
-      {$else}
       OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
-      {$endif}
       if LowerCase(ExtractFileExt(OldFilename)) = '.gpx' then
         LoadWayPoints(OldFilename);
       if (LowerCase(ExtractFileExt(OldFilename)) = '.kml') or (LowerCase(ExtractFileExt(OldFilename)) = '.kmz') then
@@ -205,11 +201,7 @@ begin
     //
     if AslRequestTags(fr, [TAG_END]) then
     begin
-      {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
-      OldFilename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
-      {$else}
       OldFilename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
-      {$endif}
       OldFilename := ChangeFileExt(OldFilename, '.gpx');
       SaveWayPoints(OldFilename);
     end;

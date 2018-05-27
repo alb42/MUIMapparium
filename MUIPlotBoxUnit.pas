@@ -1175,11 +1175,7 @@ begin
     begin
       if AslRequestTags(fr, [TAG_END]) then
       begin
-        {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
-        Filename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
-        {$else}
         Filename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
-        {$endif}
         OldDrawer := ExtractFilePath(Filename);
       end;
       FreeAslRequest(fr);
@@ -1225,11 +1221,7 @@ begin
     begin
       if AslRequestTags(fr, [TAG_END]) then
       begin
-        {$if defined(VER3_0) or defined(MorphOS) or defined(Amiga68k)}
-        Filename := IncludeTrailingPathDelimiter(string(fr^.rf_dir)) + string(fr^.rf_file);
-        {$else}
         Filename := IncludeTrailingPathDelimiter(string(fr^.fr_drawer)) + string(fr^.fr_file);
-        {$endif}
         OldDrawer := ExtractFilePath(Filename);
       end;
       FreeAslRequest(fr);
