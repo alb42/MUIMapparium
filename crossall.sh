@@ -1,6 +1,7 @@
 #!/bin/bash -e
 
-fpc makeversion.pas
+mkdir -p units/linux
+fpc -B -FUunits/linux makeversion.pas
 
 ./makeversion >mapparium.version
 ver=$(cat mapparium.version)
@@ -30,6 +31,7 @@ echo "################# AROS ##########################"
 echo "" >>errmsg.log
 echo "################# AROS ##########################" >>errmsg.log
 plat="i386-aros"
+rm -rf units/${plat}
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
 fpc4aros.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
@@ -42,6 +44,7 @@ echo "################# ARM AROS ######################"
 echo "" >>errmsg.log
 echo "################# ARM AROS ##########################" >>errmsg.log
 plat="arm-aros"
+rm -rf units/${plat}
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
 fpc4arosarm.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
@@ -54,6 +57,7 @@ echo "################# AROS64 ########################"
 echo "" >>errmsg.log
 echo "################# AROS64 ##########################" >>errmsg.log
 plat="x86_64-aros"
+rm -rf units/${plat}
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
 fpc4aros64.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
@@ -66,12 +70,14 @@ echo "################# Amiga #########################"
 echo "" >>errmsg.log
 echo "################# Amiga #########################" >>errmsg.log
 plat="m68k-amiga"
+rm -rf units/m68k-amiga
 mkdir -p units/m68k-amiga
 echo "  Compile ${plat}"
 fpc4amiga.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium_NoFPU MUIMapparium.pas >>errmsg.log
 m68k-amigaos-strip --strip-all Release.${plat}/MUIMapparium/MUIMapparium_NoFPU
 chmod a+rwx Release.${plat}/MUIMapparium/MUIMapparium_NoFPU
 #noFPU version
+rm -rf units/m68k-amiga-fpu
 mkdir -p units/m68k-amiga-fpu
 echo "  Compile ${plat}-fpu"
 fpc4amigafpu.sh -B -Xs -FUunits/m68k-amiga-fpu -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
@@ -86,6 +92,7 @@ echo "################# MorphOS #######################"
 echo "" >>errmsg.log
 echo "################# MorphOS #######################" >>errmsg.log
 plat="powerpc-morphos"
+rm -rf units/${plat}
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
 fpc4mos.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log
@@ -99,6 +106,7 @@ echo "################# AmigaOS4 ######################"
 echo "" >>errmsg.log
 echo "################# AmigaOS4 ######################" >>errmsg.log
 plat="powerpc-amiga"
+rm -rf units/${plat}
 mkdir -p units/${plat}
 echo "  Compile ${plat}"
 fpc4os4.sh -B -Xs -FUunits/${plat} -oRelease.${plat}/MUIMapparium/MUIMapparium MUIMapparium.pas >>errmsg.log

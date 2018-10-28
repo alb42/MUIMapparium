@@ -579,6 +579,8 @@ begin
   MH_Set(AboutWin, MUIA_Window_Open, AsTag(True));
 end;
 
+var
+  WinTitle: string;
 
 // Create About window
 procedure CreateAboutWin;
@@ -587,8 +589,10 @@ begin
     //MUIA_Font, AsTag(MUIV_Font_Fixed),
     TAG_DONE]);
   //
+  WinTitle := GetLocString(MSG_MENU_ABOUT) + ' MUIMapparium';
+  //
   AboutWin := MH_Window([
-    MUIA_Window_Title,     AsTag(PChar(GetLocString(MSG_MENU_ABOUT) + ' MUIMapparium')),
+    MUIA_Window_Title,     AsTag(PChar(WinTitle)),
     MUIA_Window_ID,        AsTag(MAKE_ID('A','B','O','U')),
     MUIA_HelpNode,         AsTag('AboutWin'),
     WindowContents, AsTag(MH_HGroup([

@@ -25,8 +25,8 @@ begin
   //
   Delete(Str, 1, Pos(' ', Str));
   VerN := StrToFloatDef(Str, 0.0);
-  VersionMajor := Trunc(VerN);
-  VersionMinor := Round(10 * Frac(VerN));
+  VersionMajor := StrToIntDef(Copy(Str, 1, Pos('.', Str)), 0);
+  VersionMinor := StrToIntDef(Copy(Str, Pos('.', Str) + 1, Length(Str)), 0);
 end;
 
 
