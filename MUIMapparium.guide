@@ -102,6 +102,7 @@ you experience slow map movement, with the NoFPU version, don't blame me
 0.8
 
 * Use Shift for fast scrolling in Map
+* Amiga + F to jump directly to Search bar
 
 0.7
 
@@ -309,6 +310,7 @@ online routing service. See {"route properties" LINK RouteWin}.
   Find Me - Use your current IP to locate your position (Network needed)
             Attention: IP location is known to be very inprecise or even
                        wrong for dynamic IP ranges.
+  Search - Jumpt directly to Search bar in the main window
   Zoom Out
   Zoom In - Zoom in or out the big map.
   Draw Marker,

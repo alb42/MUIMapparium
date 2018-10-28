@@ -34,6 +34,7 @@ const
   MID_About       = 16;
   MID_AboutMUI    = 17;
   MID_ExportPNG   = 18;
+  MID_Search      = 19;
 
 var
   TabStrings: array[0..5] of string = ('Search', 'WayPoints', 'Tracks', 'Routes', 'Photos', 'Photos');
@@ -523,6 +524,7 @@ begin
     MID_Help: StartHelp;
     MID_About: OpenAboutWindow;
     MID_AboutMUI: DoMethod(App, [MUIM_Application_AboutMUI, AsTag(Window)]);
+    MID_SEARCH: MH_Set(Window, MUIA_Window_ActiveObject, AsTag(SearchEdit));
   end;
   Result := 0;
 end;
@@ -1687,6 +1689,11 @@ begin
         Child, AsTag(MH_MenuItem([
           MUIA_Menuitem_Title, AsTag(GetLocString(MSG_MENU_MAP_FINDME)),//  'Find me'
           MUIA_UserData, MID_FINDME,
+          TAG_DONE])),
+        Child, AsTag(MH_MenuItem([
+          MUIA_Menuitem_Title, AsTag(GetLocString(MSG_FRAME_SEARCH)),//  'Search'
+          MUIA_Menuitem_Shortcut, AsTag('F'), // 'F'
+          MUIA_UserData, MID_SEARCH,
           TAG_DONE])),
         Child, AsTag(MH_MenuItem([
           MUIA_Menuitem_Title, AsTag(-1),
