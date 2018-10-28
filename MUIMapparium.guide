@@ -99,6 +99,10 @@ you experience slow map movement, with the NoFPU version, don't blame me
 
 @NODE history "History"
 
+0.8
+
+* Use Shift for fast scrolling in Map
+
 0.7
 
 * BugFix: Search Function

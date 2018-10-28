@@ -131,6 +131,8 @@ end;
 
 // Key Down Event
 procedure TMapPanel.KeyDownEvent(Sender: TObject; Shift: TMUIShiftState; Code: Word; Key: Char; var EatEvent: Boolean);
+var
+  XOffset, YOffset: Integer;
 begin
   // Tweak the code as we like
   if Key = '+' then
@@ -138,27 +140,34 @@ begin
   if Key = '-' then
     Code := 93;
   //
+  XOffset := 10;
+  YOffset := 10;
+  if mssShift in Shift then
+  begin
+    XOffset := Obj_Width(MUIObject);
+    YOffset := Obj_Height(MUIObject);
+  end;
   case Code of
     94: ZoomIn(False); // mouse wheel up and + on numpad
     93: ZoomOut;       // mouse wheel down and - on numpad
     CURSORDOWN:
       begin
-        MiddlePos := PixelToPos(Point(Obj_Width(MUIObject) div 2, Obj_Height(MUIObject) div 2 + 10));
+        MiddlePos := PixelToPos(Point(Obj_Width(MUIObject) div 2, Obj_Height(MUIObject) div 2 + YOffset));
         RefreshImage;
       end;
     CURSORUP:
       begin
-        MiddlePos := PixelToPos(Point(Obj_Width(MUIObject) div 2, Obj_Height(MUIObject) div 2 - 10));
+        MiddlePos := PixelToPos(Point(Obj_Width(MUIObject) div 2, Obj_Height(MUIObject) div 2 - YOffset));
         RefreshImage;
       end;
     CURSORRIGHT:
       begin
-        MiddlePos := PixelToPos(Point(Obj_Width(MUIObject) div 2 + 10, Obj_Height(MUIObject) div 2));
+        MiddlePos := PixelToPos(Point(Obj_Width(MUIObject) div 2 + XOffset, Obj_Height(MUIObject) div 2));
         RefreshImage;
       end;
     CURSORLEFT:
       begin
-        MiddlePos := PixelToPos(Point(Obj_Width(MUIObject) div 2 - 10, Obj_Height(MUIObject) div 2));
+        MiddlePos := PixelToPos(Point(Obj_Width(MUIObject) div 2 - XOffset, Obj_Height(MUIObject) div 2));
         RefreshImage;
       end;
   end;
