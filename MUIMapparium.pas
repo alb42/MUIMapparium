@@ -2007,6 +2007,8 @@ begin
 end;
 
 {$ifdef AMIGA68k}
+const
+  AFF_68080 = 1 shl 10;
 procedure TestVampire;
 var
   a: Double;
@@ -2022,7 +2024,12 @@ end;
 
 begin
   {$ifdef AMIGA68k}
-    TestVampire;
+  TestVampire;
+  if (PExecBase(AOS_ExecBase)^.AttnFlags and AFF_68080) <> 0 then
+  begin
+    Writeln('Anti-Coffin copy-protection, blocking Vampire.');
+    halt(0);
+  end;
   {$endif}
   StartMe;
 end.

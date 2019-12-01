@@ -103,6 +103,10 @@ you experience slow map movement, with the NoFPU version, don't blame me
 
 * Use Shift for fast scrolling in Map
 * Amiga + F to jump directly to Search bar
+* Updated search url
+* Updated IP search url
+* jump automatically to first search entry
+* use latest fpc -> 68k optimizations
 
 0.7
 
