@@ -1,10 +1,16 @@
 CPU=$(shell "fpc" -iTP)
 OS=$(shell "fpc" -iTO)
+MYFPC=fpc
+ifeq ($(OS),linux)
+MYFPC=fpc4aros.sh
+CPU=i386
+OS=aros
+endif
 UNITSDIR=units/$(CPU)-$(OS)
 
 MUIMapp: $(UNITSDIR) MUIMapparium.pas
 	@echo Create units in $<
-	@fpc -g- -FU$< MUIMapparium.pas
+	@$(MYFPC) -g- -FU$< MUIMapparium.pas
 	@echo Units created in $<
 	
 
