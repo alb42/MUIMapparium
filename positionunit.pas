@@ -171,11 +171,17 @@ end;
 
 
 initialization
+  //writeln('ener position');
   MiddlePos.Lat := Prefs.StartPosLat;
+  //writeln(1);
   MiddlePos.Lon := Prefs.StartPosLon;
+  //writeln(2);
   CurZoom := Prefs.StartZoom;
+  //writeln(3);
   FullBitmap := TFPAMemImage.create(10,10);
+  //writeln(4);
   FullCanvas := TFPACanvas.Create(FullBitmap);
+  //writeln('leave position');
 finalization
   FullCanvas.Free;
   FullBitmap.Free;

@@ -422,6 +422,7 @@ var
   ic: TFPACanvas;
 
 initialization
+  //writeln('enter imagesunit');
   GetDirectories;
 
   ITFMutex := TCriticalSection.Create;
@@ -438,6 +439,7 @@ initialization
 
   ImageLoadThread := TImageLoadThread.Create(True);
   ImageLoadThread.Start;
+  //writeln('leave imagesunit');
 finalization
   ImageLoadThread.Terminate;
   ImageLoadThread.WaitFor;

@@ -233,9 +233,9 @@ begin
   EncStr := '';
   for i := 1 to Length(SearchTerm) do
     EncStr := EncStr + '%' + IntToHex(Ord(SearchTerm[i]),2);
-  Url := SEARCHURL + EncStr + '&format=xml&accept-language=' + Prefs.SearchLang;
+  Url := SEARCHURL + EncStr + '&format=xml&limit=20&accept-language=' + Prefs.SearchLang;
   //Url := SEARCHURL + EncStr + '?format=xml&accept-language=' + Prefs.SearchLang;
-  sysdebugln(URL);
+  //sysdebugln(URL);
   Mem := TMemoryStream.Create;
   SText := '';
   try
@@ -279,6 +279,12 @@ begin
       end;
       if SRes.Count = 0 then
       begin
+        if (Pos(',', SearchTerm) = 0) and (Pos(' ', SearchTerm) > 0) then
+        begin
+          SearchTerm := StringReplace(SearchTerm, ' ', ', ', [rfReplaceAll]);
+          SearchEntry(SearchTerm);
+          Exit;
+        end;
         SearchTitleStr := Format(GetLocString(MSG_ERROR_NOTHINGFOUND), [SearchTerm]); //'Nothing found for "'+SearchTerm+'"'#0;
         MH_Set(SearchListEntry, MUIA_List_Title, AsTag(@SearchTitleStr[1]));
       end
@@ -286,12 +292,14 @@ begin
       begin
         SearchTitleStr :=  Format(GetLocString(MSG_SEARCH_RESULTS), [SRes.Count, SearchTerm]);
         MH_Set(SearchListEntry, MUIA_List_Title, AsTag(@SearchTitleStr[1]));
-        if SRes.Count = 1 then
+        if SRes.Count > 0 then
         begin
+          SR := SRes[0];
           MiddlePos.Lat := SR.Lat;
           MiddlePos.Lon := SR.Lon;
           CurZoom:= SR.Zoom;
           MUIMapPanel.RefreshImage;
+          MH_Set(SearchListEntry, MUIA_List_Active, 0);
         end;
       end;
     end else
@@ -327,12 +335,13 @@ var
   c, r: TJSONStringType;
 begin
   //URL:='http://ip-api.com/json';
-  URL:='http://freegeoip.net/json/';
+  //URL:='http://freegeoip.net/json/';
+  URL:='http://osm.alb42.de/mmipsearch.php?ip=';
   if ip <> '' then
     Url := URL + ip;
   St := TStringStream.Create('');
   try
-    if GetCurlFile(Url, St) then
+    if GetFile(Url, St) then
     begin
       //St.Position := 0;
       ST.Position := 0;
@@ -1509,7 +1518,6 @@ var
   i: Integer;
   OldDate: TDateTime;
 begin
-  {$ifdef AmigaOS4}sysdebugln('1');{$endif}
   SidePanelOpen := Prefs.SidePanelOpen;
   //Initialize Frame titles 'Search', 'WayPoints', 'Tracks'
   TabStrings[0] := string(GetLocString(MSG_FRAME_SEARCH));
@@ -1522,7 +1530,6 @@ begin
     TabTitles[i] := PChar(TabStrings[i]);
   // remove Fotos for now
   TabTitles[High(TabStrings)] := nil;
-  {$ifdef AmigaOS4}sysdebugln('2');{$endif}
   SRes := TSearchResults.Create;
   // Prefs
   OnUpdatePrefs := @UpdatePrefs;
@@ -1533,14 +1540,12 @@ begin
   OnRouteGoToPos := @GoToPosEvent;
   OnRouteChanged := @RouteChangedEvent;
   OnNextPhoto := @NextPhotoEvent;
-  {$ifdef AmigaOS4}sysdebugln('3');{$endif}
   try
     SearchTitleStr :=  GetLocString(MSG_SEARCH_RESULTS_TITLE); // 'Search Results';
     //
     StrCoord := FloatToStrF(MiddlePos.Lat, ffFixed, 8,6) + ' ; ' + FloatToStrF(MiddlePos.Lon, ffFixed, 8,6) + ' ; ' + IntToStr(CurZoom) + '  ';
     StrCoord := Format('%25s', [StrCoord]);
     //
-    {$ifdef AmigaOS4}sysdebugln('4');{$endif}
     // Popupmenu for Lists ++++++++++++++++++++++++++++++++++++++
     MapFeatureMenu := MH_Menustrip([
       Child, AsTag(MH_Menu(GetLocString(MSG_POPUP_FEATURE), [                   // 'Map Feature'
@@ -1560,7 +1565,6 @@ begin
         TAG_DONE])),
       TAG_DONE]);
     //
-    {$ifdef AmigaOS4}sysdebugln('5');{$endif}
     // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //
     // Side Panel
@@ -1656,7 +1660,6 @@ begin
         //
         TAG_DONE])),
       TAG_DONE]);
-    {$ifdef AmigaOS4}sysdebugln('6');{$endif}
     if not Assigned(SidePanel) then
       writeln(GetLocString(MSG_ERROR_SIDEPANEL));  //  'Failed to create SidePanel.'
     //
@@ -1776,19 +1779,15 @@ begin
         TAG_DONE])),
       TAG_DONE]);
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    {$ifdef AmigaOS4}sysdebugln('7');{$endif}
     MUIMapPanel := TMapPanel.Create([MUIA_Weight, 200, TAG_DONE]);
     MUIMapPanel.OnUpdateLocationLabel := @UpdateLocationLabel;
     MUIMapPanel.OnSidePanelOpen := @SidePanelOpenEvent;
     MUIMapPanel.ShowSidePanelBtn := not SidePanelOpen;
-    {$ifdef AmigaOS4}sysdebugln('8');{$endif}
     UpdatePrefs;
-    {$ifdef AmigaOS4}sysdebugln('9');{$endif}
     // Application +++++++++++++++++++++++++++++++++++++++++++++++++++++
     MH_SetHook(RexxHook, @RexxHookEvent, nil);
     //
     ThisAppDiskIcon := GetDiskObject(PChar(ParamStr(0)));
-    {$ifdef AmigaOS4}sysdebugln('10');{$endif}
     //
     App := MH_Application([
       MUIA_Application_Title,       AsTag('MUIMapparium'),
@@ -1833,13 +1832,11 @@ begin
       SubWindow, AsTag(AboutWin),
       SubWindow, AsTag(PhotoShowWin),
       TAG_DONE]);
-    {$ifdef AmigaOS4}sysdebugln('11');{$endif}
     if not Assigned(app) then
     begin
       writeln(GetLocString(MSG_ERROR_APPLICATION));   // 'Failed to create Application'
       Exit;
     end;
-    {$ifdef AmigaOS4}sysdebugln('12');{$endif}
     // version app set
     WrapApp := App;
     WrapWin := Window;
@@ -1886,27 +1883,21 @@ begin
     DoMethod(PrefsWin, [MUIM_Notify, MUIA_Window_Open, MUI_FALSE,
       AsTag(Window), 3, MUIM_SET, MUIA_Window_Sleep, AsTag(False)]);
     //
-    {$ifdef AmigaOS4}sysdebugln('13');{$endif}
     // Update waypoints before open the window first time
     UpdateWayPoints;
     UpdateTracks;
     UpdateRoutes;
     //
-    {$ifdef AmigaOS4}sysdebugln('14');{$endif}
     // open additionally the stat window if needed
     if Prefs.StatWinOpen then
       MH_Set(StatWin, MUIA_Window_Open, AsTag(True));
-    {$ifdef AmigaOS4}sysdebugln('15');{$endif}
     // open the window
     MH_Set(Window, MUIA_Window_Open, AsTag(True));
-    {$ifdef AmigaOS4}sysdebugln('16');{$endif}
     //
     if Prefs.StatWinOpen then
       DoMethod(StatWin, [MUIM_Window_ToFront]);
-    {$ifdef AmigaOS4}sysdebugln('17');{$endif}
     if MH_Get(Window, MUIA_Window_Open) <> 0 then
     begin
-      {$ifdef AmigaOS4}sysdebugln('18');{$endif}
       Running := True;
       InitGPS;
 
@@ -1942,8 +1933,8 @@ begin
             SerThread.GetData(GPSData);
             if Abs(GPSData.Date - OldDate) * 24 * 60 * 60 > 1 then
             begin
-              sysdebugln(DateTimeToStr(GPSData.Date) + ' Num Sat: ' + IntToStr(GPSData.NumSatelites) + ' / 12   Pos: ' +
-                FloatToStrF(GPSData.Lat, ffFixed, 8,6) + ';' + FloatToStrF(GPSData.Lon, ffFixed, 8,6));
+              //writeln(DateTimeToStr(GPSData.Date) + ' Num Sat: ' + IntToStr(GPSData.NumSatelites) + ' / 12   Pos: ' +
+              //  FloatToStrF(GPSData.Lat, ffFixed, 8,6) + ';' + FloatToStrF(GPSData.Lon, ffFixed, 8,6));
               MiddlePos.Lat := GPSData.Lat;
               MiddlePos.Lon := GPSData.Lon;
               MUIMapPanel.RefreshImage;
@@ -1976,7 +1967,6 @@ begin
       writeln('Failed to open Window.');
       Exit;
     end;
-    {$ifdef AmigaOS4}sysdebugln('19');{$endif}
     //
     Prefs.StatWinOpen := LongBool(MH_Get(StatWin, MUIA_Window_Open));
     if Prefs.StatWinOpen then
@@ -1985,24 +1975,17 @@ begin
     Prefs.SidePage := MH_Get(ListTabs, MUIA_Group_ActivePage);
     // end of main loop, close window if still open
     MH_Set(Window, MUIA_Window_Open, AsTag(False));
-    {$ifdef AmigaOS4}sysdebugln('20');{$endif}
   finally
     CloseGPS;
-    {$ifdef AmigaOS4}sysdebugln('21');{$endif}
     if Assigned(MapFeatureMenu) then
       MUI_DisposeObject(MapFeatureMenu);
-    {$ifdef AmigaOS4}sysdebugln('22');{$endif}
     if Assigned(App) then
       MUI_DisposeObject(app);
-    {$ifdef AmigaOS4}sysdebugln('23');{$endif}
     if Assigned(ThisAppDiskIcon) then
       FreeDiskObject(ThisAppDiskIcon);
-    {$ifdef AmigaOS4}sysdebugln('24');{$endif}
     SRes.Free;
-    {$ifdef AmigaOS4}sysdebugln('25');{$endif}
     MUIMapPanel.Free;
   end;
-  {$ifdef AmigaOS4}sysdebugln('26');{$endif}
 end;
 
 {$ifdef AMIGA68k}

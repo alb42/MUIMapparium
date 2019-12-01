@@ -321,5 +321,7 @@ begin
 end;
 
 initialization
+  //writeln('enter photo');
   CreatePhotoWin;
+  //writeln('leave photo');
 end.

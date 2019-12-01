@@ -458,7 +458,9 @@ begin
 end;
 
 initialization
+  //writeln('Enter PaintBox');
   MakePaintBoxClass;
+  //writeln('leave paintbox');
 finalization
   FreePaintBoxClass;
 end.

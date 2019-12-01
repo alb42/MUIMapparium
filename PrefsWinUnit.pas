@@ -45,11 +45,11 @@ begin
   StartPos.Lat := Prefs.StartPosLat;
   StartPos.Lon := Prefs.StartPosLon;
   StartZoom := Prefs.StartZoom;
-	//GPS
-	MH_Set(UseGPS, MUIA_Selected, AsTag(Prefs.UseGPS));
-	MH_Set(GPSDevice, MUIA_String_Contents, AsTag(PChar(Prefs.GPSDevice)));
-	MH_Set(GPSUnit, MUIA_String_Integer, Prefs.GPSUnit);
-	MH_Set(GPSBaud, MUIA_String_Integer, Prefs.GPSBaud);
+  //GPS
+  MH_Set(UseGPS, MUIA_Selected, AsTag(Prefs.UseGPS));
+  MH_Set(GPSDevice, MUIA_String_Contents, AsTag(PChar(Prefs.GPSDevice)));
+  MH_Set(GPSUnit, MUIA_String_Integer, Prefs.GPSUnit);
+  MH_Set(GPSBaud, MUIA_String_Integer, Prefs.GPSBaud);
 
   //
   MH_Set(PrefsWin, MUIA_Window_Open, AsTag(True));
@@ -68,11 +68,11 @@ begin
   Prefs.StartPosLat := StartPos.Lat;
   Prefs.StartPosLon := StartPos.Lon;
   Prefs.StartZoom := StartZoom;
-	// GPS
-	Prefs.UseGPS := Boolean(MH_Get(UseGPS, MUIA_Selected));
-	Prefs.GPSDevice := PChar(MH_Get(GPSDevice, MUIA_String_Contents));
-	Prefs.GPSUnit := MH_Get(GPSUnit, MUIA_String_Integer);
-	Prefs.GPSBaud := MH_Get(GPSBaud, MUIA_String_Integer);
+  // GPS
+  Prefs.UseGPS := Boolean(MH_Get(UseGPS, MUIA_Selected));
+  Prefs.GPSDevice := PChar(MH_Get(GPSDevice, MUIA_String_Contents));
+  Prefs.GPSUnit := MH_Get(GPSUnit, MUIA_String_Integer);
+  Prefs.GPSBaud := MH_Get(GPSBaud, MUIA_String_Integer);
   //
   if Assigned(OnUpdatePrefs) then
     OnUpdatePrefs();
@@ -260,32 +260,32 @@ begin
         MUIA_FrameTitle, AsTag(GetLocString(MSG_FRAME_IMAGES)), // 'Photos'
         Child, AsTag(MH_Text('Use DataTypes'{GetLocString(MSG_PREFS_DEFLANG)})),    // 'Default search result language'
         Child, AsTag(MH_CheckMark(UseData, False)),
-				Child, AsTag(MH_HSpace(0)),
+        Child, AsTag(MH_HSpace(0)),
         TAG_DONE])),
-			Child, AsTag(MH_HGroup([
-			  MUIA_Group_Rows, 2,
+      Child, AsTag(MH_HGroup([
+        MUIA_Group_Rows, 2,
         MUIA_Frame, MUIV_Frame_Group,
         MUIA_FrameTitle, AsTag('GPS'), // 'GPS'
         Child, AsTag(MH_Text('Enabled'{GetLocString(MSG_PREFS_DEFLANG)})),    // 'Use GPS'
         Child, AsTag(MH_CheckMark(UseGPS, False)),
-				Child, AsTag(MH_Text('Device'{GetLocString(MSG_PREFS_DEFLANG)})),    // 'Device'
+        Child, AsTag(MH_Text('Device'{GetLocString(MSG_PREFS_DEFLANG)})),    // 'Device'
         Child, AsTag(MH_String(GPSDevice, [
-				  MUIA_String_Contents, AsTag('usbmodem.device'),
-					MUIA_FixWidthTxt, AsTag('devs:usbmodem.device'),
-				  MUIA_Frame, MUIV_Frame_String,
-					TAG_DONE])),
+          MUIA_String_Contents, AsTag('usbmodem.device'),
+          MUIA_FixWidthTxt, AsTag('devs:usbmodem.device'),
+          MUIA_Frame, MUIV_Frame_String,
+          TAG_DONE])),
         Child, AsTag(MH_Text('Unit'{GetLocString(MSG_PREFS_DEFLANG)})),    // 'Unit'
         Child, AsTag(MH_String(GPSUnit, [
-				  //MUIA_FixWidthTxt, AsTag('00000'),
-					MUIA_Frame, MUIV_Frame_String,
+          //MUIA_FixWidthTxt, AsTag('00000'),
+          MUIA_Frame, MUIV_Frame_String,
           MUIA_String_Format, MUIV_String_Format_Right,
           MUIA_String_Accept, AsTag('0123456789'),
           MUIA_String_Integer, 0,
           TAG_DONE])),
         Child, AsTag(MH_Text('Baud rate'{GetLocString(MSG_PREFS_DEFLANG)})),    // 'Baud'
         Child, AsTag(MH_String(GPSBaud, [
-				  //MUIA_FixWidthTxt, AsTag('000000'),
-				  MUIA_Frame, MUIV_Frame_String,
+          //MUIA_FixWidthTxt, AsTag('000000'),
+          MUIA_Frame, MUIV_Frame_String,
           MUIA_String_Format, MUIV_String_Format_Right,
           MUIA_String_Accept, AsTag('0123456789'),
           MUIA_String_Integer, 4800,
@@ -339,8 +339,9 @@ begin
 end;
 
 initialization
+  //writeln('enter prefs');
   CreatePrefsWin;
-
+  //writeln('leave prefs');
 finalization
 
 end.

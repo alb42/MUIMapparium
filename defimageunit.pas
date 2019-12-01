@@ -11,8 +11,12 @@ var
 
 implementation
 
+{$Align 8}
+
 {$include emptypng.inc}
 {$include errorpng.inc}
+
+{$Align 4}
 
 procedure OpenImages();
 var
@@ -46,7 +50,9 @@ end;
 
 
 initialization
+  //writeln('enter images');
   OpenImages;
+  //writeln('leave images');
 finalization
   ErrorBitmap.Free;
   EmptyBitmap.Free;

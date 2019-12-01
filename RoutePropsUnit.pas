@@ -910,12 +910,14 @@ end;
 
 
 initialization
+  //writeln('enter route');
   FromPos.Lat := NaN;
   FromPos.Lon := NaN;
   ToPos.Lat := NaN;
   ToPos.Lon := NaN;
   SRes := TSearchResults.Create;
   CreateRoutePropsWin;
+  //writeln('leave route');
 finalization
   SRes.Free;
 end.

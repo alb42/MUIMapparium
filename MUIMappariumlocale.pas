@@ -637,7 +637,9 @@ begin
 end;
 
 initialization
+  //writeln('enter locale');
   OpenCatalog(nil);
+  //writeln('leave locale');
 finalization
   CloseCatalog;
 end.

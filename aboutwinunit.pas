@@ -626,7 +626,9 @@ begin
 end;
 
 initialization
+  //writeln('enter about');
   CreateAboutWin;
+  //writeln('leave about');
 finalization
   PlayPanel.Free;
 end.

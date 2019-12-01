@@ -59,12 +59,12 @@ type
     function GetSidePanelOpen: Boolean;
     function GetSidePage: Integer;
     function GetUseDataTypes: Boolean;
-		function GetUseGPS: Boolean;
-		function GetGPSDevice: string;
+    function GetUseGPS: Boolean;
+    function GetGPSDevice: string;
     function GetGPSUnit: Integer;
-		function GetGPSBaud: Integer;
+    function GetGPSBaud: Integer;
 
-		
+
 
     procedure SetActiveImageColor(AValue: TColor);
     procedure SetActiveRouteColor(AValue: TColor);
@@ -92,8 +92,8 @@ type
     procedure SetSidePanelOpen(AValue: Boolean);
     procedure SetSidePage(AValue: Integer);
     procedure SetUseDataTypes(AValue: Boolean);
-		procedure SetUseGPS(AValue: Boolean);
-		procedure SetGPSDevice(AValue: string);
+    procedure SetUseGPS(AValue: Boolean);
+    procedure SetGPSDevice(AValue: string);
     procedure SetGPSUnit(AValue: Integer);
     procedure SetGPSBaud(AValue: Integer);
 
@@ -132,11 +132,11 @@ type
     property DClickMode: TDClickMode read GetDblMode write SetDblMode;
     // Photo Settings
     property UseDataTypes: Boolean read GetUseDataTypes write SetUseDataTypes;
-		// GPS Settings
-		property UseGPS: boolean read GetUseGPS write SetUseGPS;
-		property GPSDevice: string read GetGPSDevice write SetGPSDevice;
-		property GPSUnit: Integer read GetGPSUnit write SetGPSUnit;
-		property GPSBaud: Integer read GetGPSBaud write SetGPSBaud;
+    // GPS Settings
+    property UseGPS: boolean read GetUseGPS write SetUseGPS;
+    property GPSDevice: string read GetGPSDevice write SetGPSDevice;
+    property GPSUnit: Integer read GetGPSUnit write SetGPSUnit;
+    property GPSBaud: Integer read GetGPSBaud write SetGPSBaud;
 
   end;
 
@@ -468,7 +468,9 @@ begin
 end;
 
 initialization
+  //writeln('enter Prefs');
   Prefs := TPrefs.Create;
+  //writeln('leave prefs');
 finalization
   Prefs.Free;
 end.

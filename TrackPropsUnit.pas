@@ -839,7 +839,9 @@ end;
 
 
 initialization
+  //writeln('enter track');
   CreateTrackPropsWin;
+  //writeln('leave track');
 finalization
   PlotPanel.Free;
 end.

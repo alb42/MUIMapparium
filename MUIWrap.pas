@@ -33,8 +33,8 @@ procedure ConnectHookFunction(MUIField: PtrUInt; TriggerValue: PtrUInt; Obj: POb
 function CreateRastPort: PRastPort;
 procedure FreeRastPort(RP: PRastPort);
 {$endif}
-{$if defined(AROS) or defined(AmigaOS4))}
-function AllocAslRequestTags(reqType: LongWord; const Param: array of PtrUInt): Pointer;
+{$if defined(AROS)}
+//function AllocAslRequestTags(reqType: LongWord; const Param: array of PtrUInt): Pointer;
 {$endif}
 
 function ObtainPen(Color: LongWord): LongInt;
@@ -294,12 +294,13 @@ begin
   InitRastPort(Result);
 end;
 {$endif}
-{$if defined(AROS) or defined(AmigaOS4))}
+(*
+{$if defined(AROS)}
 function AllocAslRequestTags(reqType: LongWord; const Param: array of PtrUInt): Pointer;
 begin
-  Result := AllocAslRequest(reqType, Param);
+  Result := AllocAslRequest(reqType, @Param);
 end;
-{$endif}
+{$endif}*)
 
 procedure ShowMessage(Title, Button, Text: string);
 begin
@@ -307,9 +308,10 @@ begin
 end;
 
 initialization
+  //writeln('enter muiwrap');
   if not Assigned(Tr) then
     Tr := create_timer(UNIT_MICROHZ);
-
+  //writeln('leave muiwrap');
 finalization
   if Assigned(Tr) then
     Delete_timer(tr);

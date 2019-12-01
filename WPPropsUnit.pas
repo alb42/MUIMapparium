@@ -134,7 +134,9 @@ end;
 
 
 initialization
+  //writeln('enter WPProps');
   CreateWPPropsWin;
+  //writeln('leave WPProps');
 finalization
 
 end.

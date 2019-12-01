@@ -12,7 +12,7 @@ const
   BASEFILE = 'osm_';
 
   //SEARCHURL = 'http://nominatim.openstreetmap.org/search/';
-  SEARCHURL = 'http://osm.alb42.de/muimap.php?search=';
+  SEARCHURL = 'http://osm.alb42.de/mmsearch.php?search=';
   REVERSEURL = 'http://nominatim.openstreetmap.org/reverse';
 
 type

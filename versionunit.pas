@@ -31,6 +31,8 @@ end;
 
 
 initialization
+  //writeln('enter version');
   CreateVersion;
+  //writeln('leave version');
 
 end.

@@ -191,12 +191,14 @@ begin
 end;
 
 initialization
+  //writeln('enter stat');
   CreateStatWin;
   NumFromNetOffset := Prefs.DownFiles;
   NumFromHDOffset := Prefs.LoadedFiles;
   TimesOffset := Prefs.DownTime;
   BytesOffset := Prefs.DownBytes;
   Entries[STAT_DOWNLOAD].SessionNumber := -1;
+  //writeln('leave stat');
 finalization
   Prefs.DownFiles := NumFromNetOffset + Entries[STAT_TILESNET].SessionNumber;
   Prefs.LoadedFiles := NumFromHDOffset + Entries[STAT_TILESHD].SessionNumber;

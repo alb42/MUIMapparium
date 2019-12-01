@@ -1179,6 +1179,7 @@ begin
 end;
 
 initialization
+  //writeln('enter waypoint');
   Unpacker := TUnpacker.Create;
   // TrackList
   TrackList := TTrackList.Create(True);
@@ -1191,6 +1192,7 @@ initialization
   //
   // load defaults.gpx
   LoadWayPoints(AppDir + DirectorySeparator + DEFAULTGPX);
+  //writeln('leave waypoint');
 finalization
   // save defaults.gpx
   SaveWayPoints(AppDir + DirectorySeparator + DEFAULTGPX);

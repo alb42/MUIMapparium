@@ -34,7 +34,7 @@ var
   t1: Int64;
 begin
   Result := False;
-  hp.AddHeader('User-Agent', WindowTitleTemplate);
+  hp.AddHeader('User-Agent', WindowTitleTemplate + ' ' + {$INCLUDE %FPCTARGETCPU%} + '-' + {$INCLUDE %FPCTARGETOS%});
   t1 := GetMsCount;
   hp.Get(address, AStream);
   t1 := GetMsCount - t1;
@@ -53,7 +53,7 @@ begin
     Exit;
   hp := TFPHTTPClient.Create(nil);
   try
-    hp.AddHeader('User-Agent', WindowTitleTemplate);
+    hp.AddHeader('User-Agent', WindowTitleTemplate + ' ' + {$INCLUDE %FPCTARGETCPU%} + '-' + {$INCLUDE %FPCTARGETOS%});
     t1 := GetMsCount;
     hp.Get(address, AStream);
     t1 := GetMsCount - t1;
@@ -75,7 +75,7 @@ begin
     Exit;
   hp := TFPHTTPClient.Create(nil);
   try
-    hp.AddHeader('User-Agent', WindowTitleTemplate);
+    hp.AddHeader('User-Agent', WindowTitleTemplate + ' ' + {$INCLUDE %FPCTARGETCPU%} + '-' + {$INCLUDE %FPCTARGETOS%});
     hp.AddHeader('X-Yours-client', 'MUIMapparium');
     t1 := GetMsCount;
     hp.Get(address, AStream);
@@ -120,7 +120,7 @@ begin
     Exit;
   hp := TFPHTTPClient.Create(nil);
   try
-    hp.AddHeader('User-Agent', WindowTitleTemplate);
+    hp.AddHeader('User-Agent', WindowTitleTemplate + ' ' + {$INCLUDE %FPCTARGETCPU%} + '-' + {$INCLUDE %FPCTARGETOS%});
     t1 := GetMsCount;
     hp.Get(address, filename);
     t1 := GetMsCount - t1;
@@ -135,11 +135,13 @@ end;
 
 
 initialization
+  //writeln('enter network');
   {$ifdef HASAMIGA}
   IsOnline := Assigned(SocketBase);
   if not IsOnline then
     writeln('Warning, no internet connection found, Offline mode.');
   {$endif}
+  //writeln('leave network');
 finalization
 end.
 

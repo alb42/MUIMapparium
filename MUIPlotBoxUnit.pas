@@ -1308,7 +1308,7 @@ begin
     end;
     FRastPort := CreateRastPort;
     FLayerInfo := NewLayerInfo(); // Layerinfo we also need
-    FRastPort^.Bitmap := AllocBitMap(DrawRect.Width, DrawRect.Height, rp^.Bitmap^.Depth, BMF_MINPLANES or BMF_DISPLAYABLE, rp^.Bitmap);
+    FRastPort^.Bitmap := AllocBitMap(DrawRect.Width, DrawRect.Height, rp^.Bitmap^.Depth, {BMF_MINPLANES or BMF_DISPLAYABLE} 0, rp^.Bitmap);
     FRastPort^.Layer := CreateUpFrontHookLayer(FLayerInfo, FRastPort^.Bitmap, 0, 0, DrawRect.Width - 1, DrawRect.Height - 1, LAYERSIMPLE, nil, nil);
     // initialize Font
     SetFont(FRastPort, rp^.Font);
