@@ -597,19 +597,21 @@ end;
 
 procedure TSerThread.GetData(var ExData: TGPSData);
 begin
-  Crit.Enter;
-  ExData.CurSats := True;
-  ExData.Valid := Data.Valid;
-  ExData.Sats[ExData.CurSats] := Copy(Data.Sats[not Data.CurSats], 0, Length(Data.Sats[not Data.CurSats]));
-  ExData.Height := Data.Height;
-  ExData.Date := Data.Date;
-  ExData.Lat := Data.Lat;
-  ExData.Lon := Data.Lon;
-  ExData.Course := Data.Course;
-  ExData.SatID := Copy(Data.SatID, 0, Length(Data.SatID));
-  ExData.NumSatelites := Data.NumSatelites;
-  ExData.Speed := Data.Speed;
-  Crit.Leave;
+  if Crit.TryEnter then
+  begin
+    ExData.CurSats := True;
+    ExData.Valid := Data.Valid;
+    ExData.Sats[ExData.CurSats] := Copy(Data.Sats[not Data.CurSats], 0, Length(Data.Sats[not Data.CurSats]));
+    ExData.Height := Data.Height;
+    ExData.Date := Data.Date;
+    ExData.Lat := Data.Lat;
+    ExData.Lon := Data.Lon;
+    ExData.Course := Data.Course;
+    ExData.SatID := Copy(Data.SatID, 0, Length(Data.SatID));
+    ExData.NumSatelites := Data.NumSatelites;
+    ExData.Speed := Data.Speed;
+    Crit.Leave;
+  end;
 end;
 
 initialization

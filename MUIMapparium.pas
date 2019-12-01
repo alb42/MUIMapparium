@@ -71,7 +71,8 @@ var
   LockImgList: Boolean = False;
 
   SerThread: TSerThread = nil;
-  GPSData: TGPSData;
+
+  WinTitleText: string;
 
 procedure UpdateLocationLabel; forward;
 procedure SidePanelOpenEvent; forward;
@@ -87,20 +88,20 @@ procedure UpdateWayPoints; forward;
 
 procedure CloseGPS;
 begin
-  if Assigned(SerThread) then
+  {if Assigned(SerThread) then
   begin
     SerThread.Terminate;
     SerThread.WaitFor;
     SerThread.Free;
     SerThread := nil;
-  end;
+  end;}
 end;
 
 procedure InitGPS;
 var
   ReDo: Boolean;
 begin
-  if not Prefs.UseGPS then
+  {if not Prefs.UseGPS then
   begin
     CloseGPS;
     Exit;
@@ -118,7 +119,7 @@ begin
   begin
     CloseGPS;
     SerThread := TSerThread.Create(Prefs.GPSDevice, Prefs.GPSUnit, Prefs.GPSBaud);
-  end;
+  end;}
 end;
 
 
@@ -1931,12 +1932,29 @@ begin
           begin
             OldDate := GPSData.Date;
             SerThread.GetData(GPSData);
+            if MUIMapPanel.ShowGPSPos <> GPSData.Valid then
+            begin
+              MUIMapPanel.ShowGPSPos := GPSData.Valid;
+              if not GPSData.Valid then
+              begin
+                WinTitleText := WindowTitleTemplate + ' GPS position invalid';
+                MH_Set(Window, MUIA_Window_Title, AsTag(PChar(WinTitleText)));
+              end;
+            end;
             if Abs(GPSData.Date - OldDate) * 24 * 60 * 60 > 1 then
             begin
-              //writeln(DateTimeToStr(GPSData.Date) + ' Num Sat: ' + IntToStr(GPSData.NumSatelites) + ' / 12   Pos: ' +
-              //  FloatToStrF(GPSData.Lat, ffFixed, 8,6) + ';' + FloatToStrF(GPSData.Lon, ffFixed, 8,6));
-              MiddlePos.Lat := GPSData.Lat;
-              MiddlePos.Lon := GPSData.Lon;
+              if GPSData.Valid then
+              begin
+                WinTitleText := WindowTitleTemplate + ' Sat: ' + IntToStr(GPSData.NumSatelites) + ' / 12   Pos: ' +
+                  FloatToStrF(GPSData.Lat, ffFixed, 8,6) + ';' + FloatToStrF(GPSData.Lon, ffFixed, 8,6) + ' Valid: ' + BoolToStr(GPSData.Valid, True);
+              end
+              else
+                WinTitleText := WindowTitleTemplate + ' GPS position invalid';
+              MH_Set(Window, MUIA_Window_Title, AsTag(PChar(WinTitleText)));
+              writeln(DateTimeToStr(GPSData.Date) + ' Num Sat: ' + IntToStr(GPSData.NumSatelites) + ' / 12   Pos: ' +
+                FloatToStrF(GPSData.Lat, ffFixed, 8,6) + ';' + FloatToStrF(GPSData.Lon, ffFixed, 8,6) + ' Valid: ' + BoolToStr(GPSData.Valid, True));
+              //MiddlePos.Lat := GPSData.Lat;
+              //MiddlePos.Lon := GPSData.Lon;
               MUIMapPanel.RefreshImage;
             end
             else

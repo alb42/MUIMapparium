@@ -23,6 +23,7 @@ type
     FOnUpdateLocationLabel: TProcedure;
     FOnSidePanelOpen: TProcedure;
     //
+    FShowGPSPos: Boolean;
     FShowMarker: Boolean;
     FShowTracks: Boolean;
     FShowRoutes: Boolean;
@@ -35,12 +36,14 @@ type
     ZoomInBtn: TMapButton;
     ZoomOutBtn: TMapButton;
   private
+    procedure SetShowGPSPos(AValue: Boolean);
     procedure SetShowMarker(AValue: Boolean);
     procedure SetShowTracks(AValue: Boolean);
     procedure SetShowRoutes(AValue: Boolean);
     procedure SetShowPhotos(AValue: Boolean);
   protected
     procedure DrawMiddleMarker(RP: PRastPort; DrawRange: TRect);
+    procedure DrawGPSPos(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
     procedure DrawMarker(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
     procedure DrawPhoto(Ph: TPhoto; RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
     procedure DrawPhotos(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
@@ -83,6 +86,7 @@ type
     property LastMouse: Classes.TPoint read FLastMouse;
     property ShowSidePanelBtn: Boolean read FShowSidePanelBtn write SetShowSidePanelBtn;
 
+    property ShowGPSPos: Boolean read FShowGPSPos write SetShowGPSPos;
     property ShowMarker: Boolean read FShowMarker write SetShowMarker;
     property ShowTracks: Boolean read FShowTracks write SetShowTracks;
     property ShowRoutes: Boolean read FShowRoutes write SetShowRoutes;
@@ -94,7 +98,7 @@ var
 
 implementation
 uses
-  TrackPropsUnit, RoutePropsUnit, fpwritepng;
+  TrackPropsUnit, RoutePropsUnit, fpwritepng, serialthread;
 
 
 // #####################################################################
@@ -114,6 +118,7 @@ begin
   MinHeight := 100;
   DefHeight := 256;
   // visiblity
+  FShowGPSPos := False;
   FShowMarker:= True;
   FShowTracks := True;
   FShowRoutes := True;
@@ -324,6 +329,9 @@ begin
     // Draw Marker
     if FShowMarker then
       DrawMarker(LocalRP, DrawRect, False);
+    // Draw GPS
+    if FShowGPSPos then
+      DrawGPSPos(LocalRP, DrawRect, False);
     //
     SavePict := TFPAMemImage.Create(RecordedSize.X, RecordedSize.Y);
     ReadPixelArray(SavePict.Data, 0, 0, SavePict.Width * SizeOf(LongWord), LocalRP, 0, 0, SavePict.Width, SavePict.Height, RECTFMT_RGBA);
@@ -525,6 +533,67 @@ begin
   i := PhotoList.IndexOf(CurPhoto);
   if i >= 0 then
     DrawPhoto(PhotoList[i], RP, DrawRange, UsePens);
+end;
+
+// Draw the GPSPos
+procedure TMapPanel.DrawGPSPos(RP: PRastPort; DrawRange: TRect; UsePens: Boolean = True);
+const
+  AREA_BYTES = 4000;
+var
+  //WPColor: LongWord = $0000FF;
+  i,j: Integer;
+  Points: packed array of packed record
+    x,y: SmallInt;
+  end;
+  pt: Classes.TPoint;
+  Ras: TPlanePtr;
+  TRas: TTmpRas;
+  WarBuff: array[0..AREA_BYTES] of Word;
+  ari: TAreaInfo;
+  //Pen: LongWord;
+  TE: TTextExtent;
+  MarkerText: string;
+  MarkerPen: LongInt;
+  Position: TCoord;
+begin
+  writeln('Draw GPS Pos');
+  SetAPen(RP, BluePen);
+  SetDrMd(RP, JAM1);
+  // make tmprast
+  Ras := AllocRaster(DrawRange.Width, DrawRange.Height);
+  InitTmpRas(@TRas, ras, DrawRange.Width * DrawRange.Height * 3);
+  SetLength(Points, 4);
+  Position.Lat := GPSData.Lat;
+  Position.Lon := GPSData.Lon;
+  pt := PosToPixel(Position);
+  Points[0].X := pt.x;
+  Points[0].Y := pt.y;
+  if (Points[0].X >= -20) and (Points[0].Y >= -20) and (Points[0].X <= DrawRange.Width + 20) and (Points[0].Y <= DrawRange.Height + 20) then
+  begin
+    Points[1].X := Max(0, Points[0].X - 5);
+    Points[1].Y := Max(0, Points[0].Y - 20);
+    Points[2].X := Max(0, Points[0].X + 5);
+    Points[2].Y := Max(0, Points[0].Y - 20);
+    Points[3].X := Points[0].X;
+    Points[3].Y := Points[0].Y;
+
+    InitArea(@ari, @WarBuff[0], AREA_BYTES div 5);
+    RP^.TmpRas := @TRas;
+    RP^.AreaInfo := @Ari;
+    AreaMove(RP, Points[0].X, Points[0].Y);
+    for j := 0 to High(Points) do
+      AreaDraw(RP, Points[j].X, Points[j].Y);
+    AreaEnd(RP);
+
+    MarkerText := 'GPS';
+    TextExtent(Rp, PChar(MarkerText), Length(MarkerText), @TE);
+
+    GFXMove(RP, Points[0].X - (TE.te_Width div 2), Points[1].Y - TE.te_Height div 2);
+    GfxText(Rp, PChar(MarkerText), Length(MarkerText));
+  end;
+  RP^.TmpRas := nil;
+  RP^.AreaInfo := nil;
+  FreeRaster(Ras, DrawRange.Width, DrawRange.Height);
 end;
 
 // Draw the Waypoints
@@ -973,6 +1042,13 @@ begin
   RefreshImage;
 end;
 
+procedure TMapPanel.SetShowGPSPos(AValue: Boolean);
+begin
+  if AValue = FShowGPSPos then
+    Exit;
+  FShowGPSPos := AValue;
+  RedrawObject;
+end;
 
 procedure TMapPanel.SetShowMarker(AValue: Boolean);
 begin

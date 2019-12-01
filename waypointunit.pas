@@ -6,7 +6,7 @@ uses
   imagesunit, gpxunit, osmhelper,
   DOM, XMLRead, XMLWrite, xmlutils, jsonparser, fpjson, zipper, dateutils,
   SysUtils, StrUtils, Types, Classes, Math, utility, exec, dos, asl, fgl,
-  MUIWrap, mui;
+  MUIWrap, mui, serialthread;
 
 
 type

@@ -264,6 +264,7 @@ begin
         TAG_DONE])),
       Child, AsTag(MH_HGroup([
         MUIA_Group_Rows, 2,
+        MUIA_ShowMe, AsTag(False),
         MUIA_Frame, MUIV_Frame_Group,
         MUIA_FrameTitle, AsTag('GPS'), // 'GPS'
         Child, AsTag(MH_Text('Enabled'{GetLocString(MSG_PREFS_DEFLANG)})),    // 'Use GPS'
