@@ -99,6 +99,11 @@ you experience slow map movement, with the NoFPU version, don't blame me
 
 @NODE history "History"
 
+0.9
+
+* do not delete Search String after search (a popular wish)
+* BugFix: Non-ASCII Chars in Search Result title.
+
 0.8
 
 * Use Shift for fast scrolling in Map

@@ -286,12 +286,12 @@ begin
           SearchEntry(SearchTerm);
           Exit;
         end;
-        SearchTitleStr := Format(GetLocString(MSG_ERROR_NOTHINGFOUND), [SearchTerm]); //'Nothing found for "'+SearchTerm+'"'#0;
+        SearchTitleStr := utf8ToAnsi(Format(GetLocString(MSG_ERROR_NOTHINGFOUND), [SearchTerm])); //'Nothing found for "'+SearchTerm+'"'#0;
         MH_Set(SearchListEntry, MUIA_List_Title, AsTag(@SearchTitleStr[1]));
       end
       else
       begin
-        SearchTitleStr :=  Format(GetLocString(MSG_SEARCH_RESULTS), [SRes.Count, SearchTerm]);
+        SearchTitleStr :=  Utf8ToAnsi(Format(GetLocString(MSG_SEARCH_RESULTS), [SRes.Count, SearchTerm]));
         MH_Set(SearchListEntry, MUIA_List_Title, AsTag(@SearchTitleStr[1]));
         if SRes.Count > 0 then
         begin
@@ -461,7 +461,8 @@ begin
     end;
     SearchEntry(SText);
   end;
-  MH_Set(SearchEdit, MUIA_String_Contents, AsTag(''));
+  // which by some user, do not delete
+  //MH_Set(SearchEdit, MUIA_String_Contents, AsTag(''));
   Result := 0;
 end;
 
@@ -2020,12 +2021,45 @@ begin
     halt(5);
   end;
 end;
+
+function CheckAllowed: Boolean;
+var
+  Info: TSearchRec;
+  s1,s3,s2: string;
+begin
+  // Check for AmiKit
+  Result := False;
+  // AROS = Execbase >= 51
+  if PExecBase(AOS_ExecBase)^.LibNode.lib_Version >= 51 then
+  begin
+    Result := True;
+    Exit;
+  end;
+  // AmiKit check
+  if FindFirst ('ENV:*', faAnyFile, Info) = 0 then
+  begin
+    repeat
+      s1 := Copy(Info.Name, 1, 3); // Ami
+      s3 := Copy(Info.Name, 7, Length(Info.Name)); // Version
+      s2 := Copy(Info.Name, 4, 3); // Kit
+      if (s3 = 'Version') and (s1 = 'Ami') then
+      begin
+        if s2 = 'Kit' then
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
+    until FindNext(info) <> 0;
+  end;
+  FindClose(Info);
+end;
 {$endif}
 
 begin
   {$ifdef AMIGA68k}
   TestVampire;
-  if (PExecBase(AOS_ExecBase)^.AttnFlags and AFF_68080) <> 0 then
+  if ((PExecBase(AOS_ExecBase)^.AttnFlags and AFF_68080) <> 0) and (not CheckAllowed) then
   begin
     Writeln('Anti-Coffin copy-protection, blocking Vampire.');
     halt(0);
