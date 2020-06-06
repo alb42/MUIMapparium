@@ -46,8 +46,8 @@ function GetMUITime: Int64;
 function SetColor(RP:PRastPort; Col: LongWord; BGColor: Boolean = False): LongWord; // Color as RGB
 procedure UnSetColor(Pen: LongWord);  //
 
-function TH(RP: PRastPort; Text: string): Integer;
-function TW(RP: PRastPort; Text: string): Integer; inline;
+function GetTextHeight(RP: PRastPort; Text: string): Integer;
+function GetTextWidth(RP: PRastPort; Text: string): Integer; inline;
 procedure DrawRect(RP: PRastPort; r: TRect); inline;
 
 procedure ShowMessage(Title, Button, Text: string);
@@ -57,7 +57,7 @@ var
 
 implementation
 
-function TH(RP: PRastPort; Text: string): Integer;
+function GetTextHeight(RP: PRastPort; Text: string): Integer;
 var
   TE: TTextExtent;
 begin
@@ -65,7 +65,7 @@ begin
   Result := TE.te_Height;
 end;
 
-function TW(RP: PRastPort; Text: string): Integer;
+function GetTextWidth(RP: PRastPort; Text: string): Integer;
 begin
   Result := TextLength(RP, PChar(text), Length(Text));
 end;

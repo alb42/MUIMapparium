@@ -11,22 +11,15 @@ type
   TMarkerChangeEvent = procedure(MarkerID: Integer);
   TDoubleArray = array of Double;
   TAxis = class;
-  TAxisScale = (atLin,atLog);
-  TAxisPosition = (apBottom,apLeft,apTop,apRight);
-  TAxisOptions = set of (aoMinFixed,aoMaxFixed,
-                         aoShowTics,aoShowLabels,aoShowTitle,
-                         aoMajorGrid,aoMinorGrid,
-                         aoForceWidth,aoForceNoExp,aoForceInteger);
+  TAxisScale = (atLin, atLog);
+  TAxisPosition = (apBottom, apLeft, apTop, apRight);
+  TAxisOptions = set of (aoMinFixed, aoMaxFixed, aoShowTics, aoShowLabels, aoShowTitle, aoMajorGrid,aoMinorGrid, aoForceWidth,aoForceNoExp,aoForceInteger);
   TPlotBoxCurve = record
     x, y: array of Double;
     valid: array of boolean;
     xAxPos, yAxPos: TAxisPosition;
     xaxis, yaxis: TAxis;
     Color: TColor;
-    //Width: Integer;
-    //ScatterStyle: TScatterStyle;
-    //ScatterSize: integer;
-    //LinesOn:boolean;
     Name:string;
   end;
 
@@ -72,15 +65,11 @@ type
 
   TPlotPanel = class(TMUIPaintBox)
   private
-    //DownPos: Classes.TPoint;
-    //FLastMouse: Classes.TPoint;
-    //LeftDown: Boolean;
     FTitle: string;
     FAxisLeft: TAxis;
     FAxisBottom: TAxis;
     FAxisRight: TAxis;
     FAxisTop: TAxis;
-    Inset: String;
     Curves: array of TPlotBoxCurve;
     FForceRedraw: Boolean;
     FLayerInfo: PLayer_Info;
@@ -125,20 +114,6 @@ type
     procedure ExportASCII(FileName: string = '');
     procedure ExportPNG(FileName: string = '');
 
-    {procedure MouseDblClick(Sender: TObject; MouseBtn: TMUIMouseBtn; X,Y: Integer; var EatEvent: Boolean);
-    procedure MouseMoveEvent(Sender: TObject; X,Y: Integer; var EatEvent: Boolean);
-    procedure MouseWheelEvent(Sender: TObject; ScrollUp: Boolean; var EatEvent: Boolean);
-    //
-    procedure KeyDownEvent(Sender: TObject; Shift: TMUIShiftState; Code: Word; Key: Char; var EatEvent: Boolean);
-    //
-    procedure ZoomIn(ToPos: Boolean);
-    procedure ZoomOut;
-    procedure RefreshImage;
-    function PixelToPos(T: Classes.TPoint): TCoord;
-    function PosToPixel(C: TCoord): Classes.TPoint;
-
-    property OnUpdateLocationLabel: TProcedure read FOnUpdateLocationLabel write FOnUpdateLocationLabel;
-    property LastMouse: Classes.TPoint read FLastMouse;}
     property Title: string read FTitle write FTitle;
     property AxisTop: TAxis read FAxisTop write FAxisTop;
     property AxisLeft: TAxis read FAxisLeft write FAxisLeft;
@@ -199,48 +174,10 @@ begin
   Result := FloatToStrF(Value, ffFixed, 16, Precision);
 end;
 
-procedure ParamNameOut(s: string; RP: PRastPort;
-  Color: TColor; Rect: TRect; Rot90:boolean=false);
-{var
-  TempRP: PRastPort;
-  TE: TTextExtent;
-  nx, ny, x, y: Integer;
-  Pen: LongWord;}
+procedure ParamNameOut(s: string; RP: PRastPort; Color: TColor; Rect: TRect);
 begin
-  if Rot90 then
-  begin
-    {
-    TextExtent(RP, PChar(s), Length(s), @TE);
-    TempRP := CreateRastPort;
-    TempRP^.Bitmap := AllocBitMap(TE.te_Width, TE.te_Height, rp^.Bitmap^.Depth, BMF_MINPLANES or BMF_DISPLAYABLE, rp^.Bitmap);
-    TempRP^.Font := RP^.Font;
-    Pen := SetColor(TempRP, 0);
-    RectFill(TempRP, 0,0, TE.te_Width-1, TE.te_Height-1);
-    UnSetColor(Pen);
-    Pen := GetAPen(RP);
-    Pen := SetColor(TempRP, Color);
-    GfxMove(TempRp, 0, 0 + TE.te_Height);
-    GfxText(TempRp, PChar(s), Length(s));
-    UnSetColor(Pen);
-    for y := 0 to TE.te_Height - 1 do
-    begin
-      for x := 0 to TE.te_Width - 1 do
-      begin
-        nx := Rect.Left + (TE.te_Height - 1 - y) - 5;
-        ny := Rect.Top + x;
-        Pen :=  ReadRGBPixel(TempRP, x, y);
-        if Pen <> 0 then
-          WriteRGBPixel(RP, nx, ny, Pen);
-      end;
-    end;
-    FreeBitmap(TempRP^.Bitmap);
-    FreeRastPort(TempRP);}
-  end
-  else
-  begin
-    GfxMove(Rp, rect.Left,rect.Top + 6);
-    GfxText(Rp, PChar(s), Length(s));
-  end;
+  GfxMove(Rp, rect.Left,rect.Top + 6);
+  GfxText(Rp, PChar(s), Length(s));
 end;
 
 function PointInRect(const x,y:integer;const Rect:TRect):boolean; inline;
@@ -392,9 +329,9 @@ begin
   afterdot := 0;
   if aoShowLabels in Options then
   begin
-    hg := Round(TH(RP, '|') * 1.2);
+    hg := Round(GetTextHeight(RP, '|') * 1.2);
     disp := hg;
-    hg2 := Round(TH(RP, '|') * 0.5);
+    hg2 := Round(GetTextHeight(RP, '|') * 0.5);
     if (FAxisScale = atLin) and (Increment <> 0) then
     begin
 //    if not (aoForceNoExp in Options)
@@ -416,7 +353,7 @@ begin
         begin
           pt := Place(i * Increment);
           ds := ValueToStr(i * increment / DivideFac, Afterdot);
-          wd := TW(Rp, ds);
+          wd := GetTextWidth(Rp, ds);
           case TextPosition of
             apBottom:
               GfxMove(Rp, pt.X-wd div 2, pt.Y + hg);
@@ -434,13 +371,13 @@ begin
       if (FMinValue > 0) and (FMaxValue > 0) then
       begin
         AfterDot := 0;
-        w10 := TW(Rp, '10');
+        w10 := GetTextWidth(Rp, '10');
         for i := Round(ln(FMinValue) / ln10) to Round(ln(FMaxValue) / ln10) do
           if (Exp(i * ln10) >= FMinValue) and (Exp(i*ln10) <= FMaxValue) then
           begin
             pt:=Place(exp(i*ln10));
             ds:=inttostr(i);
-            wd:=TW(RP,ds)+w10;
+            wd:=GetTextWidth(RP,ds)+w10;
             case TextPosition of
               apBottom:
                 begin
@@ -476,8 +413,8 @@ begin
   end;
   if aoShowTitle in Options then
   begin
-    hg:=round(TH(Rp,'|')*1.2);
-    hg2:=round(TH(Rp,'|')*0.2);
+    hg:=round(GetTextHeight(Rp,'|')*1.2);
+    hg2:=round(GetTextHeight(Rp,'|')*0.2);
     ds:=Title;
   {*}      if trim(Prefix+AxUnit)<>''
     then
@@ -491,7 +428,7 @@ begin
       delete(ds2,pos('_',ds2),1);
     while pos('^',ds2)>0 do
       delete(ds2,pos('^',ds2),1);
-    wd:=TW(Rp,ds2);
+    wd:=GetTextWidth(Rp,ds2);
     case TextPosition of
       apBottom:
         ParamNameOut(ds,Rp, Color, rect(
@@ -500,7 +437,7 @@ begin
       apLeft:
         ParamNameOut(ds,Rp, Color, rect(
           DrawRect.Left + Start.X-VertTextShift-hg, DrawRect.Top + (Start.Y+Stop.Y-wd) div 2,
-          DrawRect.Left + Start.X-VertTextShift, DrawRect.Top + (Start.Y+Stop.Y+wd) div 2),true);
+          DrawRect.Left + Start.X-VertTextShift, DrawRect.Top + (Start.Y+Stop.Y+wd) div 2));
       apTop:
         ParamNameOut(ds,Rp, Color, rect(
           DrawRect.Left + (Start.X+Stop.X-wd) div 2, DrawRect.Top + Start.Y-hg-disp,
@@ -508,7 +445,7 @@ begin
       apRight:
         ParamNameOut(ds,Rp, Color, rect(
           DrawRect.Left + Start.X+VertTextShift+round(hg*0.3), DrawRect.Top + (Start.Y+Stop.Y-wd) div 2,
-          DrawRect.Left + Start.X+VertTextShift+round(hg*1.3), DrawRect.Top + (Start.Y+Stop.Y+wd) div 2),true);
+          DrawRect.Left + Start.X+VertTextShift+round(hg*1.3), DrawRect.Top + (Start.Y+Stop.Y+wd) div 2));
     end;
   end;
   UnSetColor(Pen);
@@ -763,13 +700,10 @@ var
 begin
   //writeln('--> get width ', FPosition, ' textpos', TextPosition);
   Result := 0;
-  hg := round(1.1 * TH(RP, '-0.123456789'));
+  hg := round(1.1 * GetTextHeight(RP, '-0.123456789'));
   if hg < 8 then
     hg := 8;
   wd := 10;
-  //wd := TW(RP, '888.888');
-  //if wd < 10 then
-  //  wd := 10;
   if Textposition in [apLeft, apRight] then
     SetIncrement(hg)
   else
@@ -778,8 +712,6 @@ begin
   begin
     //writeln('  force');
     //Result := ForcedWidth;
-    //Canvas.Font.Assign(Styles.TitleFont);
-    //VertTextShift:=ForcedWidth-round(TH(Canvas,'|')*1);
   end
   else
   begin
@@ -789,7 +721,7 @@ begin
       case TextPosition of
         apTop, apBottom:
           begin
-            wd := wd + Round(TH(RP, '|') * 1.2);
+            wd := wd + Round(GetTextHeight(RP, '|') * 1.2);
             //writeln('  top/bottom , showlabels');
           end;
         apLeft, apRight:
@@ -813,13 +745,13 @@ begin
                 for i := Round(FMinValue / Increment) to Round(FMaxValue / Increment) do
                 begin
                   ds := ValueToStr(i * Increment / DivideFac, afterdot);
-                  wdh := TW(Rp, ds);
+                  wdh := GetTextWidth(Rp, ds);
                   if wdh > wmax then
                     wmax := wdh;
                 end;
             end
             else
-              wmax := TW(RP, '10888');
+              wmax := GetTextWidth(RP, '10888');
             wd := wd + wmax;
             VertTextShift := wmax;
           end;
@@ -828,7 +760,7 @@ begin
     if (aoShowTitle in Options) and (Title <> '') then
     begin
       //writeln('  ShowTitles');
-      wd := wd + Round(TH(RP, '|') * 1.2);
+      wd := wd + Round(GetTextHeight(RP, '|') * 1.2);
     end;
     wd := wd;
     //writeln('  WD ', wd, ' wmax ', wmax);
@@ -975,13 +907,7 @@ begin
 
   FTitle := 'Example Title';
   OnDrawObject := @DrawEvent;
-  //OnMUIDblClick := @MouseDblClick;
-  //OnMUIMouseDown := @MouseDownEvent;
-  //OnMUIMouseUp := @MouseUpEvent;
-  //OnMUIMouseMove := @MouseMoveEvent;
-  //OnMUIMouseWheel := @MouseWheelEvent;
 
-  //OnMUIKeyDown := @KeyDownEvent;
   FAxisTop := TAxis.Create;
   FAxisTop.FPosition := apTop;
   FAxisTop.TextPosition := apTop;
@@ -1321,17 +1247,7 @@ begin
     RPDrawRect.Width := DrawRect.Width;
     RPDrawRect.Height := DrawRect.Height;
 
-    {if inset <> '' then
-    begin
-      iw := TW(RP, inset);
-      ih := TH(RP, '|');
-    end
-    else
-    begin
-      iw:=0;
-      ih:=0;
-    end;}
-    Fsze := TH(RP, '|');
+    Fsze := GetTextHeight(RP, '|');
    // RescaleByCurves;
     for i:=0 to 2 do
     begin
@@ -1384,16 +1300,6 @@ begin
     AxisLeft.DoDraw(FRastPort, RPDrawRect);
     AxisRight.DoDraw(FRastPort, RPDrawRect);
     //
-    if trim(inset) <> '' then
-    begin
-      {canvas.Brush.Color:=styles.BackgroundColor;
-      canvas.Pen.Width:=1;
-      canvas.Pen.Color:=styles.FrameColor;
-      Canvas.Rectangle(rect(rg-3*ih-iw,tp+ih,rg-ih,tp+4*ih));
-      Canvas.TextRect(rect(rg-2*ih-iw,tp+2*ih,rg-2*ih,tp+3*ih-1),
-        rg-2*ih-iw,tp+2*ih,inset);}
-    end;
-
     UnSetColor(Pen);
     FForceRedraw := False;
   end;
@@ -1424,10 +1330,10 @@ begin
       GfxMove(RP, DrawRect.Left + CrossPos.X, DrawRect.Top + CrossPos.Y - 20);
     end;
 
-    TextH := Round((TH(RP, '|') * 1.2));
+    TextH := Round((GetTextHeight(RP, '|') * 1.2));
     TextW := 0;
     for i := 0 to CrossText.Count - 1 do
-      TextW := Max(TextW, TW(RP, CrossText[i]));
+      TextW := Max(TextW, GetTextWidth(RP, CrossText[i]));
     // calculate Text rectangle
     TextRect.Left := DrawRect.Left + CrossPos.X + 5;
     TextRect.Top := DrawRect.Top + CrossPos.Y + 5;
@@ -1575,12 +1481,8 @@ begin
   end;
   Curves[si].XAxPos := XAxis;
   Curves[si].YAxPos := YAxis;
-  //Curves[si].Width:=Width;
   Curves[si].Name := Name;
-  //Curves[si].ScatterStyle:=ScatterStyle;
-  //Curves[si].ScatterSize:=ScatterWidth;
   Curves[si].Color := Color;
-  //Curves[si].LinesOn:=LinesOn;
 end;
 
 //#######################################

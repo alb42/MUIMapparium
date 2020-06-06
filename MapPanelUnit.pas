@@ -872,8 +872,8 @@ var
   //Pen: LongWord;
 begin
   SetDrMd(RP, JAM1);
-  ButtonSize.X := Round(TW(RP, 'W') * 1.2);
-  ButtonSize.Y := Round(TH(RP, '|') * 1.2);
+  ButtonSize.X := Round(GetTextWidth(RP, 'W') * 1.2);
+  ButtonSize.Y := Round(GetTextHeight(RP, '|') * 1.2);
   //
   SidePanelBtn.Area := Rect(0, ButtonSize.Y, ButtonSize.X, ButtonSize.Y * 2);
   //
