@@ -248,7 +248,7 @@ begin
       Child := Doc.DocumentElement.FirstChild;
       while Assigned(Child) do
       begin
-        Node := Child.Attributes.GetNamedItem('class');
+        {Node := Child.Attributes.GetNamedItem('class');
         if Assigned(Node) then
         begin
           if Node.NodeValue = 'boundary' then
@@ -256,7 +256,7 @@ begin
             Child := Child.NextSibling;
             Continue;
           end;
-        end;
+        end;}
         Node := Child.Attributes.GetNamedItem('display_name');
         if Assigned(Node) then
         begin
